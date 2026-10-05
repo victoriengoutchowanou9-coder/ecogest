@@ -9,6 +9,7 @@ import { ChildSwitcher } from "@/components/school/ChildSwitcher";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { MOCK_STUDENTS, Student } from "@/lib/mock-data";
 import { useToast } from "@/components/ui/Toast";
+import { ReportCardView } from "@/components/school/ReportCardView";
 
 interface SubjectGrade {
   subject: string;
@@ -32,7 +33,8 @@ export default function ParentNotesPage() {
   const { toast } = useToast();
   const myChildren = [MOCK_STUDENTS[0], MOCK_STUDENTS[1]];
   const [selectedChild, setSelectedChild] = useState<Student>(myChildren[0]);
-  const [selectedPeriod, setSelectedPeriod] = useState("Semestre 1");
+  const [selectedPeriod, setSelectedPeriod] = useState("1er Semestre");
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const columns: Column<SubjectGrade>[] = [
     {
@@ -80,11 +82,11 @@ export default function ParentNotesPage() {
         actions={
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={() => setShowReportModal(true)}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-school-primary hover:bg-school-700 text-white font-semibold text-xs md:text-sm shadow-sm touch-target"
           >
             <Download className="w-4 h-4" />
-            <span>Télécharger le bulletin</span>
+            <span>Bulletin Officiel Imprimable</span>
           </button>
         }
       />
@@ -144,6 +146,19 @@ export default function ParentNotesPage() {
           />
         )}
       />
+
+      {/* Official Report Card Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-4xl w-full p-4 md:p-6 my-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <ReportCardView
+              student={selectedChild}
+              period={selectedPeriod}
+              onClose={() => setShowReportModal(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
