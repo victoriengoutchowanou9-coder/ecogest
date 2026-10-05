@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-inter: 'Inter', sans-serif;
+  --primary-deep: #0f2b5c;
+  --bg-page: #f8fafc;
+}
+
+body {
+  font-family: var(--font-inter);
+  background-color: var(--bg-page);
+  color: #0f172a;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular figures for FCFA amounts and metrics */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Minimum 44px touch target class */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Focus styles for keyboard accessibility */
+:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Print Stylesheet for Official Receipts */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .no-print,
+  nav,
+  aside,
+  header,
+  footer,
+  .btn-print,
+  .topbar,
+  .sidebar,
+  .mobile-drawer {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .receipt-container {
+    width: 100% !important;
+    max-width: 800px !important;
+    margin: 0 auto !important;
+    border: 1px solid #111827 !important;
+    box-shadow: none !important;
+    padding: 24px !important;
+    page-break-inside: avoid;
+  }
+}
