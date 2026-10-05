@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { BookOpenCheck, CheckCircle2, Lock, AlertTriangle, ShieldCheck } from "lucide-react";
+import { BookOpenCheck, CheckCircle2, Lock, AlertTriangle, ShieldCheck, FileText } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable, Column } from "@/components/ui/DataTable";
 import { RecordCard } from "@/components/ui/RecordCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { MOCK_GRADES_CLASS_3A, StudentGrade } from "@/lib/mock-data";
+import { MOCK_GRADES_CLASS_3A, MOCK_STUDENTS, StudentGrade, Student } from "@/lib/mock-data";
 import { useToast } from "@/components/ui/Toast";
+import { ReportCardView } from "@/components/school/ReportCardView";
 
 export default function NotesValidationPage() {
   const { toast } = useToast();
@@ -16,6 +17,7 @@ export default function NotesValidationPage() {
   const [selectedSubject, setSelectedSubject] = useState("Mathématiques");
   const [grades, setGrades] = useState<StudentGrade[]>(MOCK_GRADES_CLASS_3A);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [selectedStudentForReport, setSelectedStudentForReport] = useState<Student | null>(null);
 
   const missingCount = grades.filter(
     (g) => g.interro1 === null || g.interro2 === null || g.devoir1 === null || g.devoir2 === null
@@ -76,6 +78,42 @@ export default function NotesValidationPage() {
       key: "status",
       header: "Statut",
       render: (item) => <StatusBadge status={item.status} size="sm" />,
+    },
+    {
+      key: "actions",
+      header: "Bulletin",
+      render: (item) => {
+        const student = MOCK_STUDENTS.find((s) => s.id === item.studentId) || {
+          id: item.studentId,
+          matricule: item.matricule,
+          firstName: item.studentName.split(" ")[0] || "Élève",
+          lastName: item.studentName.split(" ").slice(1).join(" ") || "",
+          classId: "3e-a",
+          className: selectedClass,
+          gender: "M",
+          birthDate: "2011-05-10",
+          parentName: "Parent",
+          parentPhone: "+229 97 00 00 00",
+          status: "INSCRIT",
+          average: item.average ?? 14.5,
+          rank: 3,
+          absencesCount: 2,
+          totalTuition: 280000,
+          paidTuition: 280000,
+          remainingTuition: 0,
+          tuitionStatus: "PAID",
+        };
+        return (
+          <button
+            type="button"
+            onClick={() => setSelectedStudentForReport(student as Student)}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-slate-100 hover:bg-school-50 text-slate-700 hover:text-school-primary text-xs font-semibold border border-slate-200 transition-colors"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Bulletin</span>
+          </button>
+        );
+      },
     },
   ];
 
@@ -190,6 +228,19 @@ export default function NotesValidationPage() {
         onConfirm={handleValidateAll}
         onCancel={() => setIsConfirmOpen(false)}
       />
+
+      {/* Official Report Card Modal for Deliberation */}
+      {selectedStudentForReport && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-4xl w-full p-4 md:p-6 my-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <ReportCardView
+              student={selectedStudentForReport}
+              period="1er Semestre"
+              onClose={() => setSelectedStudentForReport(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
