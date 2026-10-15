@@ -21,8 +21,20 @@ import {
   Award,
   Clock,
   CreditCard,
+  Bell,
+  MessageSquare,
+  UserCircle,
+  BookMarked,
+  TrendingDown,
+  Briefcase,
+  Wallet,
+  CalendarDays,
+  Globe,
+  ShieldAlert,
+  LifeBuoy,
 } from "lucide-react";
-import { Role, ROLE_NAVIGATIONS } from "@/lib/permissions";
+import { ROLE_NAVIGATIONS } from "@/lib/permissions";
+import { useRoleContext } from "@/lib/context/RoleContext";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, React.ReactNode> = {
@@ -43,13 +55,27 @@ const ICONS: Record<string, React.ReactNode> = {
   Award: <Award className="w-5 h-5 shrink-0" />,
   Clock: <Clock className="w-5 h-5 shrink-0" />,
   CreditCard: <CreditCard className="w-5 h-5 shrink-0" />,
+  Bell: <Bell className="w-5 h-5 shrink-0" />,
+  MessageSquare: <MessageSquare className="w-5 h-5 shrink-0" />,
+  UserCircle: <UserCircle className="w-5 h-5 shrink-0" />,
+  BookMarked: <BookMarked className="w-5 h-5 shrink-0" />,
+  TrendingDown: <TrendingDown className="w-5 h-5 shrink-0" />,
+  Briefcase: <Briefcase className="w-5 h-5 shrink-0" />,
+  Wallet: <Wallet className="w-5 h-5 shrink-0" />,
+  CalendarDays: <CalendarDays className="w-5 h-5 shrink-0" />,
+  Globe: <Globe className="w-5 h-5 shrink-0" />,
+  ShieldAlert: <ShieldAlert className="w-5 h-5 shrink-0" />,
+  LifeBuoy: <LifeBuoy className="w-5 h-5 shrink-0" />,
 };
 
-export const BottomTabBar: React.FC<{ currentRole: Role }> = ({ currentRole }) => {
+export const BottomTabBar: React.FC = () => {
   const pathname = usePathname();
+  const { role: currentRole } = useRoleContext();
   const currentNav = ROLE_NAVIGATIONS[currentRole];
-  // Take up to 4 most used items for mobile tab bar
-  const quickItems = currentNav.items.slice(0, 4);
+  // Sort items by mobileTabPriority (1 = most important), fallback to original order
+  const quickItems = [...currentNav.items]
+    .sort((a, b) => (a.mobileTabPriority ?? 99) - (b.mobileTabPriority ?? 99))
+    .slice(0, 4);
 
   return (
     <nav

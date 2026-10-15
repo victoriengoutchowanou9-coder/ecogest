@@ -68,6 +68,38 @@ export default function EmargementPage() {
     },
   ];
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formTeacher, setFormTeacher] = useState("Prof. Justin HOUNKPONOU");
+  const [formSubject, setFormSubject] = useState("Mathématiques");
+  const [formClass, setFormClass] = useState("Terminale C");
+  const [formSchedule, setFormSchedule] = useState("08:00 - 10:00");
+  const [formArrival, setFormArrival] = useState("07:55");
+  const [formDeparture, setFormDeparture] = useState("10:00");
+  const [formStatus, setFormStatus] = useState<"PRESENT" | "RETARD" | "ABSENT">("PRESENT");
+  const [formHours, setFormHours] = useState(2);
+  const [formNotes, setFormNotes] = useState("");
+
+  const handleSavePointage = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newEntry: TeacherAttendance = {
+      id: `ta-${Date.now()}`,
+      teacherId: `tch-${Date.now()}`,
+      teacherName: formTeacher,
+      subject: formSubject,
+      className: formClass,
+      date: new Date().toISOString().split("T")[0],
+      scheduledTime: formSchedule,
+      arrivalHour: formStatus === "ABSENT" ? "" : formArrival,
+      departureHour: formStatus === "ABSENT" ? "" : formDeparture,
+      status: formStatus,
+      hoursDone: formStatus === "ABSENT" ? 0 : Number(formHours) || 2,
+      notes: formNotes || undefined,
+    };
+    setAttendances([newEntry, ...attendances]);
+    setIsModalOpen(false);
+    toast(`Pointage enregistré avec succès pour ${formTeacher}`, "success");
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -76,7 +108,8 @@ export default function EmargementPage() {
         breadcrumbs={[{ label: "Censeur", href: "/censeur" }, { label: "Émargement" }]}
         actions={
           <button
-            onClick={() => toast("Enregistrement rapide d'un pointage", "info")}
+            type="button"
+            onClick={() => setIsModalOpen(true)}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-school-primary text-white font-semibold text-xs md:text-sm hover:bg-school-700 shadow-sm touch-target"
           >
             <Plus className="w-4 h-4" />
@@ -127,6 +160,150 @@ export default function EmargementPage() {
           />
         )}
       />
+
+      {/* Modal Nouveau Pointage */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg border border-slate-200 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-school-primary" />
+                <h3 className="font-bold text-slate-900">Enregistrer un pointage enseignant</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePointage} className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Enseignant</label>
+                <input
+                  type="text"
+                  required
+                  value={formTeacher}
+                  onChange={(e) => setFormTeacher(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-school-primary/20"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Matière</label>
+                  <input
+                    type="text"
+                    required
+                    value={formSubject}
+                    onChange={(e) => setFormSubject(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Classe</label>
+                  <input
+                    type="text"
+                    required
+                    value={formClass}
+                    onChange={(e) => setFormClass(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Créneau prévu</label>
+                  <input
+                    type="text"
+                    value={formSchedule}
+                    onChange={(e) => setFormSchedule(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-mono"
+                    placeholder="08:00 - 10:00"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Statut de présence</label>
+                  <select
+                    value={formStatus}
+                    onChange={(e) => setFormStatus(e.target.value as any)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm bg-white"
+                  >
+                    <option value="PRESENT">Présent</option>
+                    <option value="RETARD">Retard</option>
+                    <option value="ABSENT">Absent</option>
+                  </select>
+                </div>
+              </div>
+
+              {formStatus !== "ABSENT" && (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Heure arrivée</label>
+                    <input
+                      type="time"
+                      value={formArrival}
+                      onChange={(e) => setFormArrival(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Heure départ</label>
+                    <input
+                      type="time"
+                      value={formDeparture}
+                      onChange={(e) => setFormDeparture(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Heures faites</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0.5"
+                      max="8"
+                      value={formHours}
+                      onChange={(e) => setFormHours(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Observations / Justificatif (optionnel)</label>
+                <input
+                  type="text"
+                  value={formNotes}
+                  onChange={(e) => setFormNotes(e.target.value)}
+                  placeholder="Ex: Arrivée 10 min de retard avec justificatif météo"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-school-primary text-white text-xs font-semibold hover:bg-school-700 shadow-sm"
+                >
+                  Enregistrer le pointage
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

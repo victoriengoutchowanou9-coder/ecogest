@@ -3,9 +3,9 @@ import "@/styles/globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
 
 export const metadata: Metadata = {
-  title: "ECODUC | Plateforme Intégrée de Gestion Scolaire",
+  title: "EDUCOGEST | Progiciel Tout-en-Un de Gestion Scolaire",
   description:
-    "Application web moderne de gestion scolaire pour collèges et lycées (GESTIO 229) : suivi des élèves, notes, présences, comptabilité et paiements sécurisés.",
+    "Progiciel complet et moderne de gestion pour établissements scolaires (collèges, lycées et complexes scolaires) : direction administrative, pédagogie & censeur, bulletins officiels béninois, comptabilité des scolarités et suivi parental.",
 };
 
 export default function RootLayout({

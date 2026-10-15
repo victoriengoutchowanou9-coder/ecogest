@@ -1,21 +1,18 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { X, School } from "lucide-react";
-import { Role } from "@/lib/permissions";
+import { X } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { CURRENT_SCHOOL } from "@/lib/permissions";
 
 interface MobileDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  currentRole: Role;
 }
 
 export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   isOpen,
   onClose,
-  currentRole,
 }) => {
   // Close drawer on escape key
   useEffect(() => {
@@ -72,7 +69,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
 
         {/* Sidebar Content (triggers onClose on navigation) */}
         <div className="flex-1 overflow-y-auto">
-          <Sidebar currentRole={currentRole} onNavigate={onClose} className="w-full h-full border-r-0" />
+          <Sidebar onNavigate={onClose} className="w-full h-full border-r-0" />
         </div>
       </div>
     </div>

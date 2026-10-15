@@ -5,6 +5,7 @@ export interface Student {
   lastName: string;
   classId: string;
   className: string;
+  cycle?: "PRIMAIRE" | "SECONDAIRE";
   gender: "M" | "F";
   birthDate: string;
   parentName: string;
@@ -73,6 +74,7 @@ export const MOCK_STUDENTS: Student[] = [
     lastName: "ADANHOUN",
     classId: "3e-a",
     className: "3ème A",
+    cycle: "SECONDAIRE",
     gender: "M",
     birthDate: "2011-04-12",
     parentName: "M. Marc ADANHOUN",
@@ -87,12 +89,34 @@ export const MOCK_STUDENTS: Student[] = [
     tuitionStatus: "PAID",
   },
   {
+    id: "std-p01",
+    matricule: "ECO-PRIM-2026-0012",
+    firstName: "Samuel",
+    lastName: "ADANHOUN",
+    classId: "ce2-b",
+    className: "CE2 B",
+    cycle: "PRIMAIRE",
+    gender: "M",
+    birthDate: "2017-06-18",
+    parentName: "M. Marc ADANHOUN",
+    parentPhone: "+229 97 12 34 56",
+    status: "INSCRIT",
+    average: 17.0,
+    rank: 2,
+    absencesCount: 0,
+    totalTuition: 160000,
+    paidTuition: 160000,
+    remainingTuition: 0,
+    tuitionStatus: "PAID",
+  },
+  {
     id: "std-02",
     matricule: "ECO-2026-0089",
     firstName: "Amina",
     lastName: "ADANHOUN",
     classId: "6e-b",
     className: "6ème B",
+    cycle: "SECONDAIRE",
     gender: "F",
     birthDate: "2014-08-25",
     parentName: "M. Marc ADANHOUN",

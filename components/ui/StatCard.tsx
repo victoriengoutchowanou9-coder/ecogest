@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 interface StatCardProps {
   title: string;
-  value: string | number;
+  value: string | number | React.ReactNode;
   subtitle?: string;
   icon?: React.ReactNode;
   trend?: {
@@ -12,6 +12,9 @@ interface StatCardProps {
   };
   variant?: "default" | "success" | "warning" | "danger" | "info";
   className?: string;
+  compact?: boolean;
+  valueClassName?: string;
+  onClick?: () => void;
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -22,6 +25,9 @@ export const StatCard: React.FC<StatCardProps> = ({
   trend,
   variant = "default",
   className,
+  compact = false,
+  valueClassName,
+  onClick,
 }) => {
   const variantStyles = {
     default: "border-slate-200 bg-white",
@@ -39,10 +45,56 @@ export const StatCard: React.FC<StatCardProps> = ({
     info: "bg-sky-100 text-sky-700",
   };
 
+  // Compact Framing (harmonized with financial indicator reference cards)
+  if (compact) {
+    return (
+      <div
+        onClick={onClick}
+        className={cn(
+          "bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm text-center flex flex-col justify-between transition-all duration-200 hover:shadow-md hover:border-slate-300 active:scale-[0.98] cursor-pointer select-none min-h-[96px] h-full",
+          className
+        )}
+      >
+        <div className="flex items-center justify-center gap-1.5 mb-1 text-slate-400">
+          {icon && (
+            <span className="w-3.5 h-3.5 shrink-0 flex items-center justify-center">
+              {icon}
+            </span>
+          )}
+          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider truncate block">
+            {title}
+          </span>
+        </div>
+
+        <div className="my-auto py-0.5">
+          {typeof value === "string" || typeof value === "number" ? (
+            <span
+              className={cn(
+                "text-base md:text-lg font-black text-slate-900 tabular-nums block leading-tight",
+                valueClassName
+              )}
+            >
+              {value}
+            </span>
+          ) : (
+            <div className="flex items-center justify-center">{value}</div>
+          )}
+        </div>
+
+        {subtitle && (
+          <span className="text-[10px] text-slate-500 block truncate mt-0.5">
+            {subtitle}
+          </span>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
+      onClick={onClick}
       className={cn(
-        "rounded-xl border p-5 shadow-sm transition-all duration-200 hover:shadow-md",
+        "rounded-xl border p-5 shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.98] cursor-pointer select-none",
         variantStyles[variant],
         className
       )}

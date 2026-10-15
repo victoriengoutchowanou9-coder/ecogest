@@ -58,8 +58,13 @@ export default function EcolePubliquePage() {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto w-full px-4 md:px-8 py-8 space-y-10 flex-1">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-br from-school-900 via-school-primary to-school-700 rounded-3xl p-6 md:p-12 text-white shadow-xl relative overflow-hidden">
+        {/* Hero Section with pexels-tosin-olowoleni photo banner */}
+        <section
+          className="rounded-3xl p-6 md:p-12 text-white shadow-xl relative overflow-hidden bg-cover bg-center border border-slate-800"
+          style={{
+            backgroundImage: "linear-gradient(to right, rgba(15, 23, 42, 0.94) 0%, rgba(30, 41, 59, 0.88) 55%, rgba(15, 23, 42, 0.65) 100%), url('/images/pexels-tosin-olowoleni-2148141635-34162713.jpg')",
+          }}
+        >
           <div className="relative z-10 max-w-2xl space-y-4">
             <span className="inline-block px-3 py-1 rounded-full bg-white/15 text-white text-xs font-semibold backdrop-blur-sm border border-white/20">
               Année Scolaire {CURRENT_SCHOOL.activeYear} &middot; Inscriptions Ouvertes

@@ -25,9 +25,18 @@ import {
   Award,
   Clock,
   CreditCard,
+  Bell,
+  MessageSquare,
+  UserCircle,
+  BookMarked,
   LogOut,
+  TrendingDown,
+  Briefcase,
+  Wallet,
+  LifeBuoy,
 } from "lucide-react";
 import { Role, ROLE_NAVIGATIONS } from "@/lib/permissions";
+import { useRoleContext } from "@/lib/context/RoleContext";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, React.ReactNode> = {
@@ -52,16 +61,24 @@ const ICONS: Record<string, React.ReactNode> = {
   Award: <Award className="w-5 h-5 shrink-0" />,
   Clock: <Clock className="w-5 h-5 shrink-0" />,
   CreditCard: <CreditCard className="w-5 h-5 shrink-0" />,
+  Bell: <Bell className="w-5 h-5 shrink-0" />,
+  MessageSquare: <MessageSquare className="w-5 h-5 shrink-0" />,
+  UserCircle: <UserCircle className="w-5 h-5 shrink-0" />,
+  BookMarked: <BookMarked className="w-5 h-5 shrink-0" />,
+  TrendingDown: <TrendingDown className="w-5 h-5 shrink-0" />,
+  Briefcase: <Briefcase className="w-5 h-5 shrink-0" />,
+  Wallet: <Wallet className="w-5 h-5 shrink-0" />,
+  LifeBuoy: <LifeBuoy className="w-5 h-5 shrink-0" />,
 };
 
 interface SidebarProps {
-  currentRole: Role;
   onNavigate?: () => void;
   className?: string;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentRole, onNavigate, className }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, className }) => {
   const pathname = usePathname();
+  const { role: currentRole } = useRoleContext();
   const currentNav = ROLE_NAVIGATIONS[currentRole];
 
   return (
@@ -94,6 +111,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, onNavigate, class
                 key={item.href}
                 href={item.href}
                 onClick={onNavigate}
+                title={item.description}
                 className={cn(
                   "flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors touch-target",
                   isActive
@@ -101,22 +119,36 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, onNavigate, class
                     : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 )}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   {ICONS[item.iconName] || <Home className="w-5 h-5 shrink-0" />}
-                  <span>{item.title}</span>
+                  <span className="truncate">{item.title}</span>
                 </div>
-                {item.badge && (
-                  <span
-                    className={cn(
-                      "text-[10px] px-1.5 py-0.5 rounded font-bold uppercase",
-                      isActive
-                        ? "bg-white/20 text-white"
-                        : "bg-amber-100 text-amber-800"
-                    )}
-                  >
-                    {item.badge}
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {item.isNew && (
+                    <span
+                      className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded font-bold uppercase",
+                        isActive
+                          ? "bg-white/20 text-white"
+                          : "bg-emerald-100 text-emerald-800"
+                      )}
+                    >
+                      Nouveau
+                    </span>
+                  )}
+                  {item.badge && (
+                    <span
+                      className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded font-bold uppercase",
+                        isActive
+                          ? "bg-white/20 text-white"
+                          : "bg-amber-100 text-amber-800"
+                      )}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
               </Link>
             );
           })}

@@ -36,11 +36,18 @@ body {
   outline-offset: 2px;
 }
 
-/* Print Stylesheet for Official Receipts */
+/* Print Stylesheet for Official Receipts & Benin Bulletins */
+@page {
+  size: A4 portrait;
+  margin: 6mm 8mm;
+}
+
 @media print {
-  body {
+  html, body {
     background: #ffffff !important;
     color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   .no-print,
@@ -68,4 +75,21 @@ body {
     padding: 24px !important;
     page-break-inside: avoid;
   }
+
+  .benin-bulletin-sheet {
+    box-shadow: none !important;
+    border: 1px solid #000000 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 4mm 6mm !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .print-page-break {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
 }
+

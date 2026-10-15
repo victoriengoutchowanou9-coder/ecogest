@@ -1,49 +1,37 @@
 "use client";
 
 import React, { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { Role, ROLE_NAVIGATIONS, CURRENT_SCHOOL } from "@/lib/permissions";
+import { useRouter } from "next/navigation";
+import { ROLE_NAVIGATIONS, CURRENT_SCHOOL } from "@/lib/permissions";
+import { RoleProvider, useRoleContext } from "@/lib/context/RoleContext";
 import { Topbar } from "./Topbar";
 import { Sidebar } from "./Sidebar";
 import { MobileDrawer } from "./MobileDrawer";
 import { BottomTabBar } from "./BottomTabBar";
+import type { Role } from "@/lib/permissions";
 
 interface AppShellProps {
   children: React.ReactNode;
 }
 
-export const AppShell: React.FC<AppShellProps> = ({ children }) => {
-  const pathname = usePathname();
+/**
+ * AppShellInner — composant interne qui consomme le RoleContext.
+ * Séparé de AppShell pour pouvoir accéder au context après le Provider.
+ */
+function AppShellInner({ children }: { children: React.ReactNode }) {
+  const { role } = useRoleContext();
   const router = useRouter();
-
-  // Detect current role from URL pathname or default to directeur
-  const getRoleFromPath = (): Role => {
-    if (pathname?.startsWith("/parent")) return "parent";
-    if (pathname?.startsWith("/comptabilite")) return "comptabilite";
-    if (pathname?.startsWith("/censeur")) return "censeur";
-    if (pathname?.startsWith("/enseignant")) return "enseignant";
-    return "directeur";
-  };
-
-  const [currentRole, setCurrentRole] = useState<Role>(getRoleFromPath());
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [activeSchoolYear, setActiveSchoolYear] = useState(CURRENT_SCHOOL.activeYear);
 
-  // Sync role when URL changes
-  React.useEffect(() => {
-    setCurrentRole(getRoleFromPath());
-  }, [pathname]);
-
   const handleRoleChange = (newRole: Role) => {
-    setCurrentRole(newRole);
     router.push(ROLE_NAVIGATIONS[newRole].basePath);
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans">
-      {/* Topbar: Fixed at top */}
+      {/* Topbar: Fixed at top — lit le rôle via useRoleContext(), pas de prop */}
       <Topbar
-        currentRole={currentRole}
         onRoleChange={handleRoleChange}
         onOpenMobileDrawer={() => setMobileDrawerOpen(true)}
         activeSchoolYear={activeSchoolYear}
@@ -51,17 +39,13 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       />
 
       <div className="flex flex-1">
-        {/* Desktop Sidebar: Hidden on small screens, visible on lg+ */}
-        <Sidebar
-          currentRole={currentRole}
-          className="hidden lg:flex sticky top-16"
-        />
+        {/* Desktop Sidebar: lit le rôle via useRoleContext() */}
+        <Sidebar className="hidden lg:flex sticky top-16" />
 
         {/* Mobile Full-Height Drawer */}
         <MobileDrawer
           isOpen={mobileDrawerOpen}
           onClose={() => setMobileDrawerOpen(false)}
-          currentRole={currentRole}
         />
 
         {/* Main Content Area */}
@@ -71,7 +55,23 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       </div>
 
       {/* Mobile Bottom Tab Bar */}
-      <BottomTabBar currentRole={currentRole} />
+      <BottomTabBar />
     </div>
+  );
+}
+
+/**
+ * AppShell — Shell principal de l'application.
+ *
+ * Intègre le pattern RoleProvider inspiré du TenantContext GESTIO 229 :
+ * - Wraps AppShellInner dans un <RoleProvider>
+ * - Tous les composants enfants (Topbar, Sidebar, BottomTabBar) lisent
+ *   le rôle via useRoleContext() — aucun prop-drilling currentRole.
+ */
+export const AppShell: React.FC<AppShellProps> = ({ children }) => {
+  return (
+    <RoleProvider>
+      <AppShellInner>{children}</AppShellInner>
+    </RoleProvider>
   );
 };
