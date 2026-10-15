@@ -98,8 +98,10 @@ export interface SubjectConfig {
  * ─── CYCLE PRIMAIRE : Typages pour l'évaluation par compétences ─────────────
  */
 
+export type CompetencyAcquisitionLevel = "A" | "ECA" | "NA" | "EXP";
+
 export interface CompetencyLevelDefinition {
-  code: string; // "A" | "ECA" | "NA" | "EXP"
+  code: CompetencyAcquisitionLevel; // "A" | "ECA" | "NA" | "EXP"
   label: string; // "Acquis", "En cours d'acquisition", "Non acquis", "Dépassé"
   shortLabel: string;
   badgeClass: string; // classes Tailwind (ex: bg-emerald-100 text-emerald-800)

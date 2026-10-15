@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { ChildSwitcher } from "@/components/school/ChildSwitcher";
 import { ReportCardView } from "@/components/school/ReportCardView";
 import { BeninOfficialBulletin } from "@/components/school/BeninOfficialBulletin";
+import { BeninPrimaryBulletin } from "@/components/school/BeninPrimaryBulletin";
 import {
   MOCK_BULLETIN_STUDENTS,
   MOCK_ACADEMIC_PERIODS,
@@ -23,13 +24,22 @@ import { useBulletinStore } from "@/lib/bulletin-store";
 import { MOCK_STUDENTS } from "@/lib/mock-data";
 
 export default function ParentNotesPage() {
-  const { getClassBulletins, subjects, grades } = useBulletinStore();
+  const { getClassBulletins, getPrimaryStudentBulletin, subjects, grades, primaryGrades } =
+    useBulletinStore();
 
-  const myChildren = [MOCK_BULLETIN_STUDENTS[0], MOCK_BULLETIN_STUDENTS[1]];
+  // The parent has 1 child in Secondary (Koffi in 3ème A) and 1 child in Primary (Samuel in CE2 B)
+  const myChildren = useMemo(() => {
+    const secondaryChild = MOCK_BULLETIN_STUDENTS.find((s) => s.id === "std-01") || MOCK_BULLETIN_STUDENTS[0];
+    const primaryChild = MOCK_BULLETIN_STUDENTS.find((s) => s.id === "std-p01") || MOCK_BULLETIN_STUDENTS[1];
+    return [secondaryChild, primaryChild].filter(Boolean);
+  }, []);
+
   const [selectedChild, setSelectedChild] = useState(myChildren[0]);
   const [selectedPeriodId, setSelectedPeriodId] = useState("T1");
   const [showFullModal, setShowFullModal] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "official">("official");
+
+  const isPrimary = selectedChild.cycle === "PRIMAIRE" || selectedChild.classId === "ce2-b";
 
   const activePeriod = useMemo(() => {
     return (
@@ -38,14 +48,25 @@ export default function ParentNotesPage() {
     );
   }, [selectedPeriodId]);
 
-  const activeClass = MOCK_CLASSROOMS[0];
+  const activeClass = useMemo(() => {
+    return (
+      MOCK_CLASSROOMS.find((c) => c.id === selectedChild.classId) ||
+      MOCK_CLASSROOMS[0]
+    );
+  }, [selectedChild.classId]);
 
-  // Dynamic class calculation engine from shared reactive store
-  const bulletinsMap = useMemo(() => {
-    return getClassBulletins(activeClass.id, selectedPeriodId);
-  }, [getClassBulletins, activeClass.id, selectedPeriodId, subjects, grades]);
+  // Secondary Bulletin calculation
+  const secondaryBulletin = useMemo(() => {
+    if (isPrimary) return null;
+    const bulletinsMap = getClassBulletins(activeClass.id, selectedPeriodId);
+    return bulletinsMap.get(selectedChild.id) || bulletinsMap.values().next().value;
+  }, [isPrimary, getClassBulletins, activeClass.id, selectedPeriodId, selectedChild.id, subjects, grades]);
 
-  const studentBulletin = bulletinsMap.get(selectedChild.id) || bulletinsMap.values().next().value;
+  // Primary Competency Bulletin calculation
+  const primaryBulletin = useMemo(() => {
+    if (!isPrimary) return null;
+    return getPrimaryStudentBulletin(selectedChild.id, selectedChild.classId, selectedPeriodId);
+  }, [isPrimary, getPrimaryStudentBulletin, selectedChild.id, selectedChild.classId, selectedPeriodId, primaryGrades]);
 
   const handlePrint = () => {
     window.print();
@@ -153,46 +174,70 @@ export default function ParentNotesPage() {
           </div>
         </div>
 
-        {/* Global Student Stats Banner */}
-        {studentBulletin && (
+        {/* Global Student Stats Banner (Adaptive Primary / Secondary) */}
+        {isPrimary && primaryBulletin ? (
+          <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 px-4 py-2.5 rounded-xl">
+            <Sparkles className="w-7 h-7 text-emerald-700 shrink-0" />
+            <div>
+              <span className="text-xs font-semibold text-emerald-800 block">
+                Maîtrise des Compétences ({primaryBulletin.period.name})
+              </span>
+              <span className="text-lg font-black text-emerald-900 tabular-nums">
+                {primaryBulletin.overallAcquisitionRate}% &middot; {primaryBulletin.acquiredCount} / {primaryBulletin.totalCompetencies} acquises
+              </span>
+              <span className="text-[11px] font-medium text-emerald-700 block">
+                Livret Primaire : <strong>Cycle Primaire &bull; Sans calcul forcé de rang</strong>
+              </span>
+            </div>
+          </div>
+        ) : secondaryBulletin ? (
           <div className="flex items-center gap-3 bg-school-50 border border-school-100 px-4 py-2.5 rounded-xl">
             <Award className="w-7 h-7 text-school-primary shrink-0" />
             <div>
               <span className="text-xs font-semibold text-slate-500 block">
-                Moyenne Générale ({studentBulletin.period.name})
+                Moyenne Générale ({secondaryBulletin.period.name})
               </span>
               <span className="text-lg font-black text-school-primary tabular-nums">
-                {studentBulletin.generalAverage.toFixed(2)} / 20 &middot; {studentBulletin.rankFormatted}
+                {secondaryBulletin.generalAverage.toFixed(2)} / 20 &middot; {secondaryBulletin.rankFormatted}
               </span>
               <span className="text-[11px] font-medium text-slate-600 block">
-                Mention : <strong className="text-slate-900 uppercase">{studentBulletin.mention}</strong>
+                Mention : <strong className="text-slate-900 uppercase">{secondaryBulletin.mention}</strong>
               </span>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
 
-      {/* Main Official Benin Bulletin View */}
-      {studentBulletin && (
-        <div className="space-y-4">
-          <div className="no-print bg-slate-100 p-3 rounded-xl border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
-            <span>
-              <strong>Aperçu conforme République du Bénin :</strong> Document A4 portrait 1 page, prêt à l&apos;impression directe ou au téléchargement PDF avec QR code et Code-barres officiels.
-            </span>
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="text-xs font-bold text-school-primary underline hover:text-school-700 ml-2"
-            >
-              Lancer l&apos;impression
-            </button>
-          </div>
-
-          <div className="bg-white p-3 md:p-6 rounded-2xl border border-slate-300 shadow-sm overflow-x-auto">
-            <BeninOfficialBulletin bulletin={studentBulletin} />
-          </div>
+      {/* Main Official Benin Bulletin View (Adaptive Primary / Secondary) */}
+      <div className="space-y-4">
+        <div className="no-print bg-slate-100 p-3 rounded-xl border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
+          <span>
+            <strong>Aperçu conforme République du Bénin :</strong>{" "}
+            {isPrimary
+              ? "Livret officiel du Cycle Primaire (MEMP), évaluation par compétences et observation qualitative."
+              : "Bulletin officiel du Cycle Secondaire (MESTFP), moyenne générale, coefficients et rangs."}
+          </span>
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="text-xs font-bold text-school-primary underline hover:text-school-700 ml-2 shrink-0"
+          >
+            Lancer l&apos;impression
+          </button>
         </div>
-      )}
+
+        <div className="bg-white p-3 md:p-6 rounded-2xl border border-slate-300 shadow-sm overflow-x-auto">
+          {isPrimary && primaryBulletin ? (
+            <BeninPrimaryBulletin bulletin={primaryBulletin} />
+          ) : secondaryBulletin ? (
+            <BeninOfficialBulletin bulletin={secondaryBulletin} />
+          ) : (
+            <div className="p-8 text-center text-slate-500">
+              Aucun bulletin ou livret d&apos;évaluation disponible pour cet élève sur cette période.
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Advanced Modal / Batch Generator */}
       {showFullModal && (

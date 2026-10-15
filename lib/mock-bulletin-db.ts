@@ -185,6 +185,8 @@ export const DEFAULT_COMPETENCY_LEVELS: CompetencyLevelDefinition[] = [
   },
 ];
 
+export const MOCK_COMPETENCY_LEVELS = DEFAULT_COMPETENCY_LEVELS;
+
 export const MOCK_PRIMARY_DOMAINS: CompetencyDomain[] = [
   {
     id: "dom-fra",
@@ -472,6 +474,10 @@ export const MOCK_BULLETIN_STUDENTS: StudentProfile[] = [
     parentPhone: "+229 96 44 88 12",
   },
 ];
+
+export const MOCK_PRIMARY_BULLETIN_STUDENTS = MOCK_BULLETIN_STUDENTS.filter(
+  (s) => s.cycle === "PRIMAIRE" || s.classId === "ce2-b"
+);
 
 /**
  * Realistic grades with:

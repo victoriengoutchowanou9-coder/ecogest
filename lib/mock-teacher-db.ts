@@ -17,6 +17,7 @@ export interface TeacherProfile {
   classesAssigned: {
     classId: string;
     className: string;
+    cycle?: "PRIMAIRE" | "SECONDAIRE";
     subject: string;
     coef: number;
     hoursPerWeek: number;
@@ -120,6 +121,7 @@ export const MOCK_TEACHER_PROFILE: TeacherProfile = {
     {
       classId: "3e-a",
       className: "3ème A",
+      cycle: "SECONDAIRE",
       subject: "Mathématiques",
       coef: 3,
       hoursPerWeek: 4,
@@ -127,8 +129,19 @@ export const MOCK_TEACHER_PROFILE: TeacherProfile = {
       isMain: true,
     },
     {
+      classId: "ce2-b",
+      className: "CE2 B (Cycle Primaire)",
+      cycle: "PRIMAIRE",
+      subject: "Français & Mathématiques (Compétences)",
+      coef: 1,
+      hoursPerWeek: 12,
+      studentsCount: 35,
+      isMain: false,
+    },
+    {
       classId: "tle-c",
       className: "Terminale C",
+      cycle: "SECONDAIRE",
       subject: "Mathématiques",
       coef: 5,
       hoursPerWeek: 6,

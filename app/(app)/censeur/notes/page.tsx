@@ -8,11 +8,15 @@ import { RecordCard } from "@/components/ui/RecordCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { MOCK_GRADES_CLASS_3A, MOCK_STUDENTS, StudentGrade, Student } from "@/lib/mock-data";
+import { MOCK_CLASSROOMS } from "@/lib/mock-bulletin-db";
 import { useToast } from "@/components/ui/Toast";
 import { ReportCardView } from "@/components/school/ReportCardView";
 
 export default function NotesValidationPage() {
   const { toast } = useToast();
+  const [selectedClassId, setSelectedClassId] = useState("3e-a");
+  const selectedClassRoom = MOCK_CLASSROOMS.find((c) => c.id === selectedClassId) || MOCK_CLASSROOMS[0];
+  const isPrimary = selectedClassRoom.cycle === "PRIMAIRE";
   const [selectedClass, setSelectedClass] = useState("3ème A");
   const [selectedSubject, setSelectedSubject] = useState("Mathématiques");
   const [grades, setGrades] = useState<StudentGrade[]>(MOCK_GRADES_CLASS_3A);
@@ -145,31 +149,49 @@ export default function NotesValidationPage() {
         <div className="flex flex-wrap items-center gap-3">
           <div>
             <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block mb-1">
-              Classe
+              Classe &amp; Cycle
             </label>
             <select
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
+              value={selectedClassId}
+              onChange={(e) => {
+                setSelectedClassId(e.target.value);
+                const cl = MOCK_CLASSROOMS.find((c) => c.id === e.target.value);
+                if (cl) setSelectedClass(cl.name);
+              }}
               className="rounded-lg border border-slate-300 bg-white py-2 px-3 text-xs md:text-sm font-semibold text-slate-800 touch-target min-h-[40px]"
             >
-              <option value="3ème A">3ème A (48 élèves)</option>
-              <option value="6ème B">6ème B (44 élèves)</option>
-              <option value="Terminale C">Terminale C (32 élèves)</option>
+              {MOCK_CLASSROOMS.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.cycle === "PRIMAIRE" ? "🎒 [Primaire] " : "🏫 [Secondaire] "}
+                  {c.name} ({c.size} élèves)
+                </option>
+              ))}
             </select>
           </div>
 
           <div>
             <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block mb-1">
-              Matière
+              {isPrimary ? "Domaine d'apprentissage" : "Matière"}
             </label>
             <select
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
               className="rounded-lg border border-slate-300 bg-white py-2 px-3 text-xs md:text-sm font-semibold text-slate-800 touch-target min-h-[40px]"
             >
-              <option value="Mathématiques">Mathématiques (Prof. HOUNKPONOU)</option>
-              <option value="Français">Français (Mme ZANNOU)</option>
-              <option value="PCT">PCT (M. BIO)</option>
+              {isPrimary ? (
+                <>
+                  <option value="Français">Français &amp; Communication (Maître KPADONOU)</option>
+                  <option value="Mathématiques">Mathématiques &amp; Problèmes (Maître KPADONOU)</option>
+                  <option value="EST">Éveil Scientifique &amp; Technologique</option>
+                  <option value="ES">Éducation Sociale &amp; Vivre ensemble</option>
+                </>
+              ) : (
+                <>
+                  <option value="Mathématiques">Mathématiques (Prof. HOUNKPONOU)</option>
+                  <option value="Français">Français (Mme ZANNOU)</option>
+                  <option value="PCT">PCT (M. BIO)</option>
+                </>
+              )}
             </select>
           </div>
         </div>
