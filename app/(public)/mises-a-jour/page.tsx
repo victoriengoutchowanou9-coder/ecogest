@@ -24,6 +24,32 @@ export default function MisesAJourPage() {
 
   const releases = [
     {
+      version: "ECOGEST 2.6",
+      date: "Octobre 2026",
+      badge: "Censeur & Données Inter-Rôles",
+      badgeColor: "bg-school-primary text-white",
+      summary: "Fenêtre de définition de l'heure 100% responsive (Effacer / Annuler / Définir), registre de classe adaptatif (tableau & fiches), affectation automatique multi-classes dans Matières et circulation unifiée des données réelles entre les rôles.",
+      sections: [
+        {
+          type: "Section Censeur & Pédagogie",
+          icon: <Zap className="w-4 h-4 text-amber-600" />,
+          items: [
+            "Fenêtre de définition horaire des examens 100% responsive : boutons Effacer, Annuler et Définir toujours visibles et proportionnés sans débordement sur mobile, tablette et ordinateur.",
+            "Registre officiel de classe responsive : bascule d'affichage Tableau officiel / Fiches apprenants avec en-tête national et signatures adaptatifs.",
+            "Matières et coefficients : sélection automatique parmi les classes réelles du Directeur avec possibilité d'affecter une matière à plusieurs classes en une seule étape.",
+          ],
+        },
+        {
+          type: "Architecture & Données Partagées",
+          icon: <Sparkles className="w-4 h-4 text-purple-600" />,
+          items: [
+            "Synchronisation unifiée et temps réel des classes, enseignants, matières et effectifs entre le Directeur, le Censeur, les Enseignants et les Parents.",
+            "Préservation stricte des permissions et des droits d'accès basés sur les rôles.",
+          ],
+        },
+      ],
+    },
+    {
       version: "ECOGEST 2.5",
       date: "Octobre 2026",
       badge: "Mise à jour Récente",
