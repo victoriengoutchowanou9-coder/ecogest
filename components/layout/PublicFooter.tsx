@@ -24,112 +24,45 @@ import {
 export const PublicFooter: React.FC = () => {
   return (
     <footer className="bg-slate-950 text-slate-300 border-t border-slate-800 text-xs mt-auto">
-      {/* Main 5-Column Grid */}
+      {/* Main 3-Column Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 lg:gap-10">
-          
-          {/* 1. PRODUIT */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+
+          {/* 1. MON COMPTE */}
           <div className="space-y-4">
             <h3 className="font-extrabold text-white text-sm uppercase tracking-wider flex items-center gap-2">
-              <span className="w-1.5 h-3.5 bg-school-primary rounded-full inline-block"></span>
-              Produit
+              <span className="w-1.5 h-3.5 bg-emerald-500 rounded-full inline-block"></span>
+              Mon compte
             </h3>
             <ul className="space-y-2.5">
               <li>
                 <Link
-                  href="/visite-guidee"
-                  className="hover:text-white hover:underline transition-colors flex items-center justify-between group"
+                  href="/inscription"
+                  className="inline-flex items-center gap-1.5 text-white font-bold hover:text-school-300 transition-colors"
                 >
-                  <span>Visite guidée</span>
-                  <span className="text-[10px] bg-school-primary/20 text-school-300 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                    18 étapes
-                  </span>
+                  <span>S&apos;inscrire</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-school-400" />
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/tarifs"
-                  className="hover:text-white hover:underline transition-colors flex items-center justify-between group"
+                  href="/connexion"
+                  className="hover:text-white hover:underline transition-colors"
                 >
-                  <span>Tarifs et forfaits</span>
-                  <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded">
-                    Dès 6 000 F
-                  </span>
+                  Se connecter
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="/demo"
-                  className="hover:text-white hover:underline transition-colors flex items-center justify-between group"
-                >
-                  <span>Démo en ligne</span>
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">
-                    Interactive
-                  </span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/mises-a-jour"
-                  className="hover:text-white hover:underline transition-colors flex items-center justify-between group"
-                >
-                  <span>Mises à jour</span>
-                  <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded">
-                    v2.4 PRO
-                  </span>
-                </Link>
+              <li className="pt-2 text-[11px] text-slate-500 border-t border-slate-800/80">
+                <span>Accès réservés aux personnels agréés et tuteurs légaux.</span>
               </li>
             </ul>
           </div>
 
-          {/* 2. SOUTIEN */}
-          <div className="space-y-4">
-            <h3 className="font-extrabold text-white text-sm uppercase tracking-wider flex items-center gap-2">
-              <span className="w-1.5 h-3.5 bg-sky-500 rounded-full inline-block"></span>
-              Soutien
-            </h3>
-            <ul className="space-y-2.5">
-              <li>
-                <Link
-                  href="/documentation"
-                  className="hover:text-white hover:underline transition-colors"
-                >
-                  Documentation
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/chat-support"
-                  className="hover:text-white hover:underline transition-colors flex items-center gap-2"
-                >
-                  <span>Chat en direct</span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/assistance"
-                  className="hover:text-white hover:underline transition-colors"
-                >
-                  Contacts d&apos;assistance
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/politique-support"
-                  className="hover:text-white hover:underline transition-colors"
-                >
-                  Politique de soutien
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* 3. QUI SOMMES-NOUS ? */}
+          {/* 2. QUI SOMMES-NOUS */}
           <div className="space-y-4">
             <h3 className="font-extrabold text-white text-sm uppercase tracking-wider flex items-center gap-2">
               <span className="w-1.5 h-3.5 bg-amber-500 rounded-full inline-block"></span>
-              Qui sommes-nous ?
+              Qui sommes-nous
             </h3>
             <ul className="space-y-2.5">
               <li>
@@ -167,41 +100,11 @@ export const PublicFooter: React.FC = () => {
             </ul>
           </div>
 
-          {/* 4. MON COMPTE */}
+          {/* 3. SERVICE CONNEXE */}
           <div className="space-y-4">
             <h3 className="font-extrabold text-white text-sm uppercase tracking-wider flex items-center gap-2">
-              <span className="w-1.5 h-3.5 bg-emerald-500 rounded-full inline-block"></span>
-              Mon compte
-            </h3>
-            <ul className="space-y-2.5">
-              <li>
-                <Link
-                  href="/inscription"
-                  className="inline-flex items-center gap-1.5 text-white font-bold hover:text-school-300 transition-colors"
-                >
-                  <span>S&apos;inscrire</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-school-400" />
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/connexion"
-                  className="hover:text-white hover:underline transition-colors"
-                >
-                  Se connecter
-                </Link>
-              </li>
-              <li className="pt-2 text-[11px] text-slate-500 border-t border-slate-800/80">
-                <span>Accès réservés aux personnels agréés et tuteurs légaux.</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* 5. SERVICES CONNEXES */}
-          <div className="space-y-4 col-span-2 md:col-span-1">
-            <h3 className="font-extrabold text-white text-sm uppercase tracking-wider flex items-center gap-2">
               <span className="w-1.5 h-3.5 bg-indigo-500 rounded-full inline-block"></span>
-              Services connexes
+              Service connexe
             </h3>
             <ul className="space-y-2.5">
               <li>
@@ -239,10 +142,7 @@ export const PublicFooter: React.FC = () => {
                   E
                 </div>
                 <span className="font-black text-base text-white tracking-tight">
-                  EducoGest
-                </span>
-                <span className="text-[10px] font-semibold text-school-400 bg-school-900/60 px-2 py-0.5 rounded border border-school-700/50">
-                  v2.4 PRO
+                  ECOGEST
                 </span>
               </div>
               <p className="text-slate-400 text-xs font-medium">
@@ -255,10 +155,10 @@ export const PublicFooter: React.FC = () => {
               <span className="text-[11px] text-slate-500 font-semibold mr-1">Suivez-nous :</span>
               {/* Facebook */}
               <a
-                href="https://facebook.com/educogest"
+                href="https://facebook.com/ecogest"
                 target="_blank"
                 rel="noreferrer"
-                aria-label="Facebook EducoGest"
+                aria-label="Facebook ECOGEST"
                 className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-school-primary hover:text-white text-slate-400 flex items-center justify-center transition-all border border-slate-800"
               >
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -267,10 +167,10 @@ export const PublicFooter: React.FC = () => {
               </a>
               {/* LinkedIn */}
               <a
-                href="https://linkedin.com/company/educogest"
+                href="https://linkedin.com/company/ecogest"
                 target="_blank"
                 rel="noreferrer"
-                aria-label="LinkedIn EducoGest"
+                aria-label="LinkedIn ECOGEST"
                 className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-blue-600 hover:text-white text-slate-400 flex items-center justify-center transition-all border border-slate-800"
               >
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -279,10 +179,10 @@ export const PublicFooter: React.FC = () => {
               </a>
               {/* Twitter / X */}
               <a
-                href="https://twitter.com/educogest"
+                href="https://twitter.com/ecogest"
                 target="_blank"
                 rel="noreferrer"
-                aria-label="Twitter X EducoGest"
+                aria-label="Twitter X ECOGEST"
                 className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-700 hover:text-white text-slate-400 flex items-center justify-center transition-all border border-slate-800"
               >
                 <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
@@ -294,7 +194,7 @@ export const PublicFooter: React.FC = () => {
                 href="https://wa.me/22996123456"
                 target="_blank"
                 rel="noreferrer"
-                aria-label="WhatsApp EducoGest"
+                aria-label="WhatsApp ECOGEST"
                 className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-emerald-600 hover:text-white text-slate-400 flex items-center justify-center transition-all border border-slate-800"
               >
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -308,7 +208,7 @@ export const PublicFooter: React.FC = () => {
           {/* Copyright & Secondary Legal Links */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500 pt-4 border-t border-slate-900">
             <div>
-              &copy; {new Date().getFullYear()} EducoGest &mdash; Tous droits r&eacute;serv&eacute;s.
+              &copy; {new Date().getFullYear()} ECOGEST &mdash; Tous droits r&eacute;serv&eacute;s.
             </div>
             <div className="flex flex-wrap items-center gap-3 font-medium">
               <Link

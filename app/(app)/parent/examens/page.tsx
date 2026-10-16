@@ -17,32 +17,66 @@ import { DataTable, Column } from "@/components/ui/DataTable";
 import { RecordCard } from "@/components/ui/RecordCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useExamStore } from "@/lib/exam-store";
-import { MOCK_BULLETIN_STUDENTS, MOCK_ACADEMIC_PERIODS } from "@/lib/mock-bulletin-db";
-import { ExamScheduleItem } from "@/lib/types/bulletin";
+import { MOCK_ACADEMIC_PERIODS, MOCK_PARENT_PROFILE } from "@/lib/mock-bulletin-db";
+import { ExamScheduleItem, StudentProfile } from "@/lib/types/bulletin";
+import { useCenseurStore } from "@/lib/censeur-store";
 
 export default function ParentExamensPage() {
   const { exams } = useExamStore();
+  const { studentsList, parentAccessRequests } = useCenseurStore();
 
-  // Children: Koffi (3ème A) and Samuel (CE2 B)
   const myChildren = useMemo(() => {
-    const secondaryChild =
-      MOCK_BULLETIN_STUDENTS.find((s) => s.id === "std-01") || MOCK_BULLETIN_STUDENTS[0];
-    const primaryChild =
-      MOCK_BULLETIN_STUDENTS.find((s) => s.id === "std-p01") || MOCK_BULLETIN_STUDENTS[1];
-    return [secondaryChild, primaryChild].filter(Boolean);
-  }, []);
+    const activatedRequests = parentAccessRequests.filter(
+      (r) =>
+        (r.parentPhone === MOCK_PARENT_PROFILE.phoneNumber || r.parentId === MOCK_PARENT_PROFILE.id) &&
+        r.status === "ACCEPTEE" &&
+        r.isAccessActivated
+    );
+    const activeStudentIds = new Set(activatedRequests.map((r) => r.studentId));
+    return studentsList.filter((s) => activeStudentIds.has(s.id));
+  }, [parentAccessRequests, studentsList]);
 
-  const [selectedChild, setSelectedChild] = useState(myChildren[0]);
+  const [selectedChild, setSelectedChild] = useState<StudentProfile | undefined>(myChildren[0]);
   const [selectedPeriodId, setSelectedPeriodId] = useState("T1");
+
+  React.useEffect(() => {
+    if (myChildren.length > 0) {
+      if (!selectedChild || !myChildren.some((c) => c.id === selectedChild.id)) {
+        setSelectedChild(myChildren[0]);
+      }
+    } else {
+      setSelectedChild(undefined);
+    }
+  }, [myChildren, selectedChild]);
 
   // Strict isolation: only exams matching the selected child's class!
   const childExams = useMemo(() => {
+    if (!selectedChild) return [];
     return exams.filter((ex) => {
       const matchClass = ex.classId === selectedChild.classId;
       const matchPeriod = selectedPeriodId === "ALL" || ex.periodId === selectedPeriodId;
       return matchClass && matchPeriod;
     });
-  }, [exams, selectedChild.classId, selectedPeriodId]);
+  }, [exams, selectedChild, selectedPeriodId]);
+
+  if (!selectedChild) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Calendrier des Compositions &amp; Examens"
+          subtitle="Horaires, salles et matières d'évaluation"
+          breadcrumbs={[{ label: "Parent", href: "/parent" }, { label: "Examens" }]}
+        />
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-3">
+          <CalendarDays className="w-12 h-12 text-slate-300 mx-auto" />
+          <h3 className="text-base font-bold text-slate-800">Aucun élève rattaché</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            Veuillez rattacher votre enfant depuis l&apos;accueil de votre espace parent pour consulter son calendrier des examens.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const columns: Column<ExamScheduleItem>[] = [
     {

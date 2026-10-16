@@ -18,12 +18,13 @@ import { ReportCardView } from "@/components/school/ReportCardView";
 import { BeninOfficialBulletin } from "@/components/school/BeninOfficialBulletin";
 import { BeninPrimaryBulletin } from "@/components/school/BeninPrimaryBulletin";
 import {
-  MOCK_BULLETIN_STUDENTS,
   MOCK_ACADEMIC_PERIODS,
   MOCK_CLASSROOMS,
+  MOCK_PARENT_PROFILE,
 } from "@/lib/mock-bulletin-db";
 import { useBulletinStore } from "@/lib/bulletin-store";
-import { MOCK_STUDENTS } from "@/lib/mock-data";
+import { useCenseurStore } from "@/lib/censeur-store";
+import { StudentProfile } from "@/lib/types/bulletin";
 
 export default function ParentNotesPage() {
   const {
@@ -34,21 +35,33 @@ export default function ParentNotesPage() {
     primaryGrades,
     isBulletinPublished,
   } = useBulletinStore();
+  const { studentsList, parentAccessRequests } = useCenseurStore();
 
-  // The parent has 1 child in Secondary (Koffi in 3ème A) and 1 child in Primary (Samuel in CE2 B)
   const myChildren = useMemo(() => {
-    const secondaryChild = MOCK_BULLETIN_STUDENTS.find((s) => s.id === "std-01") || MOCK_BULLETIN_STUDENTS[0];
-    const primaryChild = MOCK_BULLETIN_STUDENTS.find((s) => s.id === "std-p01") || MOCK_BULLETIN_STUDENTS[1];
-    return [secondaryChild, primaryChild].filter(Boolean);
-  }, []);
+    const activatedRequests = parentAccessRequests.filter(
+      (r) =>
+        (r.parentPhone === MOCK_PARENT_PROFILE.phoneNumber || r.parentId === MOCK_PARENT_PROFILE.id) &&
+        r.status === "ACCEPTEE" &&
+        r.isAccessActivated
+    );
+    const activeStudentIds = new Set(activatedRequests.map((r) => r.studentId));
+    return studentsList.filter((s) => activeStudentIds.has(s.id));
+  }, [parentAccessRequests, studentsList]);
 
-  const [selectedChild, setSelectedChild] = useState(myChildren[0]);
+  const [selectedChild, setSelectedChild] = useState<StudentProfile | undefined>(myChildren[0]);
   const [selectedPeriodId, setSelectedPeriodId] = useState("T1");
   const [showFullModal, setShowFullModal] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "official">("official");
 
-  const isPrimary = selectedChild.cycle === "PRIMAIRE" || selectedChild.classId === "ce2-b";
-  const isPublished = isBulletinPublished(selectedChild.id, selectedChild.classId, selectedPeriodId);
+  React.useEffect(() => {
+    if (myChildren.length > 0) {
+      if (!selectedChild || !myChildren.some((c) => c.id === selectedChild.id)) {
+        setSelectedChild(myChildren[0]);
+      }
+    } else {
+      setSelectedChild(undefined);
+    }
+  }, [myChildren, selectedChild]);
 
   const activePeriod = useMemo(() => {
     return (
@@ -58,28 +71,51 @@ export default function ParentNotesPage() {
   }, [selectedPeriodId]);
 
   const activeClass = useMemo(() => {
+    if (!selectedChild) return MOCK_CLASSROOMS[0] || { id: "", name: "" };
     return (
       MOCK_CLASSROOMS.find((c) => c.id === selectedChild.classId) ||
-      MOCK_CLASSROOMS[0]
+      MOCK_CLASSROOMS[0] || { id: "", name: "" }
     );
-  }, [selectedChild.classId]);
+  }, [selectedChild]);
+
+  const isPrimary = selectedChild ? (selectedChild.cycle === "PRIMAIRE" || selectedChild.classId === "ce2-b") : false;
+  const isPublished = selectedChild ? isBulletinPublished(selectedChild.id, selectedChild.classId, selectedPeriodId) : false;
 
   // Secondary Bulletin calculation
   const secondaryBulletin = useMemo(() => {
-    if (isPrimary) return null;
+    if (!selectedChild || isPrimary || !activeClass.id) return null;
     const bulletinsMap = getClassBulletins(activeClass.id, selectedPeriodId);
     return bulletinsMap.get(selectedChild.id) || bulletinsMap.values().next().value;
-  }, [isPrimary, getClassBulletins, activeClass.id, selectedPeriodId, selectedChild.id, subjects, grades]);
+  }, [selectedChild, isPrimary, getClassBulletins, activeClass?.id, selectedPeriodId, subjects, grades]);
 
   // Primary Competency Bulletin calculation
   const primaryBulletin = useMemo(() => {
-    if (!isPrimary) return null;
+    if (!selectedChild || !isPrimary) return null;
     return getPrimaryStudentBulletin(selectedChild.id, selectedChild.classId, selectedPeriodId);
-  }, [isPrimary, getPrimaryStudentBulletin, selectedChild.id, selectedChild.classId, selectedPeriodId, primaryGrades]);
+  }, [selectedChild, isPrimary, getPrimaryStudentBulletin, selectedPeriodId, primaryGrades]);
 
   const handlePrint = () => {
     window.print();
   };
+
+  if (!selectedChild) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Bulletins & Évaluations Officielles"
+          subtitle="Modèle Officiel Bénin · Calculs conformes"
+          breadcrumbs={[{ label: "Parent", href: "/parent" }, { label: "Bulletins de notes" }]}
+        />
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-3">
+          <BookOpen className="w-12 h-12 text-slate-300 mx-auto" />
+          <h3 className="text-base font-bold text-slate-800">Aucun élève rattaché</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            Veuillez rattacher votre enfant depuis l&apos;accueil de votre espace parent pour consulter ses bulletins de notes officiels.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -104,32 +140,29 @@ export default function ParentNotesPage() {
       {/* Child Switcher Component */}
       <div className="no-print">
         <ChildSwitcher
-          childrenList={myChildren.map((c) => {
-            const legacy = MOCK_STUDENTS.find((s) => s.id === c.id);
-            return {
-              id: c.id,
-              firstName: c.firstName,
-              lastName: c.lastName,
-              className: c.className,
-              matricule: c.matricule,
-              gender: c.gender,
-              average: legacy?.average ?? 15.4,
-              rank: legacy?.rank ?? 3,
-              birthDate: c.birthDate,
-              parentName: c.parentName,
-              parentPhone: c.parentPhone,
-              status: "INSCRIT",
-              absencesCount: 2,
-              totalTuition: 280000,
-              paidTuition: 280000,
-              remainingTuition: 0,
-              tuitionStatus: "PAID",
-              classId: c.classId,
-            };
-          })}
+          childrenList={myChildren.map((c) => ({
+            id: c.id,
+            firstName: c.firstName,
+            lastName: c.lastName,
+            className: c.className,
+            matricule: c.matricule,
+            gender: c.gender,
+            average: 0,
+            rank: 0,
+            birthDate: c.birthDate,
+            parentName: c.parentName,
+            parentPhone: c.parentPhone,
+            status: "INSCRIT",
+            absencesCount: 0,
+            totalTuition: 0,
+            paidTuition: 0,
+            remainingTuition: 0,
+            tuitionStatus: "PAID",
+            classId: c.classId,
+          }))}
           selectedChildId={selectedChild.id}
           onSelectChild={(child) => {
-            const found = MOCK_BULLETIN_STUDENTS.find((s) => s.id === child.id);
+            const found = myChildren.find((s) => s.id === child.id);
             if (found) setSelectedChild(found);
           }}
         />

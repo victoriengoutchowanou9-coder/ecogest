@@ -44,7 +44,7 @@ export default function ParentDashboardPage() {
 
   // Initial base children + any children whose access has been validated and activated by Censeur
   const myChildren = React.useMemo(() => {
-    const list: Student[] = [MOCK_STUDENTS[0], MOCK_STUDENTS[1]];
+    const list: Student[] = [];
     const activatedRequests = parentAccessRequests.filter(
       (r) =>
         (r.parentPhone === MOCK_PARENT_PROFILE.phoneNumber || r.parentId === MOCK_PARENT_PROFILE.id) &&
@@ -68,14 +68,13 @@ export default function ParentDashboardPage() {
             parentName: full.parentName,
             parentPhone: full.parentPhone,
             status: "INSCRIT",
-            average: 13.8,
-            rank: 8,
-            absencesCount: 1,
-            totalTuition: 180000,
-            paidTuition: 120000,
-            remainingTuition: 60000,
-            tuitionStatus: "PARTIAL",
-            nextDueDate: "2026-11-15",
+            average: 0,
+            rank: 0,
+            absencesCount: 0,
+            totalTuition: 0,
+            paidTuition: 0,
+            remainingTuition: 0,
+            tuitionStatus: "PAID",
           });
         }
       }
@@ -84,12 +83,16 @@ export default function ParentDashboardPage() {
     return list;
   }, [parentAccessRequests, studentsList]);
 
-  const [selectedChild, setSelectedChild] = useState<Student>(myChildren[0]);
+  const [selectedChild, setSelectedChild] = useState<Student | undefined>(undefined);
 
   // If selected child is not in list anymore, fallback to first
   React.useEffect(() => {
-    if (!myChildren.some((c) => c.id === selectedChild.id)) {
-      setSelectedChild(myChildren[0]);
+    if (myChildren.length > 0) {
+      if (!selectedChild || !myChildren.some((c) => c.id === selectedChild.id)) {
+        setSelectedChild(myChildren[0]);
+      }
+    } else {
+      setSelectedChild(undefined);
     }
   }, [myChildren, selectedChild]);
 
@@ -106,9 +109,9 @@ export default function ParentDashboardPage() {
   const [requestSent, setRequestSent] = useState(false);
 
   // Filter homework and evaluations for selected child
-  const childHomework = MOCK_HOMEWORK_ITEMS.filter((h) => h.childId === selectedChild.id);
-  const childEvaluations = MOCK_UPCOMING_EVALUATIONS.filter((e) => e.childId === selectedChild.id);
-  const childAbsences = MOCK_ABSENCE_RECORDS.filter((a) => a.childId === selectedChild.id);
+  const childHomework = selectedChild ? MOCK_HOMEWORK_ITEMS.filter((h) => h.childId === selectedChild.id) : [];
+  const childEvaluations = selectedChild ? MOCK_UPCOMING_EVALUATIONS.filter((e) => e.childId === selectedChild.id) : [];
+  const childAbsences = selectedChild ? MOCK_ABSENCE_RECORDS.filter((a) => a.childId === selectedChild.id) : [];
 
   // Check pending requests for this parent
   const pendingRequests = parentAccessRequests.filter(
@@ -163,6 +166,20 @@ export default function ParentDashboardPage() {
     setRequestSent(true);
   };
 
+  const handleOpenRequestModal = () => {
+    const check = canParentAddChild(myChildren.length);
+    if (!check.allowed) {
+      setLimitMessage(check.reason || "Limite d'enfants atteinte.");
+      setIsLimitModalOpen(true);
+      return;
+    }
+    setIsRequestModalOpen(true);
+    setSearchQuery("");
+    setSearchedStudent(null);
+    setSearchError("");
+    setRequestSent(false);
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -172,19 +189,7 @@ export default function ParentDashboardPage() {
         actions={
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                const check = canParentAddChild(myChildren.length);
-                if (!check.allowed) {
-                  setLimitMessage(check.reason || "Limite d'enfants atteinte.");
-                  setIsLimitModalOpen(true);
-                  return;
-                }
-                setIsRequestModalOpen(true);
-                setSearchQuery("");
-                setSearchedStudent(null);
-                setSearchError("");
-                setRequestSent(false);
-              }}
+              onClick={handleOpenRequestModal}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-school-primary text-white hover:bg-school-primary/90 text-xs font-bold shadow-2xs transition-colors"
             >
               <Plus className="w-4 h-4" />
@@ -218,15 +223,37 @@ export default function ParentDashboardPage() {
         </div>
       )}
 
-      {/* Child Switcher Component (Mes enfants) */}
-      <ChildSwitcher
-        childrenList={myChildren}
-        selectedChildId={selectedChild.id}
-        onSelectChild={setSelectedChild}
-      />
+      {!selectedChild ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+            <User className="w-8 h-8" />
+          </div>
+          <div className="max-w-md mx-auto space-y-1">
+            <h3 className="text-base font-bold text-slate-900">Aucun élève actuellement rattaché</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Pour accéder aux bulletins officiels, notes, devoirs, assiduité et scolarité, veuillez rattacher votre enfant avec son matricule officiel ou son numéro Educ Master.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleOpenRequestModal}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-school-primary hover:bg-school-700 text-white font-bold text-xs shadow-sm transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Demander l&apos;accès à un enfant</span>
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Child Switcher Component (Mes enfants) */}
+          <ChildSwitcher
+            childrenList={myChildren}
+            selectedChildId={selectedChild.id}
+            onSelectChild={setSelectedChild}
+          />
 
-      {/* Child Summary Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+          {/* Child Summary Card */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-school-primary text-white font-bold text-lg flex items-center justify-center">
@@ -386,6 +413,8 @@ export default function ParentDashboardPage() {
           </div>
         </div>
       </div>
+      </>
+      )}
 
       {/* Navigation Quick Links to Modules */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

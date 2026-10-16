@@ -66,9 +66,9 @@ export default function ClassesPage() {
     setFormDivision("A");
     setFormName(`${initialLvl} A`);
     setFormStream(initialCycle === "PRIMAIRE" ? "Apprentissages Fondamentaux" : "Enseignement Général");
-    setFormRoom("Salle 101");
-    setFormTeacher("Prof. Justin HOUNKPONOU");
-    setFormStudentsCount(35);
+    setFormRoom("");
+    setFormTeacher("");
+    setFormStudentsCount(0);
     setIsModalOpen(true);
   };
 
@@ -79,9 +79,9 @@ export default function ClassesPage() {
     setFormLevel(cls.level);
     setFormStream(cls.stream);
     setFormDivision(cls.name.split(" ").slice(1).join(" ") || "A");
-    setFormRoom("Salle " + cls.name);
+    setFormRoom("");
     setFormTeacher(cls.mainTeacher);
-    setFormStudentsCount(cls.size || 35);
+    setFormStudentsCount(cls.size || 0);
     setIsModalOpen(true);
   };
 
@@ -113,7 +113,7 @@ export default function ClassesPage() {
       cycle: formCycle,
       level: formLevel,
       stream: formStream,
-      size: Number(formStudentsCount) || 35,
+      size: Number(formStudentsCount) || 0,
       mainTeacher: formTeacher.trim() || "Non assigné",
       academicYearId: "2026-2027",
     };
@@ -142,7 +142,7 @@ export default function ClassesPage() {
     return (
       <ClassRegisterPDF
         classroom={selectedClassForRegister}
-        students={classStudents.length > 0 ? classStudents : students.slice(0, 8)}
+        students={classStudents}
         academicYear={years[0]}
         schoolSettings={school}
         onBack={() => setSelectedClassForRegister(null)}

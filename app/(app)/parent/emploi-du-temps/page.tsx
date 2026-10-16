@@ -13,6 +13,8 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ChildSwitcher } from "@/components/school/ChildSwitcher";
 import { MOCK_STUDENTS, Student } from "@/lib/mock-data";
+import { useCenseurStore } from "@/lib/censeur-store";
+import { MOCK_PARENT_PROFILE } from "@/lib/mock-bulletin-db";
 
 interface ScheduleSlot {
   id: string;
@@ -58,9 +60,52 @@ const SCHEDULE_DATA: ScheduleSlot[] = [
 const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"] as const;
 
 export default function ParentSchedulePage() {
-  const myChildren = [MOCK_STUDENTS[0], MOCK_STUDENTS[1]];
-  const [selectedChild, setSelectedChild] = useState<Student>(myChildren[0]);
+  const { studentsList, parentAccessRequests } = useCenseurStore();
+
+  const myChildren: Student[] = React.useMemo(() => {
+    const activatedRequests = parentAccessRequests.filter(
+      (r) =>
+        (r.parentPhone === MOCK_PARENT_PROFILE.phoneNumber || r.parentId === MOCK_PARENT_PROFILE.id) &&
+        r.status === "ACCEPTEE" &&
+        r.isAccessActivated
+    );
+    const activeStudentIds = new Set(activatedRequests.map((r) => r.studentId));
+    return studentsList
+      .filter((s) => activeStudentIds.has(s.id))
+      .map((s) => ({
+        id: s.id,
+        matricule: s.matricule,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        classId: s.classId,
+        className: s.className,
+        gender: s.gender,
+        birthDate: s.birthDate,
+        parentName: s.parentName,
+        parentPhone: s.parentPhone,
+        status: "INSCRIT",
+        average: 0,
+        rank: 0,
+        absencesCount: 0,
+        totalTuition: 0,
+        paidTuition: 0,
+        remainingTuition: 0,
+        tuitionStatus: "PAID",
+      }));
+  }, [parentAccessRequests, studentsList]);
+
+  const [selectedChild, setSelectedChild] = useState<Student | undefined>(myChildren[0]);
   const [activeDay, setActiveDay] = useState<typeof DAYS[number]>("Lundi");
+
+  React.useEffect(() => {
+    if (myChildren.length > 0) {
+      if (!selectedChild || !myChildren.some((c) => c.id === selectedChild.id)) {
+        setSelectedChild(myChildren[0]);
+      }
+    } else {
+      setSelectedChild(undefined);
+    }
+  }, [myChildren, selectedChild]);
 
   const categoryStyles = {
     LITTÉRAIRE: "bg-blue-50 border-blue-200 text-blue-900",
@@ -71,6 +116,25 @@ export default function ParentSchedulePage() {
   const handlePrint = () => {
     window.print();
   };
+
+  if (!selectedChild) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Emploi du Temps Hebdomadaire"
+          subtitle="Planning des cours · Lundi au Samedi"
+          breadcrumbs={[{ label: "Parent", href: "/parent" }, { label: "Emploi du temps" }]}
+        />
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-3">
+          <CalendarDays className="w-12 h-12 text-slate-300 mx-auto" />
+          <h3 className="text-base font-bold text-slate-800">Aucun élève rattaché</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            Veuillez rattacher votre enfant depuis l&apos;accueil de votre espace parent pour consulter son emploi du temps hebdomadaire.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

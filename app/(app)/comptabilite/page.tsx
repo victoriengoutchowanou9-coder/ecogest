@@ -73,8 +73,8 @@ export default function ComptabiliteDashboardPage() {
 
       return {
         month: m.label,
-        recettes: recettes || (m.key === "Sept" ? 430000 : m.key === "Oct" ? 150000 : 0),
-        depenses: depensesPayees || (m.key === "Sept" ? 985000 : m.key === "Oct" ? 90000 : 0),
+        recettes,
+        depenses: depensesPayees,
       };
     });
   }, [receipts, expenses, selectedYear]);

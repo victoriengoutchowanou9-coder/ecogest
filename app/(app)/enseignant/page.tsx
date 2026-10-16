@@ -42,38 +42,24 @@ export default function EnseignantDashboardPage() {
   const pendingTasksCount = tasks.filter((t) => !t.isDone).length;
   const totalStudents = profile.classesAssigned.reduce((acc, c) => acc + c.studentsCount, 0);
 
-  const upcomingSessions = [
-    {
-      id: "s-1",
-      time: "08:00 - 10:00",
-      class: "3ème A",
-      subject: "Mathématiques",
-      room: "Salle 12",
-      status: "TERMINE",
-    },
-    {
-      id: "s-2",
-      time: "10:15 - 12:15",
-      class: "Terminale C",
-      subject: "Mathématiques",
-      room: "Salle 08",
-      status: "A_FAIRE",
-    },
-    {
-      id: "s-3",
-      time: "15:00 - 17:00",
-      class: "1ère D",
-      subject: "Mathématiques",
-      room: "Salle 14",
-      status: "A_VENIR",
-    },
-  ];
+  const upcomingSessions: {
+    id: string;
+    time: string;
+    class: string;
+    subject: string;
+    room: string;
+    status: "TERMINE" | "A_FAIRE" | "A_VENIR";
+  }[] = [];
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Tableau de bord Enseignant"
-        subtitle={`Bienvenue, ${profile.fullName} &middot; Professeur Titulaire ${profile.mainClassName} &middot; Année 2026-2027`}
+        subtitle={
+          profile.fullName
+            ? `Bienvenue, ${profile.fullName}${profile.mainClassName ? ` · Professeur Titulaire ${profile.mainClassName}` : ""} · Année 2026-2027`
+            : "Bienvenue sur votre espace enseignant · Année 2026-2027"
+        }
         breadcrumbs={[{ label: "Enseignant" }, { label: "Tableau de bord" }]}
         actions={
           <Link
@@ -91,21 +77,29 @@ export default function EnseignantDashboardPage() {
         <StatCard
           title="Classes affectées"
           value={`${profile.classesAssigned.length} divisions`}
-          subtitle="3ème A, Tle C, 1ère D"
+          subtitle={
+            profile.classesAssigned.length > 0
+              ? profile.classesAssigned.map((c) => c.className).join(", ")
+              : "Aucune classe affectée"
+          }
           icon={<GraduationCap className="w-6 h-6" />}
           variant="info"
         />
         <StatCard
           title="Élèves suivis"
           value={`${totalStudents}`}
-          subtitle="Au total sur vos 3 cours"
+          subtitle={
+            profile.classesAssigned.length > 0
+              ? `Au total sur vos ${profile.classesAssigned.length} cours`
+              : "Aucun élève"
+          }
           icon={<Users className="w-6 h-6" />}
           variant="default"
         />
         <StatCard
           title="Volume horaire"
           value={`${profile.weeklyHours} h / sem`}
-          subtitle="Temps complet certifié"
+          subtitle={profile.weeklyHours > 0 ? "Temps complet certifié" : "Non défini"}
           icon={<Clock className="w-6 h-6" />}
           variant="default"
         />
@@ -188,48 +182,55 @@ export default function EnseignantDashboardPage() {
           </div>
 
           <div className="space-y-3">
-            {upcomingSessions.map((session) => (
-              <div
-                key={session.id}
-                className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/70 flex items-center justify-between gap-3"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-slate-800 flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      {session.time}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[10px] font-bold text-slate-700">
-                      {session.room}
-                    </span>
-                  </div>
-                  <h4 className="text-sm font-extrabold text-slate-900">
-                    {session.class} &middot; {session.subject}
-                  </h4>
-                </div>
-
-                <div>
-                  {session.status === "TERMINE" ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Appel fait</span>
-                    </span>
-                  ) : session.status === "A_FAIRE" ? (
-                    <Link
-                      href="/enseignant/presences"
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-school-primary hover:bg-school-700 px-3 py-1.5 rounded-xl shadow-2xs transition-colors"
-                    >
-                      <span>Pointer l&apos;appel</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </Link>
-                  ) : (
-                    <span className="text-[11px] font-medium text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
-                      À venir
-                    </span>
-                  )}
-                </div>
+            {upcomingSessions.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 text-xs">
+                <CalendarDays className="w-8 h-8 mx-auto mb-2 text-slate-300 stroke-1" />
+                Aucun cours programmé pour aujourd&apos;hui.
               </div>
-            ))}
+            ) : (
+              upcomingSessions.map((session) => (
+                <div
+                  key={session.id}
+                  className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/70 flex items-center justify-between gap-3"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-slate-800 flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                        {session.time}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[10px] font-bold text-slate-700">
+                        {session.room}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-extrabold text-slate-900">
+                      {session.class} &middot; {session.subject}
+                    </h4>
+                  </div>
+
+                  <div>
+                    {session.status === "TERMINE" ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Appel fait</span>
+                      </span>
+                    ) : session.status === "A_FAIRE" ? (
+                      <Link
+                        href="/enseignant/presences"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-school-primary hover:bg-school-700 px-3 py-1.5 rounded-xl shadow-2xs transition-colors"
+                      >
+                        <span>Pointer l&apos;appel</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    ) : (
+                      <span className="text-[11px] font-medium text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+                        À venir
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -251,57 +252,64 @@ export default function EnseignantDashboardPage() {
           </div>
 
           <div className="space-y-3">
-            {tasks.map((task) => (
-              <div
-                key={task.id}
-                className={`p-3.5 rounded-xl border transition-colors flex items-start justify-between gap-3 ${
-                  task.isDone
-                    ? "bg-slate-50 border-slate-200 opacity-60"
-                    : "bg-white border-slate-200 shadow-2xs hover:border-slate-300"
-                }`}
-              >
-                <div className="flex items-start gap-2.5 flex-1">
-                  <input
-                    type="checkbox"
-                    checked={task.isDone}
-                    onChange={() => toggleTask(task.id)}
-                    className="mt-1 w-4 h-4 accent-school-primary rounded cursor-pointer"
-                  />
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-xs font-bold ${
-                          task.isDone ? "line-through text-slate-400" : "text-slate-900"
-                        }`}
-                      >
-                        {task.title}
-                      </span>
-                      <span
-                        className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase ${
-                          task.priority === "HAUTE"
-                            ? "bg-rose-50 text-rose-700 border border-rose-200"
-                            : "bg-amber-50 text-amber-700 border border-amber-200"
-                        }`}
-                      >
-                        {task.priority}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-600 leading-snug">{task.description}</p>
-                    <p className="text-[10px] text-slate-400">Échéance : {task.dueDate}</p>
-                  </div>
-                </div>
-
-                {!task.isDone && (
-                  <Link
-                    href={task.link}
-                    className="p-1.5 text-school-primary hover:bg-school-50 rounded-lg shrink-0"
-                    title="Aller à la tâche"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </Link>
-                )}
+            {tasks.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 text-xs">
+                <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-emerald-500 stroke-1" />
+                Aucune tâche pédagogique en attente.
               </div>
-            ))}
+            ) : (
+              tasks.map((task) => (
+                <div
+                  key={task.id}
+                  className={`p-3.5 rounded-xl border transition-colors flex items-start justify-between gap-3 ${
+                    task.isDone
+                      ? "bg-slate-50 border-slate-200 opacity-60"
+                      : "bg-white border-slate-200 shadow-2xs hover:border-slate-300"
+                  }`}
+                >
+                  <div className="flex items-start gap-2.5 flex-1">
+                    <input
+                      type="checkbox"
+                      checked={task.isDone}
+                      onChange={() => toggleTask(task.id)}
+                      className="mt-1 w-4 h-4 accent-school-primary rounded cursor-pointer"
+                    />
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-xs font-bold ${
+                            task.isDone ? "line-through text-slate-400" : "text-slate-900"
+                          }`}
+                        >
+                          {task.title}
+                        </span>
+                        <span
+                          className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase ${
+                            task.priority === "HAUTE"
+                              ? "bg-rose-50 text-rose-700 border border-rose-200"
+                              : "bg-amber-50 text-amber-700 border border-amber-200"
+                          }`}
+                        >
+                          {task.priority}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 leading-snug">{task.description}</p>
+                      <p className="text-[10px] text-slate-400">Échéance : {task.dueDate}</p>
+                    </div>
+                  </div>
+
+                  {!task.isDone && (
+                    <Link
+                      href={task.link}
+                      className="p-1.5 text-school-primary hover:bg-school-50 rounded-lg shrink-0"
+                      title="Aller à la tâche"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Link>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -321,30 +329,36 @@ export default function EnseignantDashboardPage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {profile.classesAssigned.map((item) => (
-            <div
-              key={item.classId}
-              className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-white hover:shadow-xs transition-all space-y-2"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-base font-extrabold text-slate-900">{item.className}</span>
-                {item.isMain && (
-                  <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
-                    Prof. Titulaire
-                  </span>
-                )}
+        {profile.classesAssigned.length === 0 ? (
+          <div className="py-8 text-center text-slate-400 text-xs">
+            Aucune classe actuellement affectée.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {profile.classesAssigned.map((item) => (
+              <div
+                key={item.classId}
+                className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-white hover:shadow-xs transition-all space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-base font-extrabold text-slate-900">{item.className}</span>
+                  {item.isMain && (
+                    <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                      Prof. Titulaire
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-600 font-semibold">
+                  {item.subject} &middot; <span className="font-mono">Coef. {item.coef}</span>
+                </p>
+                <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-xs text-slate-500">
+                  <span>{item.studentsCount} élèves</span>
+                  <span className="font-mono font-bold text-slate-700">{item.hoursPerWeek}h / semaine</span>
+                </div>
               </div>
-              <p className="text-xs text-slate-600 font-semibold">
-                {item.subject} &middot; <span className="font-mono">Coef. {item.coef}</span>
-              </p>
-              <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-xs text-slate-500">
-                <span>{item.studentsCount} élèves</span>
-                <span className="font-mono font-bold text-slate-700">{item.hoursPerWeek}h / semaine</span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

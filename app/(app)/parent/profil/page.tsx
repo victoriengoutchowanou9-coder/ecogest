@@ -57,7 +57,7 @@ export default function ParentProfilePage() {
         <div className="bg-white rounded-2xl border border-slate-200 p-5 md:p-6 shadow-sm space-y-4">
           <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
             <div className="w-12 h-12 rounded-2xl bg-school-primary text-white flex items-center justify-center font-bold text-lg">
-              {profile.fullName.charAt(3) || "M"}
+              {profile.fullName ? profile.fullName.charAt(0) : "P"}
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-900">{profile.fullName}</h2>
@@ -140,22 +140,28 @@ export default function ParentProfilePage() {
             <h3 className="text-sm font-bold text-slate-900">Enfants rattachés sous votre tutelle</h3>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {profile.children.map((child) => (
-              <div key={child.id} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
-                <h4 className="font-extrabold text-slate-900">{child.name}</h4>
-                <p className="text-slate-600">
-                  Classe : <strong className="text-school-primary">{child.className}</strong>
-                </p>
-                <p className="text-slate-500 font-mono">
-                  Matricule : {child.matricule}
-                </p>
-                <p className="text-slate-500 font-mono">
-                  N° Educ Master : {child.educMaster}
-                </p>
-              </div>
-            ))}
-          </div>
+          {profile.children.length === 0 ? (
+            <p className="text-xs text-slate-400 py-4 text-center">
+              Aucun enfant actuellement rattaché à ce compte.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {profile.children.map((child) => (
+                <div key={child.id} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
+                  <h4 className="font-extrabold text-slate-900">{child.name}</h4>
+                  <p className="text-slate-600">
+                    Classe : <strong className="text-school-primary">{child.className}</strong>
+                  </p>
+                  <p className="text-slate-500 font-mono">
+                    Matricule : {child.matricule}
+                  </p>
+                  <p className="text-slate-500 font-mono">
+                    N° Educ Master : {child.educMaster}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Notification Settings */}

@@ -87,11 +87,13 @@ export default function NotesValidationPage() {
   const [showAuditDrawer, setShowAuditDrawer] = useState(false);
 
   const selectedClassRoom =
-    classrooms.find((c) => c.id === selectedClassId) || classrooms[0];
+    classrooms.find((c) => c.id === selectedClassId) ||
+    classrooms[0] || { id: "", name: "Toutes les classes", cycle: "SECONDAIRE" };
   const isPrimary = selectedClassRoom.cycle === "PRIMAIRE";
 
   const activePeriod =
-    periods.find((p) => p.id === selectedPeriodId) || periods[0];
+    periods.find((p) => p.id === selectedPeriodId) ||
+    periods[0] || { id: "T1", name: "1er Trimestre" };
 
   const targetClassKey = `${selectedClassId}-${selectedPeriodId}`;
   const currentClassStatus: BulletinStatus =

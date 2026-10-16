@@ -66,7 +66,7 @@ export default function EnseignantProfilPage() {
         <div className="h-28 bg-gradient-to-r from-school-primary via-school-700 to-indigo-900 px-6 flex items-end">
           <div className="w-20 h-20 rounded-2xl bg-white p-1 shadow-lg translate-y-8 flex items-center justify-center border-2 border-white">
             <div className="w-full h-full rounded-xl bg-slate-100 flex items-center justify-center text-school-primary font-black text-2xl">
-              JH
+              {teacher.fullName ? teacher.fullName.split(" ").filter(Boolean).map((n) => n[0]).slice(0, 2).join("") : "ENS"}
             </div>
           </div>
         </div>
@@ -287,33 +287,41 @@ export default function EnseignantProfilPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {teacher.classesAssigned.map((assignment) => (
-                <tr key={assignment.classId} className="hover:bg-slate-50 transition-colors">
-                  <td className="py-3 px-4">
-                    <span className="font-bold text-slate-900 text-sm">{assignment.className}</span>
-                  </td>
-                  <td className="py-3 px-3 font-semibold text-slate-800">{assignment.subject}</td>
-                  <td className="py-3 px-3 text-center font-bold text-school-primary">
-                    Coef. {assignment.coef}
-                  </td>
-                  <td className="py-3 px-3 text-center font-bold text-indigo-700">
-                    {assignment.hoursPerWeek}h / sem
-                  </td>
-                  <td className="py-3 px-3 text-center font-bold text-slate-700">
-                    {assignment.studentsCount} élèves
-                  </td>
-                  <td className="py-3 px-3">
-                    {assignment.isMain ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-bold text-[11px]">
-                        <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-600" />
-                        Professeur Titulaire (Coordination de classe)
-                      </span>
-                    ) : (
-                      <span className="text-slate-500 text-xs">Professeur de discipline</span>
-                    )}
+              {teacher.classesAssigned.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-400">
+                    Aucune classe actuellement affectée.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                teacher.classesAssigned.map((assignment) => (
+                  <tr key={assignment.classId} className="hover:bg-slate-50 transition-colors">
+                    <td className="py-3 px-4">
+                      <span className="font-bold text-slate-900 text-sm">{assignment.className}</span>
+                    </td>
+                    <td className="py-3 px-3 font-semibold text-slate-800">{assignment.subject}</td>
+                    <td className="py-3 px-3 text-center font-bold text-school-primary">
+                      Coef. {assignment.coef}
+                    </td>
+                    <td className="py-3 px-3 text-center font-bold text-indigo-700">
+                      {assignment.hoursPerWeek}h / sem
+                    </td>
+                    <td className="py-3 px-3 text-center font-bold text-slate-700">
+                      {assignment.studentsCount} élèves
+                    </td>
+                    <td className="py-3 px-3">
+                      {assignment.isMain ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-bold text-[11px]">
+                          <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-600" />
+                          Professeur Titulaire (Coordination de classe)
+                        </span>
+                      ) : (
+                        <span className="text-slate-500 text-xs">Professeur de discipline</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

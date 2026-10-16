@@ -88,74 +88,22 @@ export default function EnseignantPresencesPage() {
   // Initialize student attendance
   const [attendances, setAttendances] = useState<Record<string, StudentAttendanceState>>(() => {
     const init: Record<string, StudentAttendanceState> = {};
-    MOCK_BULLETIN_STUDENTS.forEach((st, idx) => {
-      // realistic starting state
-      let status: "PRESENT" | "ABSENT" | "RETARD" = "PRESENT";
-      let minutesLate = 0;
-      let motif = "";
-      if (idx === 2) {
-        status = "RETARD";
-        minutesLate = 15;
-        motif = "Embouteillage carrefour Vèdoko";
-      } else if (idx === 3) {
-        status = "ABSENT";
-        motif = "Paludisme - Mot des parents reçu";
-      }
+    MOCK_BULLETIN_STUDENTS.forEach((st) => {
       init[st.id] = {
         studentId: st.id,
         studentName: `${st.lastName} ${st.firstName}`,
         matricule: st.matricule,
         gender: st.gender,
-        status,
-        minutesLate,
-        motif,
+        status: "PRESENT",
+        minutesLate: 0,
+        motif: "",
       };
     });
     return init;
   });
 
-  // Mock sessions history
-  const [historySessions] = useState<HistoricalSession[]>([
-    {
-      id: "hist-1",
-      date: "14 Octobre 2026",
-      timeSlot: "08:00 - 10:00",
-      className: "3ème A",
-      subject: "Mathématiques",
-      room: "Salle 04",
-      presentCount: 40,
-      retardCount: 1,
-      absentCount: 1,
-      isLocked: false,
-      markedAt: "14/10/2026 à 08:15",
-    },
-    {
-      id: "hist-2",
-      date: "13 Octobre 2026",
-      timeSlot: "10:15 - 12:15",
-      className: "Terminale C",
-      subject: "Mathématiques",
-      room: "Salle 08",
-      presentCount: 36,
-      retardCount: 2,
-      absentCount: 0,
-      isLocked: true,
-      markedAt: "13/10/2026 à 10:25",
-    },
-    {
-      id: "hist-3",
-      date: "12 Octobre 2026",
-      timeSlot: "15:00 - 17:00",
-      className: "1ère D",
-      subject: "Mathématiques",
-      room: "Salle Labo 2",
-      presentCount: 35,
-      retardCount: 1,
-      absentCount: 2,
-      isLocked: true,
-      markedAt: "12/10/2026 à 15:10",
-    },
-  ]);
+  // Sessions history
+  const [historySessions] = useState<HistoricalSession[]>([]);
 
   const handleStatusChange = (studentId: string, status: "PRESENT" | "ABSENT" | "RETARD") => {
     if (isSessionSaved && !isCorrectionMode) {
@@ -380,7 +328,14 @@ export default function EnseignantPresencesPage() {
 
           {/* Student attendance list */}
           <div className="space-y-3">
-            {studentsList.map((st, idx) => {
+            {studentsList.length === 0 ? (
+              <div className="py-12 text-center bg-white rounded-2xl border border-slate-200">
+                <Users className="w-10 h-10 text-slate-300 mx-auto mb-2 stroke-1" />
+                <h4 className="text-sm font-bold text-slate-800">Aucun élève enregistré pour cette classe</h4>
+                <p className="text-xs text-slate-400 mt-1">Les élèves inscrits par l&apos;administration apparaîtront ici pour l&apos;appel.</p>
+              </div>
+            ) : (
+              studentsList.map((st, idx) => {
               const isPresent = st.status === "PRESENT";
               const isRetard = st.status === "RETARD";
               const isAbsent = st.status === "ABSENT";
@@ -502,7 +457,8 @@ export default function EnseignantPresencesPage() {
                   )}
                 </div>
               );
-            })}
+            })
+          )}
           </div>
         </>
       ) : (
@@ -521,11 +477,18 @@ export default function EnseignantPresencesPage() {
           </div>
 
           <div className="divide-y divide-slate-100">
-            {historySessions.map((hs) => (
-              <div
-                key={hs.id}
-                className="p-4 hover:bg-slate-50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3"
-              >
+            {historySessions.length === 0 ? (
+              <div className="py-12 text-center">
+                <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-2 stroke-1" />
+                <h4 className="text-sm font-bold text-slate-800">Aucune séance historique enregistrée</h4>
+                <p className="text-xs text-slate-400 mt-1">L&apos;historique des appels clôturés apparaîtra ici.</p>
+              </div>
+            ) : (
+              historySessions.map((hs) => (
+                <div
+                  key={hs.id}
+                  className="p-4 hover:bg-slate-50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3"
+                >
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-bold text-slate-900 text-sm">{hs.className}</span>
@@ -575,7 +538,8 @@ export default function EnseignantPresencesPage() {
                   </button>
                 </div>
               </div>
-            ))}
+            ))
+          )}
           </div>
         </div>
       )}

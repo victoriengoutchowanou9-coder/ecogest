@@ -25,7 +25,15 @@ export default function EnseignantClassesPage() {
 
   const currentAssignment =
     profile.classesAssigned.find((c) => c.classId === selectedClassId) ||
-    profile.classesAssigned[0];
+    profile.classesAssigned[0] || {
+      classId: "",
+      className: "Aucune classe",
+      subject: "—",
+      coef: 1,
+      isMain: false,
+      studentsCount: 0,
+      hoursPerWeek: 0,
+    };
 
   const students = MOCK_BULLETIN_STUDENTS.filter((s) => s.classId === selectedClassId || selectedClassId === "3e-a");
 
@@ -173,27 +181,35 @@ export default function EnseignantClassesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredStudents.map((std, idx) => (
-                <tr key={std.id} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="p-3 font-mono text-slate-400">{idx + 1}</td>
-                  <td className="p-3">
-                    <span className="font-bold text-slate-900 uppercase">{std.lastName}</span>{" "}
-                    <span className="font-medium text-slate-800">{std.firstName}</span>
-                  </td>
-                  <td className="p-3 font-mono text-slate-600">{std.matricule}</td>
-                  <td className="p-3 font-mono font-bold text-school-primary">{std.educMasterNumber}</td>
-                  <td className="p-3 text-center font-bold text-slate-700">{std.gender}</td>
-                  <td className="p-3 text-slate-600">{std.birthDate} ({std.birthPlace})</td>
-                  <td className="p-3 text-right">
-                    <Link
-                      href="/enseignant/notes"
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-school-primary hover:underline"
-                    >
-                      <span>Notes</span>
-                    </Link>
+              {filteredStudents.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-slate-400">
+                    Aucun élève enregistré dans cette classe.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredStudents.map((std, idx) => (
+                  <tr key={std.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="p-3 font-mono text-slate-400">{idx + 1}</td>
+                    <td className="p-3">
+                      <span className="font-bold text-slate-900 uppercase">{std.lastName}</span>{" "}
+                      <span className="font-medium text-slate-800">{std.firstName}</span>
+                    </td>
+                    <td className="p-3 font-mono text-slate-600">{std.matricule}</td>
+                    <td className="p-3 font-mono font-bold text-school-primary">{std.educMasterNumber}</td>
+                    <td className="p-3 text-center font-bold text-slate-700">{std.gender}</td>
+                    <td className="p-3 text-slate-600">{std.birthDate} ({std.birthPlace})</td>
+                    <td className="p-3 text-right">
+                      <Link
+                        href="/enseignant/notes"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-school-primary hover:underline"
+                      >
+                        <span>Notes</span>
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

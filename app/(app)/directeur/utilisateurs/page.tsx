@@ -34,13 +34,7 @@ interface UserAccount {
   lastLogin: string;
 }
 
-const INITIAL_USERS: UserAccount[] = [
-  { id: "u-01", name: "Père Gilbert KPATINVOH", email: "directeur@ccpa-cotonou.bj", phone: "+229 97 00 00 01", role: "Directeur", status: "ACTIF", lastLogin: "Aujourd'hui 07:45" },
-  { id: "u-02", name: "M. Marcellin DOKPO", email: "censeur@ccpa-cotonou.bj", phone: "+229 97 00 00 02", role: "Censeur", status: "ACTIF", lastLogin: "Aujourd'hui 08:10" },
-  { id: "u-03", name: "Prof. Justin HOUNKPONOU", email: "prof.hounkponou@ccpa-cotonou.bj", phone: "+229 96 11 22 33", role: "Enseignant", status: "ACTIF", lastLogin: "Hier 16:30" },
-  { id: "u-04", name: "M. Clément KPONOU", email: "comptable@ccpa-cotonou.bj", phone: "+229 97 55 44 33", role: "Comptable", status: "ACTIF", lastLogin: "Aujourd'hui 09:00" },
-  { id: "u-05", name: "M. Marc ADANHOUN", email: "parent.adanhouan@gmail.com", phone: "+229 97 12 34 56", role: "Parent", status: "ACTIF", lastLogin: "24/09/2026" },
-];
+const INITIAL_USERS: UserAccount[] = [];
 
 export default function UtilisateursPage() {
   const { toast } = useToast();

@@ -85,12 +85,22 @@ export default function EnseignantNotesPage() {
   // Selected class info & Cycle Detection
   const assignedClasses = MOCK_TEACHER_PROFILE.classesAssigned;
   const currentClassAssignment =
-    assignedClasses.find((c) => c.classId === selectedClassId) || assignedClasses[0];
+    assignedClasses.find((c) => c.classId === selectedClassId) ||
+    assignedClasses[0] || {
+      classId: "",
+      className: "Aucune classe",
+      subject: "Mathématiques",
+      coef: 3,
+      cycle: "SECONDAIRE" as const,
+      isMain: false,
+      studentsCount: 0,
+      hoursPerWeek: 0,
+    };
   const isPrimary = currentClassAssignment?.cycle === "PRIMAIRE" || selectedClassId === "ce2-b";
 
   // Current Subject and Coefficient (Secondary)
   const currentSubject = useMemo(() => {
-    return subjects.find((s) => s.id === selectedSubjectId) || subjects[3];
+    return subjects.find((s) => s.id === selectedSubjectId) || subjects[0] || { id: "mat-math", name: "Mathématiques", coef: 3 };
   }, [subjects, selectedSubjectId]);
 
   const [coefInput, setCoefInput] = useState<number>(currentSubject.coef);
@@ -861,7 +871,14 @@ export default function EnseignantNotesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {primaryEntries.map((row, idx) => (
+                {primaryEntries.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-12 text-center text-slate-400">
+                      Aucun élève inscrit pour cette classe du primaire.
+                    </td>
+                  </tr>
+                ) : (
+                  primaryEntries.map((row, idx) => (
                   <tr key={row.studentId} className="hover:bg-slate-50/80 transition-colors">
                     <td className="py-3 px-3 text-center text-slate-400 font-mono font-medium">
                       {idx + 1}
@@ -944,7 +961,8 @@ export default function EnseignantNotesPage() {
                       )}
                     </td>
                   </tr>
-                ))}
+                ))
+              )}
               </tbody>
             </table>
           </div>
@@ -1006,7 +1024,14 @@ export default function EnseignantNotesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {computedRows.map((row, idx) => (
+                {computedRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={13} className="py-12 text-center text-slate-400">
+                      Aucun élève inscrit pour cette classe du secondaire.
+                    </td>
+                  </tr>
+                ) : (
+                  computedRows.map((row, idx) => (
                   <tr
                     key={row.studentId}
                     className="hover:bg-slate-50/80 transition-colors group"
@@ -1155,7 +1180,8 @@ export default function EnseignantNotesPage() {
                       )}
                     </td>
                   </tr>
-                ))}
+                ))
+              )}
               </tbody>
             </table>
           </div>

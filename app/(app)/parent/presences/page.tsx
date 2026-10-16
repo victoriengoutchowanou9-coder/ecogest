@@ -15,17 +15,80 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ChildSwitcher } from "@/components/school/ChildSwitcher";
 import { MOCK_STUDENTS, Student } from "@/lib/mock-data";
-import { MOCK_ABSENCE_RECORDS } from "@/lib/mock-bulletin-db";
+import { MOCK_ABSENCE_RECORDS, MOCK_PARENT_PROFILE } from "@/lib/mock-bulletin-db";
 import { AbsenceRecord } from "@/lib/types/bulletin";
+import { useCenseurStore } from "@/lib/censeur-store";
 
 export default function ParentAbsencesRetardsPage() {
-  const myChildren = [MOCK_STUDENTS[0], MOCK_STUDENTS[1]];
-  const [selectedChild, setSelectedChild] = useState<Student>(myChildren[0]);
+  const { studentsList, parentAccessRequests } = useCenseurStore();
+
+  const myChildren: Student[] = React.useMemo(() => {
+    const activatedRequests = parentAccessRequests.filter(
+      (r) =>
+        (r.parentPhone === MOCK_PARENT_PROFILE.phoneNumber || r.parentId === MOCK_PARENT_PROFILE.id) &&
+        r.status === "ACCEPTEE" &&
+        r.isAccessActivated
+    );
+    const activeStudentIds = new Set(activatedRequests.map((r) => r.studentId));
+    return studentsList
+      .filter((s) => activeStudentIds.has(s.id))
+      .map((s) => ({
+        id: s.id,
+        matricule: s.matricule,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        classId: s.classId,
+        className: s.className,
+        gender: s.gender,
+        birthDate: s.birthDate,
+        parentName: s.parentName,
+        parentPhone: s.parentPhone,
+        status: "INSCRIT",
+        average: 0,
+        rank: 0,
+        absencesCount: 0,
+        totalTuition: 0,
+        paidTuition: 0,
+        remainingTuition: 0,
+        tuitionStatus: "PAID",
+      }));
+  }, [parentAccessRequests, studentsList]);
+
+  const [selectedChild, setSelectedChild] = useState<Student | undefined>(myChildren[0]);
   const [records, setRecords] = useState<AbsenceRecord[]>(MOCK_ABSENCE_RECORDS);
   const [filterType, setFilterType] = useState<"ALL" | "ABSENCE" | "RETARD">("ALL");
   const [isJustifyModalOpen, setIsJustifyModalOpen] = useState(false);
   const [selectedRecordToJustify, setSelectedRecordToJustify] = useState<AbsenceRecord | null>(null);
   const [motifText, setMotifText] = useState("");
+
+  React.useEffect(() => {
+    if (myChildren.length > 0) {
+      if (!selectedChild || !myChildren.some((c) => c.id === selectedChild.id)) {
+        setSelectedChild(myChildren[0]);
+      }
+    } else {
+      setSelectedChild(undefined);
+    }
+  }, [myChildren, selectedChild]);
+
+  if (!selectedChild) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Suivi des Absences & Retards"
+          subtitle="Journal des manquements et retards signalés"
+          breadcrumbs={[{ label: "Parent", href: "/parent" }, { label: "Absences & Retards" }]}
+        />
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-3">
+          <Clock className="w-12 h-12 text-slate-300 mx-auto" />
+          <h3 className="text-base font-bold text-slate-800">Aucun élève rattaché</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            Veuillez rattacher votre enfant depuis l&apos;accueil de votre espace parent pour suivre ses absences et retards.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const childRecords = records.filter((r) => r.childId === selectedChild.id);
   const filtered = childRecords.filter((r) => {

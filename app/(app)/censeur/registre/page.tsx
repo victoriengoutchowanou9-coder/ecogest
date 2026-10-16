@@ -20,7 +20,8 @@ export default function CenseurRegistrePage() {
   const [selectedClassId, setSelectedClassId] = useState<string>(classrooms[0]?.id || "3e-a");
 
   const selectedClass =
-    classrooms.find((c) => c.id === selectedClassId) || classrooms[0];
+    classrooms.find((c) => c.id === selectedClassId) ||
+    classrooms[0] || { id: "", name: "Toutes les classes", cycle: "SECONDAIRE" as const, level: "3ème" };
 
   const classStudents = students.filter(
     (s) => s.classId === selectedClass.id
@@ -62,8 +63,8 @@ export default function CenseurRegistrePage() {
       {/* Render Official Beninese Printable Register */}
       <ClassRegisterPDF
         classroom={selectedClass}
-        students={classStudents.length > 0 ? classStudents : students.slice(0, 8)}
-        academicYear={years[0]}
+        students={classStudents}
+        academicYear={years[0] || { id: "2026-2027", name: "2026-2027", isCurrent: true, startDate: "2026-09-15", endDate: "2027-06-30" }}
         schoolSettings={school}
       />
     </div>

@@ -26,46 +26,7 @@ interface SchoolNotification {
   linkText?: string;
 }
 
-const MOCK_NOTIFICATIONS: SchoolNotification[] = [
-  {
-    id: "notif-1",
-    title: "Bulletin du 1er Trimestre disponible",
-    message: "Le bulletin officiel de notes de Koffi ADANHOUN (3ème A) a été validé et signé par la direction. Vous pouvez le consulter et l'imprimer.",
-    date: "Il y a 2 heures",
-    type: "BULLETIN",
-    isRead: false,
-    link: "/parent/notes",
-    linkText: "Voir le bulletin",
-  },
-  {
-    id: "notif-2",
-    title: "Échéance Tranche 2 de scolarité",
-    message: "Rappel : la 2ème tranche de scolarité de 70 000 FCFA pour Amina ADANHOUN arrive à échéance le 15 octobre 2026. Paiement disponible en ligne via Moov Money / MTN MoMo.",
-    date: "Hier à 14h30",
-    type: "TUITION",
-    isRead: false,
-    link: "/parent/scolarite",
-    linkText: "Payer la scolarité",
-  },
-  {
-    id: "notif-3",
-    title: "Retard signalé en classe de Français",
-    message: "Koffi a été enregistré avec un retard de 15 minutes le Mardi 12/10 à 07h15.",
-    date: "Le 12/10/2026",
-    type: "ATTENDANCE",
-    isRead: true,
-    link: "/parent/presences",
-    linkText: "Voir les présences",
-  },
-  {
-    id: "notif-4",
-    title: "Assemblée Générale de l'Association des Parents d'Élèves (APE)",
-    message: "L'administration et le bureau de l'APE convient tous les parents d'élèves à la grande assemblée de rentrée ce Samedi 18 Octobre à 09h00 dans le Grand Hall.",
-    date: "Le 10/10/2026",
-    type: "EVENT",
-    isRead: true,
-  },
-];
+const MOCK_NOTIFICATIONS: SchoolNotification[] = [];
 
 export default function ParentNotificationsPage() {
   const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
@@ -141,40 +102,48 @@ export default function ParentNotificationsPage() {
 
       {/* Notifications List */}
       <div className="space-y-3">
-        {filtered.map((item) => (
-          <div
-            key={item.id}
-            className={`p-4 md:p-5 rounded-2xl border transition-all ${
-              item.isRead
-                ? "bg-white border-slate-200 shadow-2xs"
-                : "bg-school-50/40 border-school-200 shadow-xs ring-1 ring-school-200"
-            }`}
-          >
-            <div className="flex items-start gap-3.5">
-              <div className="p-2.5 rounded-xl bg-white border border-slate-200 shrink-0 shadow-2xs">
-                {getIcon(item.type)}
-              </div>
-              <div className="flex-1 space-y-1">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <h3 className="text-sm font-bold text-slate-900">{item.title}</h3>
-                  <span className="text-[11px] font-medium text-slate-400">{item.date}</span>
+        {filtered.length === 0 ? (
+          <div className="py-12 text-center bg-white rounded-2xl border border-slate-200">
+            <Bell className="w-10 h-10 text-slate-300 mx-auto mb-2 stroke-1" />
+            <h3 className="text-sm font-bold text-slate-800">Aucune notification pour le moment</h3>
+            <p className="text-xs text-slate-400 mt-1">Vous recevrez ici les alertes de bulletins, échéances et convocations.</p>
+          </div>
+        ) : (
+          filtered.map((item) => (
+            <div
+              key={item.id}
+              className={`p-4 md:p-5 rounded-2xl border transition-all ${
+                item.isRead
+                  ? "bg-white border-slate-200 shadow-2xs"
+                  : "bg-school-50/40 border-school-200 shadow-xs ring-1 ring-school-200"
+              }`}
+            >
+              <div className="flex items-start gap-3.5">
+                <div className="p-2.5 rounded-xl bg-white border border-slate-200 shrink-0 shadow-2xs">
+                  {getIcon(item.type)}
                 </div>
-                <p className="text-xs text-slate-600 leading-relaxed">{item.message}</p>
-                {item.link && (
-                  <div className="pt-2">
-                    <Link
-                      href={item.link}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-school-primary hover:underline"
-                    >
-                      <span>{item.linkText || "Voir les détails"}</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                <div className="flex-1 space-y-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <h3 className="text-sm font-bold text-slate-900">{item.title}</h3>
+                    <span className="text-[11px] font-medium text-slate-400">{item.date}</span>
                   </div>
-                )}
+                  <p className="text-xs text-slate-600 leading-relaxed">{item.message}</p>
+                  {item.link && (
+                    <div className="pt-2">
+                      <Link
+                        href={item.link}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-school-primary hover:underline"
+                      >
+                        <span>{item.linkText || "Voir les détails"}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

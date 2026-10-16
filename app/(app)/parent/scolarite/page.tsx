@@ -9,12 +9,76 @@ import { ReceiptView } from "@/components/school/ReceiptView";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatFCFA, formatDate } from "@/lib/utils";
 import { MOCK_STUDENTS, MOCK_RECEIPTS, Student, PaymentReceipt } from "@/lib/mock-data";
+import { useCenseurStore } from "@/lib/censeur-store";
+import { MOCK_PARENT_PROFILE } from "@/lib/mock-bulletin-db";
 
 export default function ParentScolaritePage() {
-  const myChildren = [MOCK_STUDENTS[0], MOCK_STUDENTS[1]];
-  const [selectedChild, setSelectedChild] = useState<Student>(myChildren[0]);
+  const { studentsList, parentAccessRequests } = useCenseurStore();
+
+  const myChildren: Student[] = React.useMemo(() => {
+    const activatedRequests = parentAccessRequests.filter(
+      (r) =>
+        (r.parentPhone === MOCK_PARENT_PROFILE.phoneNumber || r.parentId === MOCK_PARENT_PROFILE.id) &&
+        r.status === "ACCEPTEE" &&
+        r.isAccessActivated
+    );
+    const activeStudentIds = new Set(activatedRequests.map((r) => r.studentId));
+    return studentsList
+      .filter((s) => activeStudentIds.has(s.id))
+      .map((s) => ({
+        id: s.id,
+        matricule: s.matricule,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        classId: s.classId,
+        className: s.className,
+        gender: s.gender,
+        birthDate: s.birthDate,
+        parentName: s.parentName,
+        parentPhone: s.parentPhone,
+        status: "INSCRIT",
+        average: 0,
+        rank: 0,
+        absencesCount: 0,
+        totalTuition: 0,
+        paidTuition: 0,
+        remainingTuition: 0,
+        tuitionStatus: "PAID",
+      }));
+  }, [parentAccessRequests, studentsList]);
+
+  const [selectedChild, setSelectedChild] = useState<Student | undefined>(myChildren[0]);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [viewingReceipt, setViewingReceipt] = useState<PaymentReceipt | null>(null);
+
+  React.useEffect(() => {
+    if (myChildren.length > 0) {
+      if (!selectedChild || !myChildren.some((c) => c.id === selectedChild.id)) {
+        setSelectedChild(myChildren[0]);
+      }
+    } else {
+      setSelectedChild(undefined);
+    }
+  }, [myChildren, selectedChild]);
+
+  if (!selectedChild) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Scolarité &amp; Règlements en Ligne"
+          subtitle="État financier et quittances de paiement"
+          breadcrumbs={[{ label: "Parent", href: "/parent" }, { label: "Scolarité" }]}
+        />
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-3">
+          <CreditCard className="w-12 h-12 text-slate-300 mx-auto" />
+          <h3 className="text-base font-bold text-slate-800">Aucun élève rattaché</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            Veuillez rattacher votre enfant depuis l&apos;accueil de votre espace parent pour consulter l&apos;état des frais de scolarité.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const childReceipts = MOCK_RECEIPTS.filter(
     (r) => r.studentId === selectedChild.id

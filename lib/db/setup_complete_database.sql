@@ -400,24 +400,8 @@ DROP POLICY IF EXISTS rls_bulletins_all ON official_bulletins;
 CREATE POLICY rls_bulletins_all ON official_bulletins FOR ALL USING (true);
 
 -- -----------------------------------------------------------------------------
--- 8. INSERTION D'UN ÉTABLISSEMENT PAR DÉFAUT (Pour tester immédiatement)
+-- 8. ÉTABLISSEMENTS (Création lors de l'onboarding réel)
 -- -----------------------------------------------------------------------------
-INSERT INTO schools (code, name, short_name, slug, country, region, city, address, phone, email, currency, active_year)
-VALUES (
-    'CS-SAINT-AUGUSTIN',
-    'Complexe Scolaire Saint-Augustin',
-    'CS St Augustin',
-    'cs-saint-augustin',
-    'Bénin',
-    'Littoral',
-    'Cotonou',
-    'Cotonou, Bénin',
-    '+229 01 23 45 67',
-    'contact@saintaugustin.bj',
-    'FCFA',
-    '2026-2027'
-)
-ON CONFLICT (code) DO NOTHING;
 
 -- -----------------------------------------------------------------------------
 -- 9. PERMISSIONS SUPABASE (Exposition des tables à l'API PostgREST / anon)

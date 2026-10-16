@@ -49,42 +49,22 @@ export interface ParentSubscriptionState {
   childrenCount: number;
 }
 
-// Données initiales
 const INITIAL_SCHOOLS: SchoolProfile[] = [
   {
     id: "school-1",
-    code: "CCPA-229",
-    name: "Collège Catholique Père Aupiais",
-    shortName: "CCPA - Cotonou",
-    slug: "ccpa-cotonou",
-    logo: "/images/logo-ccpa.png",
-    coverImage: "/images/pexels-tosin-olowoleni-2148141635-34162713.jpg",
+    code: "ECO-001",
+    name: "Établissement Scolaire",
+    shortName: "Établissement",
+    slug: "etablissement",
+    logo: "",
+    coverImage: "",
     country: "Bénin",
-    region: "Littoral",
-    city: "Cotonou",
-    address: "Cadjehoun, Rue 340, Cotonou, Bénin",
-    phone: "+229 97 00 00 01",
-    email: "direction@ccpa-cotonou.bj",
-    devise: "Travail - Foi - Discipline",
-    currency: "FCFA",
-    activeYear: "2026-2027",
-    teachingType: "PRIMAIRE_SECONDAIRE",
-  },
-  {
-    id: "school-2",
-    code: "CS-STM-229",
-    name: "Complexe Scolaire Saint-Marc",
-    shortName: "CS Saint-Marc - Porto-Novo",
-    slug: "cs-saint-marc-porto-novo",
-    logo: "/images/logo-stm.png",
-    coverImage: "/images/pexels-tosin-olowoleni-2148141635-34162713.jpg",
-    country: "Bénin",
-    region: "Ouémé",
-    city: "Porto-Novo",
-    address: "Quartier Ouando, Porto-Novo, Bénin",
-    phone: "+229 96 22 44 66",
-    email: "contact@saintmarc-portonovo.bj",
-    devise: "Excellence - Rigueur - Travail",
+    region: "",
+    city: "",
+    address: "",
+    phone: "",
+    email: "",
+    devise: "Travail - Rigueur - Réussite",
     currency: "FCFA",
     activeYear: "2026-2027",
     teachingType: "PRIMAIRE_SECONDAIRE",
@@ -101,8 +81,8 @@ const DEFAULT_SCHOOL_STATE: SchoolSubscriptionState = {
   expiresAt: "2026-11-01",
   autoRenew: true,
   activeSchoolId: "school-1",
-  schools: [INITIAL_SCHOOLS[0]], // 1 école active par défaut
-  usersCount: 5,
+  schools: [INITIAL_SCHOOLS[0]],
+  usersCount: 0,
 };
 
 const DEFAULT_PARENT_STATE: ParentSubscriptionState = {
@@ -111,7 +91,7 @@ const DEFAULT_PARENT_STATE: ParentSubscriptionState = {
   startDate: "2026-10-01",
   expiresAt: "2026-11-01",
   autoRenew: true,
-  childrenCount: 1,
+  childrenCount: 0,
 };
 
 // =============================================================================

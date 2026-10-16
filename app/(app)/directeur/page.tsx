@@ -45,7 +45,6 @@ export default function DirecteurDashboardPage() {
           value={MOCK_FINANCIAL_STATS.studentsCount}
           subtitle="Toutes classes confondues"
           icon={<GraduationCap className="w-6 h-6" />}
-          trend={{ value: "+4.2% vs N-1", isPositive: true }}
           variant="info"
         />
         <StatCard
@@ -53,72 +52,33 @@ export default function DirecteurDashboardPage() {
           value={`${MOCK_FINANCIAL_STATS.collectionRate} %`}
           subtitle={formatFCFA(MOCK_FINANCIAL_STATS.totalCollected)}
           icon={<DollarSign className="w-6 h-6" />}
-          trend={{ value: "+8.5%", isPositive: true }}
           variant="success"
         />
         <StatCard
           title="Enseignants actifs"
-          value="48"
-          subtitle="100% cours dispensés"
+          value="0"
+          subtitle="Effectif du personnel"
           icon={<Users className="w-6 h-6" />}
           variant="default"
         />
         <StatCard
           title="Assiduité globale"
-          value="96.2 %"
+          value="—"
           subtitle="Taux moyen de présence"
           icon={<CheckSquare className="w-6 h-6" />}
-          trend={{ value: "+1.1%", isPositive: true }}
           variant="default"
         />
       </div>
 
       {/* Critical Alerts Banner Section */}
-      <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-5 space-y-3">
-        <div className="flex items-center gap-2 text-amber-800 font-bold text-sm">
-          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-          <span>Alertes prioritaires nécessitant une attention</span>
+      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-2">
+        <div className="flex items-center gap-2 text-slate-700 font-bold text-sm">
+          <BookOpenCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+          <span>État du système &amp; Alertes</span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="bg-white p-3.5 rounded-xl border border-amber-200/80 shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-slate-800">50 dossiers impayés</p>
-              <p className="text-[11px] text-slate-500">Relance comptable requise</p>
-            </div>
-            <Link
-              href="/comptabilite/eleves"
-              className="text-xs font-semibold text-school-primary hover:underline"
-            >
-              Voir
-            </Link>
-          </div>
-
-          <div className="bg-white p-3.5 rounded-xl border border-amber-200/80 shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-slate-800">12 notes non saisies</p>
-              <p className="text-[11px] text-slate-500">Devoir 2 - 3ème A (PCT)</p>
-            </div>
-            <Link
-              href="/censeur/alertes"
-              className="text-xs font-semibold text-school-primary hover:underline"
-            >
-              Vérifier
-            </Link>
-          </div>
-
-          <div className="bg-white p-3.5 rounded-xl border border-amber-200/80 shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-slate-800">1 absence enseignant</p>
-              <p className="text-[11px] text-slate-500">M. Pamphile BIO (Aujourd&apos;hui)</p>
-            </div>
-            <Link
-              href="/censeur/emargement"
-              className="text-xs font-semibold text-school-primary hover:underline"
-            >
-              Détails
-            </Link>
-          </div>
-        </div>
+        <p className="text-xs text-slate-500">
+          Aucune alerte critique enregistrée pour le moment. Le système fonctionne normalement.
+        </p>
       </div>
 
       {/* Grid: Recouvrement overview & Quick Access */}
