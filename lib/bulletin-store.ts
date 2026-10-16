@@ -70,6 +70,7 @@ function safeSetStorage<T>(key: string, value: T): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
     window.dispatchEvent(new Event(STORAGE_EVENT));
+    window.dispatchEvent(new Event("ecogest_shared_data_update"));
   } catch (e) {
     console.error("Failed to save bulletin data to localStorage:", e);
   }
@@ -125,10 +126,14 @@ export function useBulletinStore() {
     };
 
     window.addEventListener(STORAGE_EVENT, handleStorageUpdate);
+    window.addEventListener("educogest_censeur_storage_update", handleStorageUpdate);
+    window.addEventListener("ecogest_shared_data_update", handleStorageUpdate);
     window.addEventListener("storage", handleStorageUpdate);
 
     return () => {
       window.removeEventListener(STORAGE_EVENT, handleStorageUpdate);
+      window.removeEventListener("educogest_censeur_storage_update", handleStorageUpdate);
+      window.removeEventListener("ecogest_shared_data_update", handleStorageUpdate);
       window.removeEventListener("storage", handleStorageUpdate);
     };
   }, []);

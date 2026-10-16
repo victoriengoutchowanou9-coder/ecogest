@@ -42,7 +42,7 @@ export default function CenseurMatieresPage() {
   const [formName, setFormName] = useState("");
   const [formCode, setFormCode] = useState("");
   const [formCategory, setFormCategory] = useState<"LITTÉRAIRE" | "SCIENTIFIQUE" | "AUTRE">("LITTÉRAIRE");
-  const [formClassId, setFormClassId] = useState(classrooms[0]?.id || "3e-a");
+  const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
   const [formTeacherId, setFormTeacherId] = useState(teacherAccounts[0]?.id || "tea-1");
   const [formCoef, setFormCoef] = useState(2);
   const [formWeeklyHours, setFormWeeklyHours] = useState(3);
@@ -78,7 +78,7 @@ export default function CenseurMatieresPage() {
     setFormName("");
     setFormCode("");
     setFormCategory("LITTÉRAIRE");
-    setFormClassId(classrooms[0]?.id || "3e-a");
+    setSelectedClassIds(classrooms.length > 0 ? [classrooms[0].id] : []);
     setFormTeacherId(teacherAccounts[0]?.id || "tea-1");
     setFormCoef(2);
     setFormWeeklyHours(3);
@@ -91,11 +91,17 @@ export default function CenseurMatieresPage() {
     setFormName(subject.name);
     setFormCode(subject.code);
     setFormCategory(subject.category);
-    setFormClassId(subject.classId);
+    setSelectedClassIds([subject.classId]);
     setFormTeacherId(subject.teacherId);
     setFormCoef(subject.coef);
     setFormWeeklyHours(subject.weeklyHours);
     setFormError("");
+  };
+
+  const toggleClass = (id: string) => {
+    setSelectedClassIds((prev) =>
+      prev.includes(id) ? prev.filter((cId) => cId !== id) : [...prev, id]
+    );
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -105,16 +111,22 @@ export default function CenseurMatieresPage() {
       return;
     }
 
-    const cls = classrooms.find((c) => c.id === formClassId);
+    if (selectedClassIds.length === 0) {
+      setFormError("Veuillez sélectionner au moins une classe concernée parmi les classes de l'établissement.");
+      return;
+    }
+
     const teacher = teacherAccounts.find((t) => t.id === formTeacherId);
 
     if (editingSubject) {
+      const targetClassId = selectedClassIds[0] || editingSubject.classId;
+      const cls = classrooms.find((c) => c.id === targetClassId);
       updateSubject(editingSubject.id, {
         name: formName.trim(),
         code: formCode.trim().toUpperCase(),
         category: formCategory,
-        classId: formClassId,
-        className: cls ? cls.name : formClassId,
+        classId: targetClassId,
+        className: cls ? cls.name : targetClassId,
         teacherId: formTeacherId,
         teacherName: teacher ? teacher.name : "Enseignant",
         coef: Number(formCoef),
@@ -122,16 +134,20 @@ export default function CenseurMatieresPage() {
       });
       setEditingSubject(null);
     } else {
-      addSubject({
-        name: formName.trim(),
-        code: formCode.trim().toUpperCase(),
-        category: formCategory,
-        classId: formClassId,
-        className: cls ? cls.name : formClassId,
-        teacherId: formTeacherId,
-        teacherName: teacher ? teacher.name : "Enseignant",
-        coef: Number(formCoef),
-        weeklyHours: Number(formWeeklyHours),
+      // Enregistrement de la matière pour chaque classe sélectionnée
+      selectedClassIds.forEach((classId) => {
+        const cls = classrooms.find((c) => c.id === classId);
+        addSubject({
+          name: formName.trim(),
+          code: formCode.trim().toUpperCase(),
+          category: formCategory,
+          classId: classId,
+          className: cls ? cls.name : classId,
+          teacherId: formTeacherId,
+          teacherName: teacher ? teacher.name : "Enseignant",
+          coef: Number(formCoef),
+          weeklyHours: Number(formWeeklyHours),
+        });
       });
       setIsAddModalOpen(false);
     }
@@ -434,41 +450,6 @@ export default function CenseurMatieresPage() {
                 </select>
               </div>
 
-              {/* Classe & Enseignant Titulaire */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Classe concernée *</label>
-                  <select
-                    value={formClassId}
-                    onChange={(e) => setFormClassId(e.target.value)}
-                    className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-school-primary"
-                  >
-                    {classrooms.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Enseignant Titulaire / Responsable *
-                  </label>
-                  <select
-                    value={formTeacherId}
-                    onChange={(e) => setFormTeacherId(e.target.value)}
-                    className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-school-primary"
-                  >
-                    {teacherAccounts.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} ({t.specialty})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
               {/* Coefficient & Volume horaire */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -505,6 +486,117 @@ export default function CenseurMatieresPage() {
                     Temps de cours programmé par semaine dans l&apos;emploi du temps.
                   </p>
                 </div>
+              </div>
+
+              {/* Classes concernées (Alimentées automatiquement depuis les classes enregistrées par le Directeur) */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="block text-xs font-bold text-slate-800">
+                    Classes concernées * ({selectedClassIds.length} sélectionnée{selectedClassIds.length > 1 ? "s" : ""})
+                  </label>
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedClassIds(classrooms.map((c) => c.id))}
+                      className="text-school-primary font-bold hover:underline"
+                    >
+                      Toutes
+                    </button>
+                    <span className="text-slate-300">&bull;</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedClassIds(
+                          classrooms
+                            .filter((c) => c.cycle === "SECONDAIRE" || !c.cycle)
+                            .map((c) => c.id)
+                        )
+                      }
+                      className="text-slate-600 font-semibold hover:underline"
+                    >
+                      Secondaire
+                    </button>
+                    <span className="text-slate-300">&bull;</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedClassIds(
+                          classrooms.filter((c) => c.cycle === "PRIMAIRE").map((c) => c.id)
+                        )
+                      }
+                      className="text-slate-600 font-semibold hover:underline"
+                    >
+                      Primaire
+                    </button>
+                    <span className="text-slate-300">&bull;</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedClassIds([])}
+                      className="text-slate-400 hover:text-slate-600 hover:underline"
+                    >
+                      Effacer
+                    </button>
+                  </div>
+                </div>
+
+                {classrooms.length === 0 ? (
+                  <div className="p-3 text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-xl flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>
+                      Aucune classe n'a été enregistrée par le Directeur. Veuillez d'abord créer les classes dans le compte Directeur (rubrique Classes) pour pouvoir leur associer des matières.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                    {classrooms.map((c) => {
+                      const isChecked = selectedClassIds.includes(c.id);
+                      return (
+                        <div
+                          key={c.id}
+                          onClick={() => toggleClass(c.id)}
+                          className={`flex items-center gap-2 p-2 rounded-lg border text-xs font-semibold cursor-pointer transition select-none ${
+                            isChecked
+                              ? "bg-white border-school-primary text-school-primary shadow-xs ring-1 ring-school-primary/20"
+                              : "bg-white/70 border-slate-200 text-slate-700 hover:bg-white hover:border-slate-300"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {}} // handled by div onClick
+                            className="rounded text-school-primary focus:ring-school-primary w-3.5 h-3.5 pointer-events-none"
+                          />
+                          <span className="truncate">{c.name}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="text-[10px] text-slate-500">
+                  Exemple : Mathématiques (Coeff : 4) &rarr; Classes : 6e, 5e, 4e, 3e.
+                </p>
+              </div>
+
+              {/* Enseignant Titulaire / Responsable */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Enseignant Titulaire / Responsable
+                </label>
+                <select
+                  value={formTeacherId}
+                  onChange={(e) => setFormTeacherId(e.target.value)}
+                  className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-school-primary"
+                >
+                  {teacherAccounts.length > 0 ? (
+                    teacherAccounts.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.specialty})
+                      </option>
+                    ))
+                  ) : (
+                    <option value="tea-default">Enseignant de la matière</option>
+                  )}
+                </select>
               </div>
 
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">

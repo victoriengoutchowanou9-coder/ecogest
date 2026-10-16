@@ -7,7 +7,7 @@ import {
   MOCK_SUBJECTS,
   MOCK_TEACHERS,
 } from "./mock-bulletin-db";
-import { StudentProfile, SubjectConfig } from "./types/bulletin";
+import { StudentProfile, SubjectConfig, ClassRoom, TeacherInfo } from "./types/bulletin";
 
 export interface TeacherCourseSchedule {
   id: string;
@@ -180,10 +180,12 @@ const STORAGE_KEY_STUDENTS = "educogest_censeur_students_v1";
 const STORAGE_KEY_CENSEUR_SUBJECTS = "educogest_censeur_subjects_v1";
 const STORAGE_KEY_TEACHER_ACCOUNTS = "educogest_censeur_teachers_v1";
 const STORAGE_KEY_PARENT_REQUESTS = "educogest_censeur_parent_requests_v1";
+const STORAGE_KEY_CLASSES = "educogest_school_classes_v2";
 
 const STORAGE_EVENT = "educogest_censeur_storage_update";
 const BULLETIN_SUBJECTS_STORAGE_KEY = "educogest_bulletin_subjects_v2";
 const BULLETIN_STORAGE_EVENT = "educogest_bulletin_storage_update";
+const SHARED_STORAGE_EVENT = "ecogest_shared_data_update";
 
 function safeGetStorage<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -200,9 +202,64 @@ function safeSetStorage<T>(key: string, value: T): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
     window.dispatchEvent(new Event(STORAGE_EVENT));
+    window.dispatchEvent(new Event(SHARED_STORAGE_EVENT));
   } catch (e) {
     console.error("Storage error:", e);
   }
+}
+
+function getMergedTeacherAccounts(): CenseurTeacherAccount[] {
+  const directTeachers = safeGetStorage<CenseurTeacherAccount[]>(
+    STORAGE_KEY_TEACHER_ACCOUNTS,
+    INITIAL_TEACHER_ACCOUNTS
+  );
+  try {
+    const rawUsers =
+      typeof window !== "undefined"
+        ? localStorage.getItem("ecogest_school_users_registry")
+        : null;
+    if (rawUsers) {
+      const users = JSON.parse(rawUsers);
+      if (Array.isArray(users)) {
+        const existingEmails = new Set(directTeachers.map((t) => (t.email || "").toLowerCase()));
+        const extraTeachers: CenseurTeacherAccount[] = [];
+        users.forEach((u: any) => {
+          const role = (u.role || "").toLowerCase();
+          const email = (u.email || "").toLowerCase();
+          if (
+            (role.includes("enseignant") || role.includes("prof")) &&
+            email &&
+            !existingEmails.has(email)
+          ) {
+            existingEmails.add(email);
+            extraTeachers.push({
+              id: u.id,
+              name: u.name,
+              identifier: (u.email || "prof").split("@")[0],
+              email: u.email,
+              phone: u.phone || "+229 ",
+              specialty: "Enseignement Général",
+              roleTitle: "Professeur Titulaire",
+              status: u.status === "ACTIF" ? "ACTIF" : "INACTIF",
+              assignedClasses: [],
+              assignedSubjects: [],
+              allowedPermissions: u.permissions || [
+                "saisie_notes",
+                "appel_presence",
+                "cahier_textes",
+              ],
+              weeklyHours: 12,
+              createdAt: new Date().toISOString().split("T")[0],
+            });
+          }
+        });
+        return [...directTeachers, ...extraTeachers];
+      }
+    }
+  } catch (e) {
+    console.warn("Erreur chargement comptes enseignants fusionnés:", e);
+  }
+  return directTeachers;
 }
 
 export function useCenseurStore() {
@@ -239,11 +296,15 @@ export function useCenseurStore() {
   );
 
   const [teacherAccounts, setTeacherAccounts] = useState<CenseurTeacherAccount[]>(() =>
-    safeGetStorage(STORAGE_KEY_TEACHER_ACCOUNTS, INITIAL_TEACHER_ACCOUNTS)
+    getMergedTeacherAccounts()
   );
 
   const [parentAccessRequests, setParentAccessRequests] = useState<ParentChildAccessRequest[]>(() =>
     safeGetStorage(STORAGE_KEY_PARENT_REQUESTS, INITIAL_PARENT_ACCESS_REQUESTS)
+  );
+
+  const [classrooms, setClassrooms] = useState<ClassRoom[]>(() =>
+    safeGetStorage(STORAGE_KEY_CLASSES, MOCK_CLASSROOMS)
   );
 
   useEffect(() => {
@@ -256,14 +317,19 @@ export function useCenseurStore() {
       setParentMessages(safeGetStorage(STORAGE_KEY_MESSAGES, INITIAL_PARENT_MESSAGES));
       setStudentsList(safeGetStorage(STORAGE_KEY_STUDENTS, MOCK_BULLETIN_STUDENTS));
       setSubjectsList(safeGetStorage(STORAGE_KEY_CENSEUR_SUBJECTS, INITIAL_CENSEUR_SUBJECTS));
-      setTeacherAccounts(safeGetStorage(STORAGE_KEY_TEACHER_ACCOUNTS, INITIAL_TEACHER_ACCOUNTS));
+      setTeacherAccounts(getMergedTeacherAccounts());
       setParentAccessRequests(safeGetStorage(STORAGE_KEY_PARENT_REQUESTS, INITIAL_PARENT_ACCESS_REQUESTS));
+      setClassrooms(safeGetStorage(STORAGE_KEY_CLASSES, MOCK_CLASSROOMS));
     };
 
     window.addEventListener(STORAGE_EVENT, handleUpdate);
+    window.addEventListener(BULLETIN_STORAGE_EVENT, handleUpdate);
+    window.addEventListener(SHARED_STORAGE_EVENT, handleUpdate);
     window.addEventListener("storage", handleUpdate);
     return () => {
       window.removeEventListener(STORAGE_EVENT, handleUpdate);
+      window.removeEventListener(BULLETIN_STORAGE_EVENT, handleUpdate);
+      window.removeEventListener(SHARED_STORAGE_EVENT, handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
   }, []);
@@ -646,7 +712,7 @@ export function useCenseurStore() {
     subjectsList,
     teacherAccounts,
     parentAccessRequests,
-    classrooms: MOCK_CLASSROOMS,
+    classrooms,
     subjects: MOCK_SUBJECTS,
     teachers: MOCK_TEACHERS,
     moveStudentClass,

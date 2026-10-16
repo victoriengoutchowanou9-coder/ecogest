@@ -24,10 +24,11 @@ export const INITIAL_STUDENTS_WITH_STATUS: StudentProfile[] = [];
 
 const STORAGE_KEY_MEDICAL = "educogest_medical_records_enc_v2";
 const STORAGE_KEY_DISCIPLINE = "educogest_discipline_incidents_v2";
-const STORAGE_KEY_STUDENTS_EXT = "educogest_students_extended_v2";
+const STORAGE_KEY_STUDENTS_EXT = "educogest_censeur_students_v1";
 const STORAGE_KEY_READMISSIONS = "educogest_readmission_logs_v2";
 
 const STORAGE_EVENT = "educogest_discipline_storage_update";
+const SHARED_STORAGE_EVENT = "ecogest_shared_data_update";
 
 function safeGetStorage<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -44,6 +45,8 @@ function safeSetStorage<T>(key: string, value: T): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
     window.dispatchEvent(new Event(STORAGE_EVENT));
+    window.dispatchEvent(new Event(SHARED_STORAGE_EVENT));
+    window.dispatchEvent(new Event("educogest_censeur_storage_update"));
   } catch (e) {
     console.error("Discipline store storage error:", e);
   }
@@ -93,9 +96,14 @@ export function useDisciplineStore() {
     };
 
     window.addEventListener(STORAGE_EVENT, handleUpdate);
+    window.addEventListener(SHARED_STORAGE_EVENT, handleUpdate);
+    window.addEventListener("educogest_censeur_storage_update", handleUpdate);
     window.addEventListener("storage", handleUpdate);
+
     return () => {
       window.removeEventListener(STORAGE_EVENT, handleUpdate);
+      window.removeEventListener(SHARED_STORAGE_EVENT, handleUpdate);
+      window.removeEventListener("educogest_censeur_storage_update", handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
   }, []);

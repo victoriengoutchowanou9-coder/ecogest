@@ -226,6 +226,37 @@ export default function UtilisateursPage() {
     setUsersCount(nextUsers.length);
     try {
       localStorage.setItem("ecogest_school_users_registry", JSON.stringify(nextUsers));
+      // Si c'est un enseignant, synchroniser également dans le registre enseignants du Censeur
+      if (formRole === "Enseignant") {
+        const rawTeachers = localStorage.getItem("educogest_censeur_teachers_v1");
+        const currentTeachers = rawTeachers ? JSON.parse(rawTeachers) : [];
+        const existsInCenseur = currentTeachers.some(
+          (t: any) => t.email.toLowerCase() === cleanEmail.toLowerCase()
+        );
+        if (!existsInCenseur) {
+          const newTeacherEntry = {
+            id: newUser.id,
+            name: newUser.name,
+            identifier: cleanEmail.split("@")[0],
+            email: cleanEmail,
+            phone: newUser.phone,
+            specialty: "Enseignement Général",
+            roleTitle: "Professeur Titulaire",
+            status: "ACTIF" as const,
+            assignedClasses: [],
+            assignedSubjects: [],
+            allowedPermissions: ["saisie_notes", "appel_presence", "cahier_textes"],
+            weeklyHours: 12,
+            createdAt: new Date().toISOString().split("T")[0],
+          };
+          localStorage.setItem(
+            "educogest_censeur_teachers_v1",
+            JSON.stringify([newTeacherEntry, ...currentTeachers])
+          );
+        }
+      }
+      window.dispatchEvent(new Event("ecogest_shared_data_update"));
+      window.dispatchEvent(new Event("educogest_censeur_storage_update"));
     } catch (e) {}
 
     setIsModalOpen(false);
