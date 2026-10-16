@@ -79,6 +79,13 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
         permission: "publications:manage",
       },
       {
+        title: "Examens & Calendrier",
+        href: "/directeur/examens",
+        iconName: "CalendarDays",
+        description: "Planification globale des examens et sessions officielles",
+        permission: "exams:read",
+      },
+      {
         title: "Journal d'audit",
         href: "/directeur/audit",
         iconName: "ShieldAlert",
@@ -160,6 +167,27 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
         iconName: "BookOpenCheck",
         description: "Validation des notes, notes manquantes et délibérations officielles",
         permission: "notes:validate",
+      },
+      {
+        title: "Examens & Calendrier",
+        href: "/censeur/examens",
+        iconName: "CalendarDays",
+        description: "Planification et publication du calendrier d'examens par classe et trimestre",
+        permission: "exams:manage",
+      },
+      {
+        title: "Registre de classe",
+        href: "/censeur/registre",
+        iconName: "FileSpreadsheet",
+        description: "Registre officiel d'appel et d'identification téléchargeable en PDF",
+        permission: "classes:read",
+      },
+      {
+        title: "Discipline & Incidents",
+        href: "/censeur/discipline",
+        iconName: "ShieldAlert",
+        description: "Enregistrement des incidents disciplinaires, sanctions et historique",
+        permission: "discipline:manage",
       },
       {
         title: "Cours, Devoirs & TD",
@@ -391,6 +419,14 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
         description: "Planning hebdomadaire des cours du Lundi au Samedi avec enseignants",
         permission: "schedule:read",
         mobileTabPriority: 5,
+      },
+      {
+        title: "Calendrier des examens",
+        href: "/parent/examens",
+        iconName: "CalendarDays",
+        description: "Dates, horaires, salles et matières d'examen de vos enfants",
+        permission: "exams:read",
+        mobileTabPriority: 6,
       },
       {
         title: "Profil du parent",

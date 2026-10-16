@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PublicFooter } from "@/components/layout/PublicFooter";
 import {
   Shield,
   BookOpenCheck,
@@ -414,19 +415,8 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* Software Product Footer */}
-      <footer className="bg-white border-t border-slate-200 mt-16 py-8 px-4 md:px-8">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-800">EDUCOGEST PRO</span>
-            <span>&bull;</span>
-            <span>Le progiciel de référence pour la gestion scolaire intégrée</span>
-          </div>
-          <div>
-            &copy; {new Date().getFullYear()} EDUCOGEST. Conforme aux standards d&apos;accessibilité WCAG, mobile first et haute disponibilité locale.
-          </div>
-        </div>
-      </footer>
+      {/* Comprehensive 5-Category Software Footer */}
+      <PublicFooter />
     </div>
   );
 }

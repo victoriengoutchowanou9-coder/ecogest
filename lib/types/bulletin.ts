@@ -7,7 +7,8 @@ export type BulletinStatus =
   | "EN_VERIFICATION"
   | "VALIDE"
   | "PUBLIE"
-  | "MODIFIE_APRES_PUBLICATION";
+  | "MODIFIE_APRES_PUBLICATION"
+  | "CORRECTION_DEMANDEE";
 
 export interface BulletinAuditLog {
   id: string;
@@ -35,9 +36,80 @@ export interface SchoolSettings {
   directorName: string;
   logoUrl?: string;
   platformName: string;
+  teachingType?: "PRIMAIRE" | "SECONDAIRE" | "PRIMAIRE_SECONDAIRE";
 }
 
 export type EducationCycle = "PRIMAIRE" | "SECONDAIRE";
+
+export type StudentStatus =
+  | "ACTIF"
+  | "ANCIEN"
+  | "DESISTE"
+  | "TRANSFERE"
+  | "EXCLU"
+  | "DIPLOME"
+  | "READMIS";
+
+export interface MedicalRecord {
+  bloodGroup: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-" | "NON_DEFINI";
+  allergies: string;
+  medicalHistory: string;
+  vaccinationHistory: string;
+  importantNotes: string;
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export interface DisciplineIncident {
+  id: string;
+  studentId: string;
+  studentName: string;
+  matricule: string;
+  className: string;
+  date: string;
+  incidentType: string;
+  description: string;
+  location: string;
+  involvedParties: string;
+  recordedBy: string;
+  sanction: string;
+  comment?: string;
+  status: "OUVERT" | "EN_COURS" | "RESOLU";
+  createdAt: string;
+}
+
+export interface StudentReadmissionLog {
+  id: string;
+  studentId: string;
+  studentName: string;
+  matricule: string;
+  previousClass: string;
+  newClassId: string;
+  newClassName: string;
+  academicYear: string;
+  readmittedAt: string;
+  readmittedBy: string;
+  observation?: string;
+}
+
+export interface ExamScheduleItem {
+  id: string;
+  classId: string;
+  className: string;
+  periodId: string; // "T1" | "T2" | "T3"
+  periodName: string;
+  subjectId: string;
+  subjectName: string;
+  date: string; // YYYY-MM-DD
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+  room: string;
+  supervisorName: string;
+  status: "PROGRAMME" | "EN_COURS" | "TERMINE" | "REPORTE" | "ANNULE";
+  notes?: string;
+}
 
 export interface AcademicYear {
   id: string;
@@ -78,7 +150,12 @@ export interface StudentProfile {
   cycle?: EducationCycle;
   parentName: string;
   parentPhone: string;
+  parentEmail?: string;
   photoUrl?: string;
+  status?: StudentStatus;
+  medicalRecord?: MedicalRecord;
+  disciplineIncidents?: DisciplineIncident[];
+  readmissionLogs?: StudentReadmissionLog[];
 }
 
 export interface SubjectConfig {

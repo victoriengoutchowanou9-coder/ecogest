@@ -203,7 +203,8 @@ export function computeClassBulletins(
   subjects: SubjectConfig[],
   grades: GradeRecord[],
   teachers: TeacherInfo[] = [],
-  auditLogsMap: Map<string, BulletinAuditLog[]> = new Map()
+  auditLogsMap: Map<string, BulletinAuditLog[]> = new Map(),
+  statusMap?: Map<string, BulletinStatus>
 ): Map<string, ComputedBulletin> {
   const resultMap = new Map<string, ComputedBulletin>();
   const sortedSubjects = [...subjects].sort((a, b) => a.order - b.order);
@@ -500,7 +501,8 @@ export function computeClassBulletins(
 
     const studentAuditLogs = auditLogsMap.get(item.student.id) || [];
     const isModified = studentAuditLogs.length > 0;
-    const status: BulletinStatus = isModified ? "MODIFIE_APRES_PUBLICATION" : "PUBLIE";
+    const explicitStatus = statusMap?.get(item.student.id);
+    const status: BulletinStatus = explicitStatus || (isModified ? "MODIFIE_APRES_PUBLICATION" : "PUBLIE");
     const version = 1 + studentAuditLogs.length;
 
     const computed: ComputedBulletin = {
@@ -562,7 +564,8 @@ export function computePrimaryClassBulletins(
   competencies: CompetencyItem[],
   gradeRecords: CompetencyGradeRecord[],
   levelDefs: CompetencyLevelDefinition[],
-  auditLogsMap: Map<string, BulletinAuditLog[]> = new Map()
+  auditLogsMap: Map<string, BulletinAuditLog[]> = new Map(),
+  statusMap?: Map<string, BulletinStatus>
 ): Map<string, ComputedPrimaryBulletin> {
   const resultMap = new Map<string, ComputedPrimaryBulletin>();
   const sortedDomains = [...domains].sort((a, b) => a.order - b.order);
@@ -668,7 +671,8 @@ export function computePrimaryClassBulletins(
     const barcodeValue = `${student.educMasterNumber || student.matricule}-${period.code}-${academicYear.id}`;
     const verificationUrl = `/ecole/verification?code=${encodeURIComponent(barcodeValue)}&std=${student.id}`;
     const studentAuditLogs = auditLogsMap.get(student.id) || [];
-    const status: BulletinStatus = studentAuditLogs.length > 0 ? "MODIFIE_APRES_PUBLICATION" : "PUBLIE";
+    const explicitStatus = statusMap?.get(student.id);
+    const status: BulletinStatus = explicitStatus || (studentAuditLogs.length > 0 ? "MODIFIE_APRES_PUBLICATION" : "PUBLIE");
 
     const bulletin: ComputedPrimaryBulletin = {
       id: `blt-prim-${student.id}-${period.id}`,

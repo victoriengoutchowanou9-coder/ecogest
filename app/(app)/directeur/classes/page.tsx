@@ -1,117 +1,134 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import { Plus, GraduationCap, Users, BookOpen, Edit, Trash2, X, Check } from "lucide-react";
+import {
+  Plus,
+  GraduationCap,
+  Users,
+  BookOpen,
+  Edit,
+  Trash2,
+  X,
+  Check,
+  FileSpreadsheet,
+  Printer,
+  Sparkles,
+  Building2,
+} from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable, Column } from "@/components/ui/DataTable";
 import { RecordCard } from "@/components/ui/RecordCard";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { useToast } from "@/components/ui/Toast";
-import { EducationCycle } from "@/lib/types/bulletin";
+import { EducationCycle, ClassRoom } from "@/lib/types/bulletin";
+import { useBulletinStore } from "@/lib/bulletin-store";
+import { useSubscriptionStore } from "@/lib/subscription-store";
+import { useDisciplineStore } from "@/lib/discipline-store";
+import { ClassRegisterPDF } from "@/components/school/ClassRegisterPDF";
 
-interface SchoolClass {
-  id: string;
-  name: string;
-  cycle: EducationCycle;
-  level: string;
-  room: string;
-  studentsCount: number;
-  mainTeacher: string;
-  subjectsCount: number;
-}
-
-const INITIAL_CLASSES: SchoolClass[] = [
-  // ─── Cycle Primaire ────────────────────────────────────────────────────────
-  { id: "c-prim-01", name: "CP A", cycle: "PRIMAIRE", level: "CP", room: "Bâtiment Primaire - Salle 1", studentsCount: 32, mainTeacher: "Mme Bernadette SOSSOU", subjectsCount: 6 },
-  { id: "c-prim-02", name: "CE2 B", cycle: "PRIMAIRE", level: "CE2", room: "Bâtiment Primaire - Salle 4", studentsCount: 35, mainTeacher: "M. Marcellin KPADONOU", subjectsCount: 6 },
-  { id: "c-prim-03", name: "CM2 A", cycle: "PRIMAIRE", level: "CM2 (Examen CEP)", room: "Bâtiment Primaire - Salle 6", studentsCount: 38, mainTeacher: "M. Théophile AÏSSI", subjectsCount: 6 },
-  // ─── Cycle Secondaire ──────────────────────────────────────────────────────
-  { id: "c-01", name: "6ème A", cycle: "SECONDAIRE", level: "Premier Cycle", room: "Salle 101", studentsCount: 45, mainTeacher: "Mme Reine ZANNOU", subjectsCount: 9 },
-  { id: "c-02", name: "6ème B", cycle: "SECONDAIRE", level: "Premier Cycle", room: "Salle 102", studentsCount: 44, mainTeacher: "M. Paul MENSAH", subjectsCount: 9 },
-  { id: "c-03", name: "5ème A", cycle: "SECONDAIRE", level: "Premier Cycle", room: "Salle 103", studentsCount: 42, mainTeacher: "M. Roger DEGBE", subjectsCount: 9 },
-  { id: "c-04", name: "3ème A", cycle: "SECONDAIRE", level: "Premier Cycle (Examen BEPC)", room: "Salle 201", studentsCount: 48, mainTeacher: "Prof. Justin HOUNKPONOU", subjectsCount: 11 },
-  { id: "c-05", name: "1ère D", cycle: "SECONDAIRE", level: "Second Cycle", room: "Salle 301", studentsCount: 38, mainTeacher: "M. Pamphile BIO", subjectsCount: 10 },
-  { id: "c-06", name: "Terminale C", cycle: "SECONDAIRE", level: "Second Cycle (Examen Bac)", room: "Salle 304", studentsCount: 32, mainTeacher: "Prof. Justin HOUNKPONOU", subjectsCount: 11 },
-];
+const PRIMARY_LEVELS = ["CI", "CP", "CE1", "CE2", "CM1", "CM2"];
+const SECONDARY_LEVELS = ["6ème", "5ème", "4ème", "3ème", "2nde", "1ère", "Terminale"];
 
 export default function ClassesPage() {
   const { toast } = useToast();
-  const [classes, setClasses] = useState<SchoolClass[]>(INITIAL_CLASSES);
+  const { classrooms, saveClassroom, deleteClassroom, school, years } = useBulletinStore();
+  const { activeSchool } = useSubscriptionStore();
+  const { students } = useDisciplineStore();
+
   const [search, setSearch] = useState("");
   const [cycleFilter, setCycleFilter] = useState<"ALL" | "PRIMAIRE" | "SECONDAIRE">("ALL");
 
+  // State pour affichage du registre PDF
+  const [selectedClassForRegister, setSelectedClassForRegister] = useState<ClassRoom | null>(null);
+
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingClass, setEditingClass] = useState<SchoolClass | null>(null);
+  const [editingClass, setEditingClass] = useState<ClassRoom | null>(null);
+
   const [formName, setFormName] = useState("");
   const [formCycle, setFormCycle] = useState<EducationCycle>("SECONDAIRE");
-  const [formLevel, setFormLevel] = useState("Premier Cycle");
+  const [formLevel, setFormLevel] = useState("6ème");
+  const [formDivision, setFormDivision] = useState("A");
+  const [formStream, setFormStream] = useState("Enseignement Général");
   const [formRoom, setFormRoom] = useState("");
   const [formTeacher, setFormTeacher] = useState("");
   const [formStudentsCount, setFormStudentsCount] = useState(35);
 
+  const schoolTeachingType = activeSchool.teachingType || "PRIMAIRE_SECONDAIRE";
+
   const openNewClassModal = () => {
     setEditingClass(null);
-    setFormName("");
-    setFormCycle("SECONDAIRE");
-    setFormLevel("Premier Cycle");
-    setFormRoom("Salle 105");
+    const initialCycle: EducationCycle = schoolTeachingType === "PRIMAIRE" ? "PRIMAIRE" : "SECONDAIRE";
+    const initialLvl = initialCycle === "PRIMAIRE" ? "CP" : "6ème";
+    setFormCycle(initialCycle);
+    setFormLevel(initialLvl);
+    setFormDivision("A");
+    setFormName(`${initialLvl} A`);
+    setFormStream(initialCycle === "PRIMAIRE" ? "Apprentissages Fondamentaux" : "Enseignement Général");
+    setFormRoom("Salle 101");
     setFormTeacher("Prof. Justin HOUNKPONOU");
     setFormStudentsCount(35);
     setIsModalOpen(true);
   };
 
-  const openEditModal = (cls: SchoolClass) => {
+  const openEditModal = (cls: ClassRoom) => {
     setEditingClass(cls);
     setFormName(cls.name);
     setFormCycle(cls.cycle);
     setFormLevel(cls.level);
-    setFormRoom(cls.room);
+    setFormStream(cls.stream);
+    setFormDivision(cls.name.split(" ").slice(1).join(" ") || "A");
+    setFormRoom("Salle " + cls.name);
     setFormTeacher(cls.mainTeacher);
-    setFormStudentsCount(cls.studentsCount);
+    setFormStudentsCount(cls.size || 35);
     setIsModalOpen(true);
+  };
+
+  const handleLevelChange = (lvl: string) => {
+    setFormLevel(lvl);
+    setFormName(`${lvl} ${formDivision}`.trim());
+  };
+
+  const handleDivisionChange = (div: string) => {
+    setFormDivision(div);
+    setFormName(`${formLevel} ${div}`.trim());
+  };
+
+  const handleCycleChange = (cycle: EducationCycle) => {
+    setFormCycle(cycle);
+    const nextLvl = cycle === "PRIMAIRE" ? "CP" : "6ème";
+    setFormLevel(nextLvl);
+    setFormName(`${nextLvl} ${formDivision}`.trim());
+    setFormStream(cycle === "PRIMAIRE" ? "Apprentissages Fondamentaux" : "Enseignement Général");
   };
 
   const handleSaveClass = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim()) return;
 
-    if (editingClass) {
-      setClasses(
-        classes.map((c) =>
-          c.id === editingClass.id
-            ? {
-                ...c,
-                name: formName.trim(),
-                cycle: formCycle,
-                level: formLevel,
-                room: formRoom,
-                mainTeacher: formTeacher,
-                studentsCount: Number(formStudentsCount) || c.studentsCount,
-              }
-            : c
-        )
-      );
-      toast(`Classe ${formName} mise à jour avec succès`, "success");
-    } else {
-      const newClass: SchoolClass = {
-        id: `c-${Date.now()}`,
-        name: formName.trim(),
-        cycle: formCycle,
-        level: formLevel,
-        room: formRoom || "Salle...",
-        studentsCount: Number(formStudentsCount) || 0,
-        mainTeacher: formTeacher || "Non assigné",
-        subjectsCount: formCycle === "PRIMAIRE" ? 6 : 10,
-      };
-      setClasses([...classes, newClass]);
-      toast(`Nouvelle classe ${formName} (${formCycle === "PRIMAIRE" ? "Primaire" : "Secondaire"}) créée avec succès`, "success");
-    }
+    const classRoomData: ClassRoom = {
+      id: editingClass ? editingClass.id : `c-${Date.now()}`,
+      name: formName.trim(),
+      cycle: formCycle,
+      level: formLevel,
+      stream: formStream,
+      size: Number(formStudentsCount) || 35,
+      mainTeacher: formTeacher.trim() || "Non assigné",
+      academicYearId: "2026-2027",
+    };
+
+    saveClassroom(classRoomData);
+    toast(
+      editingClass
+        ? `Classe ${formName} mise à jour avec succès`
+        : `Nouvelle classe ${formName} (${formCycle === "PRIMAIRE" ? "Primaire" : "Secondaire"}) enregistrée avec succès`,
+      "success"
+    );
     setIsModalOpen(false);
   };
 
-  const filtered = classes.filter((c) => {
+  const filtered = classrooms.filter((c) => {
     const matchesSearch =
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.mainTeacher.toLowerCase().includes(search.toLowerCase());
@@ -119,7 +136,21 @@ export default function ClassesPage() {
     return matchesSearch && matchesCycle;
   });
 
-  const columns: Column<SchoolClass>[] = [
+  // Si l'utilisateur a cliqué sur afficher le registre PDF d'une classe
+  if (selectedClassForRegister) {
+    const classStudents = students.filter((s) => s.classId === selectedClassForRegister.id);
+    return (
+      <ClassRegisterPDF
+        classroom={selectedClassForRegister}
+        students={classStudents.length > 0 ? classStudents : students.slice(0, 8)}
+        academicYear={years[0]}
+        schoolSettings={school}
+        onBack={() => setSelectedClassForRegister(null)}
+      />
+    );
+  }
+
+  const columns: Column<ClassRoom>[] = [
     {
       key: "name",
       header: "Classe & Cycle",
@@ -127,7 +158,7 @@ export default function ClassesPage() {
         <div className="flex items-center gap-2">
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-slate-900">{item.name}</span>
+              <span className="font-bold text-slate-900 text-sm">{item.name}</span>
               {item.cycle === "PRIMAIRE" ? (
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                   Primaire
@@ -138,41 +169,49 @@ export default function ClassesPage() {
                 </span>
               )}
             </div>
-            <span className="block text-xs text-slate-500 mt-0.5">{item.level}</span>
+            <span className="block text-xs text-slate-500 mt-0.5">
+              Niveau : {item.level} &bull; {item.stream}
+            </span>
           </div>
         </div>
       ),
     },
     {
-      key: "room",
-      header: "Salle",
-      render: (item) => <span className="text-slate-700 text-xs font-mono">{item.room}</span>,
-    },
-    {
-      key: "studentsCount",
+      key: "size",
       header: "Effectif",
       render: (item) => (
-        <span className="inline-flex items-center gap-1 font-semibold text-slate-900 tabular-nums">
+        <span className="inline-flex items-center gap-1 font-semibold text-slate-900 tabular-nums text-xs">
           <Users className="w-3.5 h-3.5 text-slate-400" />
-          <span>{item.studentsCount} élèves</span>
+          <span>{item.size} élèves</span>
         </span>
       ),
     },
     {
       key: "mainTeacher",
       header: "Enseignant / Prof. Principal",
-      render: (item) => <span className="text-slate-700">{item.mainTeacher}</span>,
+      render: (item) => (
+        <span className="text-slate-700 text-xs font-medium">{item.mainTeacher}</span>
+      ),
     },
     {
       key: "actions",
-      header: "Actions",
+      header: "Actions & Registre",
       className: "text-right",
       render: (item) => (
-        <div className="flex items-center justify-end gap-1.5">
+        <div className="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setSelectedClassForRegister(item)}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-school-50 text-slate-700 hover:text-school-primary text-xs font-semibold border border-slate-200 transition-colors"
+            title="Consulter et imprimer le registre officiel de classe en PDF"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span>Registre PDF</span>
+          </button>
           <button
             type="button"
             onClick={() => openEditModal(item)}
-            className="p-1.5 text-slate-500 hover:text-school-primary rounded-lg hover:bg-slate-100 touch-target"
+            className="p-1.5 text-slate-500 hover:text-school-primary rounded-lg hover:bg-slate-100"
             title="Modifier"
           >
             <Edit className="w-4 h-4" />
@@ -185,14 +224,20 @@ export default function ClassesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Gestion des Classes &amp; Matières"
-        subtitle="Configuration bivalente des divisions pédagogiques : Primaire (compétences) et Secondaire (notes/coefficients)"
+        title="Structure des Niveaux & Classes"
+        subtitle={`Configuration des divisions pédagogiques de ${activeSchool.name} (Type : ${
+          schoolTeachingType === "PRIMAIRE"
+            ? "Primaire"
+            : schoolTeachingType === "SECONDAIRE"
+            ? "Secondaire"
+            : "Primaire + Secondaire"
+        })`}
         breadcrumbs={[{ label: "Directeur", href: "/directeur" }, { label: "Classes & Matières" }]}
         actions={
           <button
             type="button"
             onClick={openNewClassModal}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-school-primary hover:bg-school-700 text-white font-semibold text-xs md:text-sm shadow-sm touch-target"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-school-primary hover:bg-school-700 text-white font-semibold text-xs md:text-sm shadow-sm touch-target transition-colors"
           >
             <Plus className="w-4 h-4" />
             <span>Nouvelle Classe</span>
@@ -200,10 +245,37 @@ export default function ClassesPage() {
         }
       />
 
+      {/* Teaching Type context banner */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-school-50 via-slate-50 to-white border border-school-200 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-school-primary text-white flex items-center justify-center shrink-0">
+            <Building2 className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600">
+              Type d'enseignement actif
+            </h4>
+            <p className="text-sm font-black text-slate-900">
+              {schoolTeachingType === "PRIMAIRE"
+                ? "Primaire (CI, CP, CE1, CE2, CM1, CM2)"
+                : schoolTeachingType === "SECONDAIRE"
+                ? "Secondaire (6ème, 5ème, 4ème, 3ème, 2nde, 1ère, Terminale)"
+                : "Primaire + Secondaire (Bivalent : CI à la Terminale)"}
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/directeur/parametres"
+          className="text-xs font-bold text-school-primary hover:underline"
+        >
+          Modifier le type dans les Paramètres &rarr;
+        </Link>
+      </div>
+
       <FilterBar
         searchQuery={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Rechercher une classe, enseignant..."
+        searchPlaceholder="Rechercher une classe, un professeur..."
         filters={[
           {
             key: "cycle",
@@ -230,159 +302,187 @@ export default function ClassesPage() {
         renderMobileCard={(item) => (
           <RecordCard
             title={item.name}
-            subtitle={`${item.cycle === "PRIMAIRE" ? "Primaire" : "Secondaire"} • ${item.level}`}
+            subtitle={`${item.cycle === "PRIMAIRE" ? "Primaire" : "Secondaire"} • Niveau : ${item.level}`}
             icon={<GraduationCap className="w-5 h-5" />}
-            badge={<span className="text-xs font-mono font-bold bg-slate-100 px-2 py-0.5 rounded">{item.room}</span>}
+            badge={
+              <span className="text-xs font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                {item.size} élèves
+              </span>
+            }
             details={[
-              { label: "Effectif", value: `${item.studentsCount} élèves` },
-              { label: item.cycle === "PRIMAIRE" ? "Maître titulaire" : "Prof. Principal", value: item.mainTeacher },
+              { label: "Stream / Filière", value: item.stream },
+              {
+                label: item.cycle === "PRIMAIRE" ? "Maître titulaire" : "Prof. Principal",
+                value: item.mainTeacher,
+              },
             ]}
             actions={
-              <Link
-                href="/censeur/matieres"
-                className="text-xs font-semibold text-school-primary hover:underline touch-target"
-              >
-                Gérer les matières &rarr;
-              </Link>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedClassForRegister(item)}
+                  className="text-xs font-bold text-school-primary hover:underline flex items-center gap-1"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Registre PDF</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openEditModal(item)}
+                  className="text-xs font-semibold text-slate-600 hover:text-slate-900"
+                >
+                  Modifier
+                </button>
+              </div>
             }
           />
         )}
       />
 
-      {/* Modal Créer / Modifier une classe */}
+      {/* Modal Création / Édition de Classe & Division */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg border border-slate-200 overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-              <div className="flex items-center gap-2">
-                <GraduationCap className="w-5 h-5 text-school-primary" />
-                <h3 className="font-bold text-slate-900">
-                  {editingClass ? `Modifier ${editingClass.name}` : "Créer une nouvelle classe"}
-                </h3>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-school-primary" />
+                <span>{editingClass ? `Modifier ${editingClass.name}` : "Créer une nouvelle classe & division"}</span>
+              </h3>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100"
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200 transition"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleSaveClass} className="p-6 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">Cycle d&apos;enseignement</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFormCycle("PRIMAIRE");
-                      setFormLevel("CP");
-                      if (!editingClass) setFormTeacher("Mme Bernadette SOSSOU");
-                    }}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                      formCycle === "PRIMAIRE"
-                        ? "border-emerald-600 bg-emerald-50 text-emerald-800 shadow-sm"
-                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    <span>🌱 Cycle Primaire</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFormCycle("SECONDAIRE");
-                      setFormLevel("Premier Cycle");
-                      if (!editingClass) setFormTeacher("Prof. Justin HOUNKPONOU");
-                    }}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                      formCycle === "SECONDAIRE"
-                        ? "border-indigo-600 bg-indigo-50 text-indigo-800 shadow-sm"
-                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    <span>🎓 Cycle Secondaire</span>
-                  </button>
+              {/* Choix du cycle */}
+              {schoolTeachingType === "PRIMAIRE_SECONDAIRE" && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Cycle d&apos;enseignement
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleCycleChange("PRIMAIRE")}
+                      className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                        formCycle === "PRIMAIRE"
+                          ? "border-emerald-600 bg-emerald-50 text-emerald-800 shadow-sm"
+                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span>🎒 Cycle Primaire</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCycleChange("SECONDAIRE")}
+                      className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                        formCycle === "SECONDAIRE"
+                          ? "border-indigo-600 bg-indigo-50 text-indigo-800 shadow-sm"
+                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span>🎓 Cycle Secondaire</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">Nom de la classe</label>
-                <input
-                  type="text"
-                  required
-                  placeholder={formCycle === "PRIMAIRE" ? "Ex: CE2 B ou CM1 A" : "Ex: 4ème B ou 2nde C"}
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-school-primary/20"
-                />
-              </div>
-
+              {/* Choix du niveau et de la division */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Niveau pédagogique</label>
-                  {formCycle === "PRIMAIRE" ? (
-                    <select
-                      value={formLevel}
-                      onChange={(e) => setFormLevel(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm bg-white"
-                    >
-                      <option value="CI">CI (Cours d&apos;Initiation)</option>
-                      <option value="CP">CP (Cours Préparatoire)</option>
-                      <option value="CE1">CE1 (Cours Élémentaire 1)</option>
-                      <option value="CE2">CE2 (Cours Élémentaire 2)</option>
-                      <option value="CM1">CM1 (Cours Moyen 1)</option>
-                      <option value="CM2 (Examen CEP)">CM2 (Examen CEP)</option>
-                    </select>
-                  ) : (
-                    <select
-                      value={formLevel}
-                      onChange={(e) => setFormLevel(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm bg-white"
-                    >
-                      <option value="Premier Cycle">Premier Cycle (6e, 5e, 4e)</option>
-                      <option value="Premier Cycle (Examen BEPC)">Premier Cycle (Examen BEPC - 3e)</option>
-                      <option value="Second Cycle">Second Cycle (2nde, 1ère)</option>
-                      <option value="Second Cycle (Examen Bac)">Second Cycle (Examen Bac - Tle)</option>
-                    </select>
-                  )}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Niveau officiel ({formCycle === "PRIMAIRE" ? "Primaire" : "Secondaire"})
+                  </label>
+                  <select
+                    value={formLevel}
+                    onChange={(e) => handleLevelChange(e.target.value)}
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white font-semibold focus:ring-2 focus:ring-school-primary"
+                  >
+                    {formCycle === "PRIMAIRE"
+                      ? PRIMARY_LEVELS.map((lvl) => (
+                          <option key={lvl} value={lvl}>
+                            {lvl}
+                          </option>
+                        ))
+                      : SECONDARY_LEVELS.map((lvl) => (
+                          <option key={lvl} value={lvl}>
+                            {lvl}
+                          </option>
+                        ))}
+                  </select>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Salle de cours</label>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Division / Lettre
+                  </label>
                   <input
                     type="text"
+                    value={formDivision}
+                    onChange={(e) => handleDivisionChange(e.target.value)}
+                    placeholder="Ex: A, B, C, 1, Rouge..."
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-school-primary font-bold"
                     required
-                    placeholder="Salle 104"
-                    value={formRoom}
-                    onChange={(e) => setFormRoom(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
                   />
                 </div>
               </div>
 
+              {/* Intitulé complet généré */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Nom officiel complet de la classe
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="Ex: 6ème A, CM2 B..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-school-primary/20"
+                />
+              </div>
+
+              {/* Filière / Stream */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Filière / Spécialité
+                </label>
+                <input
+                  type="text"
+                  value={formStream}
+                  onChange={(e) => setFormStream(e.target.value)}
+                  placeholder="Ex: Enseignement Général, Scientifique (C), Littéraire (A)..."
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <label className="text-xs font-semibold text-slate-700">
                     {formCycle === "PRIMAIRE" ? "Maître(sse) Titulaire" : "Professeur Principal"}
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder={formCycle === "PRIMAIRE" ? "Ex: Mme Bernadette SOSSOU" : "Ex: Prof. Justin HOUNKPONOU"}
+                    placeholder="Ex: M. Koffi TOSSOU"
                     value={formTeacher}
                     onChange={(e) => setFormTeacher(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Effectif d&apos;élèves</label>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700">Effectif prévu</label>
                   <input
                     type="number"
                     min="1"
                     max="100"
                     value={formStudentsCount}
                     onChange={(e) => setFormStudentsCount(Number(e.target.value))}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono"
                   />
                 </div>
               </div>
@@ -397,9 +497,9 @@ export default function ClassesPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-school-primary text-white text-xs font-semibold hover:bg-school-700 shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-school-primary text-white text-xs font-bold hover:bg-school-700 shadow-sm"
                 >
-                  {editingClass ? "Mettre à jour" : "Créer la classe"}
+                  {editingClass ? "Mettre à jour" : "Créer la division"}
                 </button>
               </div>
             </form>

@@ -128,6 +128,8 @@ export const PARENT_PLANS: Record<ParentPlanCode, ParentPlanDefinition> = {
   },
 };
 
+export type TeachingType = "PRIMAIRE" | "SECONDAIRE" | "PRIMAIRE_SECONDAIRE";
+
 export interface SchoolProfile {
   id: string;
   code: string;
@@ -145,4 +147,5 @@ export interface SchoolProfile {
   devise: string;
   currency: string;
   activeYear: string;
+  teachingType?: TeachingType;
 }

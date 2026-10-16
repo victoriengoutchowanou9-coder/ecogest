@@ -15,6 +15,7 @@ export {
   type SchoolPlanDefinition,
   type ParentPlanDefinition,
   type SchoolProfile,
+  type TeachingType,
 } from "./subscription-plans";
 
 import {
@@ -67,6 +68,7 @@ const INITIAL_SCHOOLS: SchoolProfile[] = [
     devise: "Travail - Foi - Discipline",
     currency: "FCFA",
     activeYear: "2026-2027",
+    teachingType: "PRIMAIRE_SECONDAIRE",
   },
   {
     id: "school-2",
@@ -85,6 +87,7 @@ const INITIAL_SCHOOLS: SchoolProfile[] = [
     devise: "Excellence - Rigueur - Travail",
     currency: "FCFA",
     activeYear: "2026-2027",
+    teachingType: "PRIMAIRE_SECONDAIRE",
   },
 ];
 

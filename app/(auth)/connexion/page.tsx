@@ -52,6 +52,7 @@ export default function AuthPage() {
 
   // Affichage du mot de passe
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
   // =========================================================================
   // ÉTATS DE CONNEXION
@@ -252,6 +253,15 @@ export default function AuthPage() {
         {/* =================================================================== */}
         <div className="lg:col-span-7 p-6 sm:p-8 md:p-10 flex flex-col justify-between overflow-y-auto">
           <div>
+            <div className="flex items-center justify-between mb-4">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 font-semibold transition-colors"
+              >
+                <span>&larr; Revenir au site principal</span>
+              </Link>
+            </div>
+
             {/* Bascule principale : Se connecter / S'inscrire (Requirement 8) */}
             <div className="flex items-center p-1.5 rounded-2xl bg-slate-100 max-w-md mx-auto mb-8 border border-slate-200">
               <button
@@ -327,7 +337,7 @@ export default function AuthPage() {
                 <form onSubmit={handleLoginSubmit} className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-slate-700">
-                      Identifiant / Adresse email
+                      Email / Identifiant
                     </label>
                     <div className="relative">
                       <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -343,16 +353,7 @@ export default function AuthPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <label className="font-semibold text-slate-700">Mot de passe</label>
-                      <button
-                        type="button"
-                        onClick={() => toast("Contactez l'administrateur de l'école pour réinitialiser votre mot de passe.", "info")}
-                        className="text-school-primary hover:underline text-[11px]"
-                      >
-                        Mot de passe oublié ?
-                      </button>
-                    </div>
+                    <label className="font-semibold text-slate-700 text-xs">Mot de passe</label>
                     <div className="relative">
                       <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
@@ -372,20 +373,51 @@ export default function AuthPage() {
                     </div>
                   </div>
 
+                  {/* Se souvenir de moi & Mot de passe oublié */}
+                  <div className="flex items-center justify-between text-xs pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer text-slate-600">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-300 text-school-primary focus:ring-school-primary"
+                      />
+                      <span>Se souvenir de moi</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => toast("Contactez l'administrateur de l'école pour réinitialiser votre mot de passe.", "info")}
+                      className="text-school-primary hover:underline text-[11px] font-semibold"
+                    >
+                      Mot de passe oublié ?
+                    </button>
+                  </div>
+
                   <button
                     type="submit"
                     disabled={loginLoading}
-                    className="w-full py-3 rounded-xl bg-school-primary hover:bg-school-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 touch-target min-h-[48px]"
+                    className="w-full py-3.5 rounded-xl bg-school-primary hover:bg-school-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 touch-target min-h-[48px]"
                   >
                     {loginLoading ? (
                       <span>Connexion en cours...</span>
                     ) : (
                       <>
-                        <span>Accéder à l&apos;espace {loginRole.toUpperCase()}</span>
-                        <ArrowRight className="w-4 h-4" />
+                        <LogIn className="w-4 h-4" />
+                        <span>Se connecter ({loginRole.toUpperCase()})</span>
                       </>
                     )}
                   </button>
+
+                  {/* Link: Pas encore de compte ? S'inscrire */}
+                  <div className="text-center text-xs text-slate-600 pt-2 border-t border-slate-100">
+                    Pas encore de compte ?{" "}
+                    <Link
+                      href="/inscription"
+                      className="font-bold text-school-primary hover:underline"
+                    >
+                      S&apos;inscrire
+                    </Link>
+                  </div>
                 </form>
 
                 <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600 space-y-1">
@@ -394,7 +426,7 @@ export default function AuthPage() {
                     <span>Redirection automatique selon le rôle :</span>
                   </p>
                   <p className="text-[11px] text-slate-500">
-                    Chaque utilisateur est automatiquement dirigé vers son espace dédié selon ses prérogatives de sécurité.
+                    Direction &rarr; /directeur &bull; Censeur &rarr; /censeur &bull; Enseignant &rarr; /enseignant &bull; Comptable &rarr; /comptabilite &bull; Parent &rarr; /parent
                   </p>
                 </div>
               </div>

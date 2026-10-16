@@ -57,6 +57,7 @@ export default function ParametresEtablissementPage() {
   const [newSchoolAddress, setNewSchoolAddress] = useState("");
   const [newSchoolPhone, setNewSchoolPhone] = useState("+229 ");
   const [newSchoolEmail, setNewSchoolEmail] = useState("");
+  const [newSchoolTeachingType, setNewSchoolTeachingType] = useState<"PRIMAIRE" | "SECONDAIRE" | "PRIMAIRE_SECONDAIRE">("PRIMAIRE_SECONDAIRE");
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,6 +86,7 @@ export default function ParametresEtablissementPage() {
       devise: "Travail - Rigueur - Réussite",
       currency: "FCFA",
       activeYear: "2026-2027",
+      teachingType: newSchoolTeachingType,
     });
 
     if (result.success) {
@@ -238,6 +240,109 @@ export default function ParametresEtablissementPage() {
                   placeholder="/images/pexels-tosin-olowoleni-2148141635-34162713.jpg"
                   className="w-full rounded-xl border border-slate-300 py-2.5 px-3.5 text-xs font-mono focus:border-school-primary focus:ring-2 focus:ring-school-primary/20"
                 />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section Structure de l'établissement : Type d'enseignement proposé */}
+        <div className="space-y-4">
+          <div className="border-b border-slate-100 pb-3">
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-school-primary" />
+              <span>Structure de l&apos;Établissement &mdash; Type d&apos;Enseignement Proposé</span>
+            </h3>
+            <p className="text-xs text-slate-500">
+              Détermine les cycles, niveaux (CI à CM2 et/ou 6e à Terminale) et maquettes de bulletins disponibles.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Option 1: Primaire */}
+            <div
+              onClick={() => setFormData({ ...formData, teachingType: "PRIMAIRE" })}
+              className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                formData.teachingType === "PRIMAIRE"
+                  ? "border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/20 shadow-sm"
+                  : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-sm text-slate-900">Primaire</span>
+                <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                  formData.teachingType === "PRIMAIRE" ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-300"
+                }`}>
+                  {formData.teachingType === "PRIMAIRE" && <Check className="w-3 h-3" />}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mb-2">
+                Évaluation par compétences fondamentales, bulletins trimestriels avec cotes (EXP, A, ECA, NA).
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {["CI", "CP", "CE1", "CE2", "CM1", "CM2"].map((lvl) => (
+                  <span key={lvl} className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white border border-slate-200 text-slate-700">
+                    {lvl}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Option 2: Secondaire */}
+            <div
+              onClick={() => setFormData({ ...formData, teachingType: "SECONDAIRE" })}
+              className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                formData.teachingType === "SECONDAIRE"
+                  ? "border-blue-600 bg-blue-50/70 ring-2 ring-blue-500/20 shadow-sm"
+                  : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-sm text-slate-900">Secondaire</span>
+                <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                  formData.teachingType === "SECONDAIRE" ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300"
+                }`}>
+                  {formData.teachingType === "SECONDAIRE" && <Check className="w-3 h-3" />}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mb-2">
+                Collège & Lycée : notes chiffrées, coefficients officiels Bénin, moyennes pondérées et délibérations.
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {["6e", "5e", "4e", "3e", "2nde", "1ère", "Tle"].map((lvl) => (
+                  <span key={lvl} className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white border border-slate-200 text-slate-700">
+                    {lvl}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Option 3: Primaire + Secondaire */}
+            <div
+              onClick={() => setFormData({ ...formData, teachingType: "PRIMAIRE_SECONDAIRE" })}
+              className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                formData.teachingType === "PRIMAIRE_SECONDAIRE" || !formData.teachingType
+                  ? "border-school-primary bg-school-50/70 ring-2 ring-school-primary/20 shadow-sm"
+                  : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-sm text-slate-900">Primaire + Secondaire</span>
+                <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                  formData.teachingType === "PRIMAIRE_SECONDAIRE" || !formData.teachingType ? "border-school-primary bg-school-primary text-white" : "border-slate-300"
+                }`}>
+                  {(formData.teachingType === "PRIMAIRE_SECONDAIRE" || !formData.teachingType) && <Check className="w-3 h-3" />}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mb-2">
+                Complexe scolaire bivalent intégral : gestion synchronisée de la maternelle/CI jusqu&apos;à la Terminale.
+              </p>
+              <div className="flex flex-wrap gap-1">
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                  CI &rarr; CM2
+                </span>
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">
+                  6e &rarr; Terminale
+                </span>
               </div>
             </div>
           </div>
@@ -448,6 +553,23 @@ export default function ParametresEtablissementPage() {
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Type d&apos;enseignement proposé</label>
+                <select
+                  value={newSchoolTeachingType}
+                  onChange={(e) =>
+                    setNewSchoolTeachingType(
+                      e.target.value as "PRIMAIRE" | "SECONDAIRE" | "PRIMAIRE_SECONDAIRE"
+                    )
+                  }
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm bg-white font-medium"
+                >
+                  <option value="PRIMAIRE">Primaire (CI, CP, CE1, CE2, CM1, CM2)</option>
+                  <option value="SECONDAIRE">Secondaire (6e à Terminale)</option>
+                  <option value="PRIMAIRE_SECONDAIRE">Primaire + Secondaire (Bivalent complet)</option>
+                </select>
               </div>
 
               <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 text-xs flex items-start gap-2">

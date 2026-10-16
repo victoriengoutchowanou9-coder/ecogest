@@ -9,6 +9,8 @@ import {
   Layers,
   Sparkles,
   BookOpen,
+  Lock,
+  ShieldAlert,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ChildSwitcher } from "@/components/school/ChildSwitcher";
@@ -24,8 +26,14 @@ import { useBulletinStore } from "@/lib/bulletin-store";
 import { MOCK_STUDENTS } from "@/lib/mock-data";
 
 export default function ParentNotesPage() {
-  const { getClassBulletins, getPrimaryStudentBulletin, subjects, grades, primaryGrades } =
-    useBulletinStore();
+  const {
+    getClassBulletins,
+    getPrimaryStudentBulletin,
+    subjects,
+    grades,
+    primaryGrades,
+    isBulletinPublished,
+  } = useBulletinStore();
 
   // The parent has 1 child in Secondary (Koffi in 3ème A) and 1 child in Primary (Samuel in CE2 B)
   const myChildren = useMemo(() => {
@@ -40,6 +48,7 @@ export default function ParentNotesPage() {
   const [viewMode, setViewMode] = useState<"card" | "official">("official");
 
   const isPrimary = selectedChild.cycle === "PRIMAIRE" || selectedChild.classId === "ce2-b";
+  const isPublished = isBulletinPublished(selectedChild.id, selectedChild.classId, selectedPeriodId);
 
   const activePeriod = useMemo(() => {
     return (
@@ -175,7 +184,19 @@ export default function ParentNotesPage() {
         </div>
 
         {/* Global Student Stats Banner (Adaptive Primary / Secondary) */}
-        {isPrimary && primaryBulletin ? (
+        {!isPublished ? (
+          <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-xl">
+            <Lock className="w-6 h-6 text-amber-600 shrink-0" />
+            <div>
+              <span className="text-xs font-bold text-amber-900 block">
+                Période en cours de délibération ({activePeriod.name})
+              </span>
+              <span className="text-[11px] text-amber-800 font-medium">
+                Validation du Censeur en cours &bull; Consultation débloquée dès publication officielle
+              </span>
+            </div>
+          </div>
+        ) : isPrimary && primaryBulletin ? (
           <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 px-4 py-2.5 rounded-xl">
             <Sparkles className="w-7 h-7 text-emerald-700 shrink-0" />
             <div>
@@ -209,35 +230,62 @@ export default function ParentNotesPage() {
       </div>
 
       {/* Main Official Benin Bulletin View (Adaptive Primary / Secondary) */}
-      <div className="space-y-4">
-        <div className="no-print bg-slate-100 p-3 rounded-xl border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
-          <span>
-            <strong>Aperçu conforme République du Bénin :</strong>{" "}
-            {isPrimary
-              ? "Livret officiel du Cycle Primaire (MEMP), évaluation par compétences et observation qualitative."
-              : "Bulletin officiel du Cycle Secondaire (MESTFP), moyenne générale, coefficients et rangs."}
-          </span>
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="text-xs font-bold text-school-primary underline hover:text-school-700 ml-2 shrink-0"
-          >
-            Lancer l&apos;impression
-          </button>
+      {!isPublished ? (
+        <div className="bg-white p-8 md:p-14 rounded-2xl border border-slate-200 text-center space-y-4 shadow-sm">
+          <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200">
+            <Lock className="w-8 h-8" />
+          </div>
+          <div className="max-w-lg mx-auto">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900">
+              Bulletin en cours de délibération &amp; validation officielle
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+              Les notes et évaluations de <strong>{selectedChild.firstName}</strong> pour le {activePeriod.name} sont actuellement en cours d&apos;examen par le Censeur des études.
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              Conformément à la réglementation de l&apos;établissement, les notes restent strictement invisibles pour les élèves et les parents jusqu&apos;à leur confirmation et publication officielle.
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-[11px] text-slate-600 font-medium">
+            <span>Workflow :</span>
+            <span className="font-semibold text-slate-700">Enseignant (Saisie)</span>
+            <span>&rarr;</span>
+            <span className="font-bold text-amber-700">Censeur (Validation en cours)</span>
+            <span>&rarr;</span>
+            <span className="text-slate-400">Parents (Consultation débloquée)</span>
+          </div>
         </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="no-print bg-slate-100 p-3 rounded-xl border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
+            <span>
+              <strong>Aperçu conforme République du Bénin :</strong>{" "}
+              {isPrimary
+                ? "Livret officiel du Cycle Primaire (MEMP), évaluation par compétences et observation qualitative."
+                : "Bulletin officiel du Cycle Secondaire (MESTFP), moyenne générale, coefficients et rangs."}
+            </span>
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="text-xs font-bold text-school-primary underline hover:text-school-700 ml-2 shrink-0"
+            >
+              Lancer l&apos;impression
+            </button>
+          </div>
 
-        <div className="bg-white p-3 md:p-6 rounded-2xl border border-slate-300 shadow-sm overflow-x-auto">
-          {isPrimary && primaryBulletin ? (
-            <BeninPrimaryBulletin bulletin={primaryBulletin} />
-          ) : secondaryBulletin ? (
-            <BeninOfficialBulletin bulletin={secondaryBulletin} />
-          ) : (
-            <div className="p-8 text-center text-slate-500">
-              Aucun bulletin ou livret d&apos;évaluation disponible pour cet élève sur cette période.
-            </div>
-          )}
+          <div className="bg-white p-3 md:p-6 rounded-2xl border border-slate-300 shadow-sm overflow-x-auto">
+            {isPrimary && primaryBulletin ? (
+              <BeninPrimaryBulletin bulletin={primaryBulletin} />
+            ) : secondaryBulletin ? (
+              <BeninOfficialBulletin bulletin={secondaryBulletin} />
+            ) : (
+              <div className="p-8 text-center text-slate-500">
+                Aucun bulletin ou livret d&apos;évaluation disponible pour cet élève sur cette période.
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Advanced Modal / Batch Generator */}
       {showFullModal && (

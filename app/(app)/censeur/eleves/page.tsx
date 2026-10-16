@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   GraduationCap,
   Search,
@@ -13,36 +14,54 @@ import {
   Building,
   Calendar,
   AlertCircle,
+  HeartPulse,
+  ShieldAlert,
+  UserPlus,
+  FileText,
+  BadgeCheck,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useCenseurStore } from "@/lib/censeur-store";
+import { useDisciplineStore } from "@/lib/discipline-store";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { StudentProfile } from "@/lib/types/bulletin";
+import { StudentProfile, StudentStatus } from "@/lib/types/bulletin";
+import { MedicalRecordModal } from "@/components/school/MedicalRecordModal";
+import { DisciplineModal } from "@/components/school/DisciplineModal";
+import { StudentReadmissionModal } from "@/components/school/StudentReadmissionModal";
 
 export default function CenseurElevesPage() {
   const { toast } = useToast();
-  const { studentsList, classrooms, assignmentHistory, moveStudentClass } = useCenseurStore();
+  const { classrooms, assignmentHistory, moveStudentClass } = useCenseurStore();
+  const { students: disciplineStudents } = useDisciplineStore();
 
   const [search, setSearch] = useState("");
   const [selectedClassFilter, setSelectedClassFilter] = useState("ALL");
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>("ALL");
   const [selectedStudentToMove, setSelectedStudentToMove] = useState<StudentProfile | null>(null);
   const [targetClassId, setTargetClassId] = useState<string>("3e-a");
   const [moveReason, setMoveReason] = useState<string>("Redéploiement pédagogique");
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
-  // Filter students
+  // New interactive modals
+  const [selectedMedicalStudent, setSelectedMedicalStudent] = useState<StudentProfile | null>(null);
+  const [selectedDisciplineStudent, setSelectedDisciplineStudent] = useState<StudentProfile | null>(null);
+  const [showReadmissionModal, setShowReadmissionModal] = useState(false);
+
+  // Filter students across extended archive & status
   const filteredStudents = useMemo(() => {
-    return studentsList.filter((st) => {
+    return disciplineStudents.filter((st) => {
       const matchSearch =
         !search ||
         st.lastName.toLowerCase().includes(search.toLowerCase()) ||
         st.firstName.toLowerCase().includes(search.toLowerCase()) ||
         st.matricule.toLowerCase().includes(search.toLowerCase());
       const matchClass = selectedClassFilter === "ALL" || st.classId === selectedClassFilter;
-      return matchSearch && matchClass;
+      const studentStatus = st.status || "ACTIF";
+      const matchStatus = selectedStatusFilter === "ALL" || studentStatus === selectedStatusFilter;
+      return matchSearch && matchClass && matchStatus;
     });
-  }, [studentsList, search, selectedClassFilter]);
+  }, [disciplineStudents, search, selectedClassFilter, selectedStatusFilter]);
 
   // Handle class move confirmation
   const handleConfirmMove = () => {
@@ -71,21 +90,59 @@ export default function CenseurElevesPage() {
     setSelectedStudentToMove(null);
   };
 
+  const getStatusBadge = (status?: StudentStatus) => {
+    switch (status) {
+      case "ACTIF":
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Actif</span>;
+      case "READMIS":
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-200">Réadmis</span>;
+      case "ANCIEN":
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300">Ancien élève</span>;
+      case "DIPLOME":
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-800 border border-teal-200">Diplômé / Terminé</span>;
+      case "TRANSFERE":
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">Transféré</span>;
+      case "DESISTE":
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">Désisté</span>;
+      case "EXCLU":
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">Exclu</span>;
+      default:
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Actif</span>;
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12">
       <PageHeader
-        title="Élèves, Inscriptions & Affectations Pédagogiques"
-        subtitle="Gestion des effectifs : affectation des apprenants par classe, réorientation et traçabilité des mutations de classes"
-        breadcrumbs={[{ label: "Censeur", href: "/censeur" }, { label: "Élèves & Affectations" }]}
+        title="Élèves, Dossiers &amp; Historique Scolaire"
+        subtitle="Gestion des effectifs, dossiers médicaux sécurisés, discipline, réadmissions et registre officiel"
+        breadcrumbs={[{ label: "Censeur", href: "/censeur" }, { label: "Élèves & Dossiers" }]}
         actions={
-          <button
-            type="button"
-            onClick={() => setShowHistoryModal(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs md:text-sm shadow-sm touch-target"
-          >
-            <History className="w-4 h-4 text-school-primary" />
-            <span>Historique des affectations ({assignmentHistory.length})</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowReadmissionModal(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-school-primary text-white font-semibold text-xs md:text-sm shadow-sm hover:bg-school-primary/90 touch-target"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Réadmettre un élève</span>
+            </button>
+            <Link
+              href="/censeur/registre"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs md:text-sm shadow-sm touch-target"
+            >
+              <FileText className="w-4 h-4 text-school-primary" />
+              <span>Registre de classe (PDF)</span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => setShowHistoryModal(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs md:text-sm shadow-sm touch-target"
+            >
+              <History className="w-4 h-4 text-slate-500" />
+              <span>Historique mutations ({assignmentHistory.length})</span>
+            </button>
+          </div>
         }
       />
 
@@ -119,10 +176,28 @@ export default function CenseurElevesPage() {
               ))}
             </select>
           </div>
+
+          {/* Filter by Status */}
+          <div>
+            <select
+              value={selectedStatusFilter}
+              onChange={(e) => setSelectedStatusFilter(e.target.value)}
+              className="rounded-xl border border-slate-300 bg-white py-2 px-3 text-xs font-semibold text-slate-800 touch-target focus:border-school-accent"
+            >
+              <option value="ALL">Tous les statuts scolaires</option>
+              <option value="ACTIF">Actif (Inscrit)</option>
+              <option value="READMIS">Réadmis</option>
+              <option value="ANCIEN">Ancien élève</option>
+              <option value="DIPLOME">Diplômé / Terminé</option>
+              <option value="TRANSFERE">Transféré</option>
+              <option value="DESISTE">Désisté</option>
+              <option value="EXCLU">Exclu</option>
+            </select>
+          </div>
         </div>
 
         <div className="text-xs text-slate-500 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
-          Total : <strong>{filteredStudents.length}</strong> apprenants affichés
+          Total : <strong>{filteredStudents.length}</strong> dossier(s) trouvé(s)
         </div>
       </div>
 
@@ -137,6 +212,7 @@ export default function CenseurElevesPage() {
                 <th className="py-3 px-4">Classe Actuelle</th>
                 <th className="py-3 px-4">Parent / Contact</th>
                 <th className="py-3 px-4 text-center">Statut</th>
+                <th className="py-3 px-4 text-center">Dossier de Santé &amp; Discipline</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -178,9 +254,31 @@ export default function CenseurElevesPage() {
 
                   {/* Status */}
                   <td className="py-3 px-4 text-center">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                      Inscrit
-                    </span>
+                    {getStatusBadge(st.status)}
+                  </td>
+
+                  {/* Health & Discipline triggers */}
+                  <td className="py-3 px-4 text-center">
+                    <div className="inline-flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMedicalStudent(st)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 text-[11px] font-semibold transition-colors"
+                        title="Ouvrir le dossier médical sécurisé (chiffré)"
+                      >
+                        <HeartPulse className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Santé</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDisciplineStudent(st)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-amber-200 bg-amber-50/70 hover:bg-amber-100 text-amber-800 text-[11px] font-semibold transition-colors"
+                        title="Consulter et consigner les incidents disciplinaires"
+                      >
+                        <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Discipline</span>
+                      </button>
+                    </div>
                   </td>
 
                   {/* Actions: Move class */}
@@ -194,7 +292,7 @@ export default function CenseurElevesPage() {
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs shadow-2xs touch-target"
                     >
                       <ArrowRightLeft className="w-3.5 h-3.5 text-school-primary" />
-                      <span>Changer de classe</span>
+                      <span>Affecter</span>
                     </button>
                   </td>
                 </tr>
@@ -325,6 +423,35 @@ export default function CenseurElevesPage() {
           </div>
         </div>
       )}
+
+      {/* Dossier Médical Modal */}
+      {selectedMedicalStudent && (
+        <MedicalRecordModal
+          student={selectedMedicalStudent}
+          userRole="censeur"
+          isOpen={true}
+          onClose={() => setSelectedMedicalStudent(null)}
+        />
+      )}
+
+      {/* Incident Disciplinaire Modal */}
+      {selectedDisciplineStudent && (
+        <DisciplineModal
+          student={selectedDisciplineStudent}
+          userRole="censeur"
+          isOpen={true}
+          onClose={() => setSelectedDisciplineStudent(null)}
+        />
+      )}
+
+      {/* Readmission Modal */}
+      <StudentReadmissionModal
+        isOpen={showReadmissionModal}
+        onClose={() => setShowReadmissionModal(false)}
+        onReadmissionSuccess={(student) => {
+          toast(`${student.lastName} ${student.firstName} a été réadmis avec succès en ${student.className}.`, "success");
+        }}
+      />
     </div>
   );
 }
