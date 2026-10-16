@@ -172,7 +172,7 @@ export default function ContactPage() {
                   Informations de contact
                 </span>
                 <h3 className="text-xl font-black text-slate-900">
-                  Coordonnées officielles d&apos;EducoGest
+                  Coordonnées officielles ECOGEST
                 </h3>
               </div>
 
@@ -193,9 +193,15 @@ export default function ContactPage() {
                     <Phone className="w-5 h-5" />
                   </div>
                   <div>
-                    <strong className="block text-slate-900 font-bold">Téléphone &amp; Ligne Fixe</strong>
-                    <span className="text-slate-600 block font-mono">+229 21 30 45 80</span>
-                    <span className="text-slate-600 block font-mono">+229 97 00 11 22 (Mobile &amp; Urgences)</span>
+                    <strong className="block text-slate-900 font-bold">Téléphone officiel ECOGEST</strong>
+                    <div className="flex flex-col gap-1 font-mono text-slate-900 font-bold text-sm mt-0.5">
+                      <a href="tel:+2290155445122" className="hover:text-school-primary transition-colors">
+                        +229 0155445122
+                      </a>
+                      <a href="tel:+2290161771334" className="hover:text-school-primary transition-colors">
+                        +2290161771334
+                      </a>
+                    </div>
                   </div>
                 </div>
 
@@ -204,9 +210,26 @@ export default function ContactPage() {
                     <MessageSquare className="w-5 h-5" />
                   </div>
                   <div>
-                    <strong className="block text-slate-900 font-bold">WhatsApp Professionnel</strong>
-                    <span className="text-slate-600 block font-mono">+229 96 12 34 56</span>
-                    <span className="text-[11px] text-slate-500">Réponse rapide 6j/7</span>
+                    <strong className="block text-slate-900 font-bold">WhatsApp officiel ECOGEST</strong>
+                    <div className="flex flex-col gap-1 font-mono text-emerald-700 font-bold text-sm mt-0.5">
+                      <a
+                        href="https://wa.me/22955445122"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="hover:underline"
+                      >
+                        +22955445122
+                      </a>
+                      <a
+                        href="https://wa.me/22961771334"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="hover:underline"
+                      >
+                        +229 61 77 13 34
+                      </a>
+                    </div>
+                    <span className="text-[11px] text-slate-500 block mt-0.5">Assistance directe 7j/7</span>
                   </div>
                 </div>
 

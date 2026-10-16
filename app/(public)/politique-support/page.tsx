@@ -92,8 +92,8 @@ export default function PolitiqueSupportPage() {
           <div className="space-y-2">
             <span className="font-bold text-slate-900 block">Canaux d&apos;accès autorisés :</span>
             <ul className="list-disc pl-5 space-y-1 text-slate-600">
-              <li>Ligne téléphonique directe prioritaire (+229 21 30 45 80)</li>
-              <li>WhatsApp Officiel professionnel (+229 96 12 34 56) avec possibilité d&apos;envoi de captures et vocaux</li>
+              <li>Lignes téléphoniques officielles ECOGEST (+229 0155445122 / +2290161771334)</li>
+              <li>WhatsApp officiel ECOGEST (+22955445122 / +229 61 77 13 34) avec possibilité d&apos;envoi de captures et vocaux</li>
               <li>Chat d&apos;assistance interactif intégré au logiciel</li>
               <li>Courriel de ticketing (support@educogest.bj)</li>
             </ul>

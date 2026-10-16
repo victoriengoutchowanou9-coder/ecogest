@@ -24,9 +24,9 @@ import {
 export const PublicFooter: React.FC = () => {
   return (
     <footer className="bg-slate-950 text-slate-300 border-t border-slate-800 text-xs mt-auto">
-      {/* Main 3-Column Grid */}
+      {/* Main 4-Column Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
 
           {/* 1. MON COMPTE */}
           <div className="space-y-4">
@@ -100,7 +100,53 @@ export const PublicFooter: React.FC = () => {
             </ul>
           </div>
 
-          {/* 3. SERVICE CONNEXE */}
+          {/* 3. COORDONNÉES OFFICIELLES ECOGEST */}
+          <div className="space-y-4">
+            <h3 className="font-extrabold text-white text-sm uppercase tracking-wider flex items-center gap-2">
+              <span className="w-1.5 h-3.5 bg-blue-500 rounded-full inline-block"></span>
+              Coordonnées officielles ECOGEST
+            </h3>
+            <ul className="space-y-2.5 text-xs text-slate-300">
+              <li className="space-y-1">
+                <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
+                  Téléphone officiel :
+                </span>
+                <div className="flex flex-col gap-1 font-mono text-white font-semibold">
+                  <a href="tel:+2290155445122" className="hover:text-school-300 transition-colors">
+                    +229 0155445122
+                  </a>
+                  <a href="tel:+2290161771334" className="hover:text-school-300 transition-colors">
+                    +2290161771334
+                  </a>
+                </div>
+              </li>
+              <li className="space-y-1 pt-1 border-t border-slate-800/60">
+                <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
+                  WhatsApp officiel :
+                </span>
+                <div className="flex flex-col gap-1 font-mono text-emerald-400 font-semibold">
+                  <a
+                    href="https://wa.me/22955445122"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:underline flex items-center gap-1.5"
+                  >
+                    <span>+22955445122</span>
+                  </a>
+                  <a
+                    href="https://wa.me/22961771334"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:underline flex items-center gap-1.5"
+                  >
+                    <span>+229 61 77 13 34</span>
+                  </a>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          {/* 4. SERVICE CONNEXE */}
           <div className="space-y-4">
             <h3 className="font-extrabold text-white text-sm uppercase tracking-wider flex items-center gap-2">
               <span className="w-1.5 h-3.5 bg-indigo-500 rounded-full inline-block"></span>
@@ -146,7 +192,7 @@ export const PublicFooter: React.FC = () => {
                 </span>
               </div>
               <p className="text-slate-400 text-xs font-medium">
-                La gestion scolaire simplifiée, centralisée et accessible.
+                Le logiciel Pro pour piloter vos établissements scolaires.
               </p>
             </div>
 
@@ -191,7 +237,7 @@ export const PublicFooter: React.FC = () => {
               </a>
               {/* WhatsApp */}
               <a
-                href="https://wa.me/22996123456"
+                href="https://wa.me/22955445122"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="WhatsApp ECOGEST"

@@ -24,24 +24,94 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useToast } from "@/components/ui/Toast";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 
-interface UserAccount {
+export interface UserAccount {
   id: string;
   name: string;
   email: string;
   phone: string;
-  role: "Directeur" | "Censeur" | "Enseignant" | "Comptable" | "Parent";
+  role: "Directeur" | "Censeur" | "Enseignant" | "Comptable" | "Administration" | "Parent";
   status: "ACTIF" | "SUSPENDU";
   lastLogin: string;
+  permissions?: string[];
 }
 
-const INITIAL_USERS: UserAccount[] = [];
+const DEFAULT_USERS: UserAccount[] = [
+  {
+    id: "usr-dir-01",
+    name: "Direction Générale (Fondateur)",
+    email: "directeur@ecole.bj",
+    phone: "+229 0155445122",
+    role: "Directeur",
+    status: "ACTIF",
+    lastLogin: "Aujourd'hui à 08:30",
+    permissions: ["TOUS_ACCÈS"],
+  },
+  {
+    id: "usr-cen-02",
+    name: "M. Marcellin DOKPO",
+    email: "censeur@ecole.bj",
+    phone: "+229 97 12 34 56",
+    role: "Censeur",
+    status: "ACTIF",
+    lastLogin: "Aujourd'hui à 07:45",
+    permissions: ["GESTION_PEDAGOGIE", "VALIDATION_NOTES", "EMARGEMENT", "BULLETINS"],
+  },
+  {
+    id: "usr-cpt-03",
+    name: "Mme Clarisse AGBO",
+    email: "comptable@ecole.bj",
+    phone: "+229 95 44 22 11",
+    role: "Comptable",
+    status: "ACTIF",
+    lastLogin: "Hier à 16:15",
+    permissions: ["TRESORERIE", "SCOLARITES", "REÇUS", "DEPENSES"],
+  },
+  {
+    id: "usr-ens-04",
+    name: "M. Paul KOUASSI (Prof. Mathématiques)",
+    email: "professeur@ecole.bj",
+    phone: "+229 96 33 88 77",
+    role: "Enseignant",
+    status: "ACTIF",
+    lastLogin: "Hier à 14:20",
+    permissions: ["SAISIE_NOTES", "APPEL_CLASSE", "CAHIER_TEXTES"],
+  },
+  {
+    id: "usr-adm-05",
+    name: "M. Augustin SOSSOU (Surveillant Général)",
+    email: "surveillant@ecole.bj",
+    phone: "+229 94 11 00 99",
+    role: "Administration",
+    status: "ACTIF",
+    lastLogin: "Il y a 3 jours",
+    permissions: ["DISCIPLINE", "APPEL_CLASSE", "REGISTRE"],
+  },
+];
+
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 export default function UtilisateursPage() {
   const { toast } = useToast();
   const { canAddUser, setUsersCount, schoolPlanDef } = useSubscriptionStore();
-  const [users, setUsers] = useState<UserAccount[]>(INITIAL_USERS);
+  const [users, setUsers] = useState<UserAccount[]>(DEFAULT_USERS);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
+
+  // Charger depuis le registre local au démarrage
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem("ecogest_school_users_registry");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setUsers(parsed);
+          setUsersCount(parsed.length);
+        }
+      }
+    } catch (e) {
+      console.warn("Erreur lecture utilisateurs enregistrés :", e);
+    }
+  }, [setUsersCount]);
 
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,8 +119,14 @@ export default function UtilisateursPage() {
   const [limitMessage, setLimitMessage] = useState("");
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
+  const [formEmailError, setFormEmailError] = useState("");
   const [formPhone, setFormPhone] = useState("+229 ");
+  const [formPassword, setFormPassword] = useState("Pass2026!");
   const [formRole, setFormRole] = useState<UserAccount["role"]>("Enseignant");
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([
+    "SAISIE_NOTES",
+    "APPEL_CLASSE",
+  ]);
 
   const handleOpenCreateModal = () => {
     const check = canAddUser(users.length);
@@ -59,25 +135,54 @@ export default function UtilisateursPage() {
       setIsLimitModalOpen(true);
       return;
     }
+    setFormEmailError("");
     setIsModalOpen(true);
   };
 
   const handleToggleStatus = (id: string) => {
-    setUsers((prev) =>
-      prev.map((u) => {
+    setUsers((prev) => {
+      const updated = prev.map((u) => {
         if (u.id === id) {
-          const nextStatus = u.status === "ACTIF" ? "SUSPENDU" : "ACTIF";
+          const nextStatus: "ACTIF" | "SUSPENDU" = u.status === "ACTIF" ? "SUSPENDU" : "ACTIF";
           toast(`Compte de ${u.name} passé à ${nextStatus}`, nextStatus === "ACTIF" ? "success" : "info");
           return { ...u, status: nextStatus };
         }
         return u;
-      })
-    );
+      });
+      try {
+        localStorage.setItem("ecogest_school_users_registry", JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
   };
 
-  const handleCreateUser = (e: React.FormEvent) => {
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName.trim() || !formEmail.trim()) return;
+    setFormEmailError("");
+
+    const cleanEmail = formEmail.trim().toLowerCase();
+    if (!formName.trim()) {
+      toast("Le nom complet est obligatoire.", "error");
+      return;
+    }
+
+    if (!cleanEmail) {
+      setFormEmailError("L'adresse e-mail est obligatoire.");
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(cleanEmail)) {
+      setFormEmailError("Format d'adresse e-mail invalide (ex : agent@ecole.bj).");
+      return;
+    }
+
+    // Vérifier si l'e-mail est déjà utilisé localement
+    const alreadyExists = users.some((u) => u.email.toLowerCase() === cleanEmail);
+    if (alreadyExists) {
+      setFormEmailError("Cette adresse e-mail est déjà attribuée à un compte de l'établissement.");
+      toast("Cette adresse e-mail est déjà utilisée.", "error");
+      return;
+    }
 
     const check = canAddUser(users.length);
     if (!check.allowed) {
@@ -90,21 +195,46 @@ export default function UtilisateursPage() {
     const newUser: UserAccount = {
       id: `u-${Date.now()}`,
       name: formName.trim(),
-      email: formEmail.trim().toLowerCase(),
+      email: cleanEmail,
       phone: formPhone.trim(),
       role: formRole,
       status: "ACTIF",
       lastLogin: "Jamais connecté",
+      permissions: selectedPermissions,
     };
+
+    // Tentative d'enregistrement API / Supabase
+    try {
+      await fetch("/api/auth/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formName.trim(),
+          email: cleanEmail,
+          phone: formPhone.trim(),
+          role: formRole,
+          password: formPassword,
+          permissions: selectedPermissions,
+        }),
+      });
+    } catch (err) {
+      console.warn("[utilisateurs] Synchro serveur différée :", err);
+    }
 
     const nextUsers = [newUser, ...users];
     setUsers(nextUsers);
     setUsersCount(nextUsers.length);
+    try {
+      localStorage.setItem("ecogest_school_users_registry", JSON.stringify(nextUsers));
+    } catch (e) {}
+
     setIsModalOpen(false);
     toast(`Compte de ${formRole} créé avec succès pour ${formName}`, "success");
     setFormName("");
     setFormEmail("");
+    setFormEmailError("");
     setFormPhone("+229 ");
+    setFormPassword("Pass2026!");
   };
 
   const filtered = users.filter((u) => {
@@ -192,6 +322,22 @@ export default function UtilisateursPage() {
         }
       />
 
+      {/* Rôle du Directeur / Fondateur et gestion des accès */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-indigo-50/70 border border-indigo-200 text-xs text-indigo-950 flex items-start gap-3.5 shadow-xs">
+        <Shield className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <strong className="font-bold text-sm text-indigo-950 block">
+            Rôle du Directeur / Fondateur &amp; Délégation des Accès d&apos;Établissement
+          </strong>
+          <p className="text-slate-600 leading-relaxed">
+            L&apos;établissement est créé et administré par le <strong>Directeur ou Fondateur</strong>, responsable légal et décisionnaire principal.
+            À partir de cet espace, le directeur peut créer ou attribuer les accès nécessaires à plusieurs membres de son établissement :
+            <strong> Censeur</strong>, <strong>Comptable</strong>, <strong>Professeurs / Enseignants</strong> et autres membres de l&apos;administration.
+            Chaque utilisateur se connecte avec son propre compte individuel et accède uniquement aux fonctionnalités correspondant à son rôle et à ses permissions.
+          </p>
+        </div>
+      </div>
+
       <FilterBar
         searchQuery={search}
         onSearchChange={setSearch}
@@ -208,6 +354,7 @@ export default function UtilisateursPage() {
               { value: "Censeur", label: "Censeur" },
               { value: "Enseignant", label: "Enseignant" },
               { value: "Comptable", label: "Comptable" },
+              { value: "Administration", label: "Administration" },
               { value: "Parent", label: "Parent" },
             ],
           },
@@ -248,11 +395,14 @@ export default function UtilisateursPage() {
       {/* Modal Créer un compte */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md border border-slate-200 overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50 shrink-0">
               <div className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-school-primary" />
-                <h3 className="font-bold text-slate-900">Créer un nouveau compte</h3>
+                <div>
+                  <h3 className="font-bold text-slate-900">Créer un compte d&apos;accès</h3>
+                  <span className="text-[11px] text-slate-500 block">Délégation de rôle par le Directeur</span>
+                </div>
               </div>
               <button
                 type="button"
@@ -263,70 +413,151 @@ export default function UtilisateursPage() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateUser} className="p-6 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">Rôle de l'utilisateur</label>
+            <form onSubmit={handleCreateUser} className="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Rôle et fonction attribués *</label>
                 <select
                   value={formRole}
                   onChange={(e) => setFormRole(e.target.value as any)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm bg-white font-medium"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs bg-white font-semibold text-slate-800"
                 >
-                  <option value="Censeur">Censeur des études</option>
-                  <option value="Comptable">Comptable</option>
-                  <option value="Enseignant">Enseignant</option>
-                  <option value="Parent">Parent d'élève</option>
-                  <option value="Directeur">Directeur Adjoint</option>
+                  <option value="Censeur">Censeur des études (Supervision pédagogique)</option>
+                  <option value="Comptable">Comptable (Trésorerie &amp; Recouvrement)</option>
+                  <option value="Enseignant">Professeur / Enseignant (Notes &amp; Présences)</option>
+                  <option value="Administration">Autre membre d&apos;administration (Surveillant, Secrétaire)</option>
+                  <option value="Directeur">Directeur Adjoint / Co-directeur</option>
                 </select>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">Nom complet</label>
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Nom et prénom complet *</label>
                 <input
                   type="text"
                   required
-                  placeholder="Ex: M. Jean DOSSA"
+                  placeholder="Ex : M. Jean-Baptiste DOSSOU"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-school-primary/20"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">Adresse email</label>
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Adresse e-mail de connexion *</label>
                 <input
                   type="email"
                   required
-                  placeholder="jean.dossa@ccpa-cotonou.bj"
+                  placeholder="collaborateur@ecole.bj"
                   value={formEmail}
-                  onChange={(e) => setFormEmail(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
+                  onChange={(e) => {
+                    setFormEmail(e.target.value);
+                    if (formEmailError) setFormEmailError("");
+                  }}
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs text-slate-900 ${
+                    formEmailError ? "border-rose-500 focus:ring-rose-500 bg-rose-50/40" : "border-slate-300"
+                  }`}
                 />
+                {formEmailError && (
+                  <p className="text-[11px] text-rose-600 font-semibold flex items-center gap-1 mt-1">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{formEmailError}</span>
+                  </p>
+                )}
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">Numéro de téléphone</label>
-                <input
-                  type="tel"
-                  placeholder="+229 97 12 34 56"
-                  value={formPhone}
-                  onChange={(e) => setFormPhone(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-mono"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Téléphone de contact</label>
+                  <input
+                    type="tel"
+                    placeholder="+229 97 12 34 56"
+                    value={formPhone}
+                    onChange={(e) => setFormPhone(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-mono text-slate-900"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Mot de passe temporaire *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Au moins 8 caractères"
+                    value={formPassword}
+                    onChange={(e) => setFormPassword(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-mono text-slate-900"
+                  />
+                </div>
+              </div>
+
+              {/* Permissions spécifiques */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <label className="font-bold text-slate-800 block text-xs">
+                  Permissions accordées par le Directeur :
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-700">
+                  <label className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedPermissions.includes("SAISIE_NOTES")}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedPermissions([...selectedPermissions, "SAISIE_NOTES"]);
+                        else setSelectedPermissions(selectedPermissions.filter((p) => p !== "SAISIE_NOTES"));
+                      }}
+                      className="rounded text-school-primary"
+                    />
+                    <span>Saisie des notes &amp; calculs</span>
+                  </label>
+                  <label className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedPermissions.includes("APPEL_CLASSE")}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedPermissions([...selectedPermissions, "APPEL_CLASSE"]);
+                        else setSelectedPermissions(selectedPermissions.filter((p) => p !== "APPEL_CLASSE"));
+                      }}
+                      className="rounded text-school-primary"
+                    />
+                    <span>Appel de classe &amp; assiduité</span>
+                  </label>
+                  <label className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedPermissions.includes("VALIDATION_NOTES")}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedPermissions([...selectedPermissions, "VALIDATION_NOTES"]);
+                        else setSelectedPermissions(selectedPermissions.filter((p) => p !== "VALIDATION_NOTES"));
+                      }}
+                      className="rounded text-school-primary"
+                    />
+                    <span>Validation &amp; Bulletins</span>
+                  </label>
+                  <label className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedPermissions.includes("TRESORERIE")}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedPermissions([...selectedPermissions, "TRESORERIE"]);
+                        else setSelectedPermissions(selectedPermissions.filter((p) => p !== "TRESORERIE"));
+                      }}
+                      className="rounded text-school-primary"
+                    />
+                    <span>Encaissement des scolarités</span>
+                  </label>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  className="px-4 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-school-primary text-white text-xs font-semibold hover:bg-school-700 shadow-sm"
+                  className="px-5 py-2.5 rounded-xl bg-school-primary text-white text-xs font-bold hover:bg-school-700 shadow-sm"
                 >
-                  Créer le compte
+                  Attribuer l&apos;accès
                 </button>
               </div>
             </form>

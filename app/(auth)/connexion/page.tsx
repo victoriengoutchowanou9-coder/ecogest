@@ -61,9 +61,13 @@ export default function AuthPage() {
   const [loginEmail, setLoginEmail] = useState("directeur@ecole.bj");
   const [loginPassword, setLoginPassword] = useState("********");
   const [loginLoading, setLoginLoading] = useState(false);
+  const [loginEmailError, setLoginEmailError] = useState("");
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
   const handleSelectRole = (r: Role) => {
     setLoginRole(r);
+    setLoginEmailError("");
     const emails: Record<Role, string> = {
       directeur: "directeur@ecole.bj",
       censeur: "censeur@ecole.bj",
@@ -74,12 +78,63 @@ export default function AuthPage() {
     setLoginEmail(emails[r]);
   };
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginEmailError("");
+
+    const cleanEmail = loginEmail.trim();
+    if (!cleanEmail) {
+      setLoginEmailError("L'adresse e-mail est obligatoire.");
+      toast("L'adresse e-mail est obligatoire.", "error");
+      return;
+    }
+
+    if (!emailRegex.test(cleanEmail)) {
+      setLoginEmailError("Format d'e-mail invalide (ex: nom@domaine.com).");
+      toast("Veuillez saisir une adresse e-mail valide.", "error");
+      return;
+    }
+
+    if (!loginPassword || loginPassword.length < 4) {
+      toast("Veuillez saisir votre mot de passe.", "error");
+      return;
+    }
+
     setLoginLoading(true);
 
-    setTimeout(() => {
-      setLoginLoading(false);
+    try {
+      // Vérifier si le compte existe dans le registre des membres d'administration créés
+      let matchedRole: Role = loginRole;
+      let matchedName = "";
+      let matchedSchoolId = activeSchool?.id || "school-1";
+      let matchedSchoolName = activeSchool?.name || "Établissement Scolaire";
+
+      if (typeof window !== "undefined") {
+        const storedRegistry = localStorage.getItem("ecogest_school_users_registry");
+        if (storedRegistry) {
+          try {
+            const list = JSON.parse(storedRegistry);
+            const found = list.find((u: any) => u.email?.toLowerCase() === cleanEmail.toLowerCase());
+            if (found) {
+              const roleMapping: Record<string, Role> = {
+                directeur: "directeur",
+                censeur: "censeur",
+                enseignant: "enseignant",
+                professeur: "enseignant",
+                comptabilite: "comptabilite",
+                comptable: "comptabilite",
+                parent: "parent",
+                surveillant: "censeur",
+                autre: "directeur",
+              };
+              matchedRole = roleMapping[found.role?.toLowerCase()] || loginRole;
+              matchedName = found.fullName || found.full_name || "";
+            }
+          } catch {
+            // Pas de registre lisible
+          }
+        }
+      }
 
       const targetPath: Record<Role, string> = {
         directeur: "/directeur",
@@ -98,16 +153,18 @@ export default function AuthPage() {
       };
 
       authStore.login({
-        email: loginEmail,
-        role: loginRole,
-        fullName: roleNames[loginRole],
-        schoolId: activeSchool?.id || "school-1",
-        schoolName: activeSchool?.name || "Établissement Scolaire",
+        email: cleanEmail,
+        role: matchedRole,
+        fullName: matchedName || roleNames[matchedRole],
+        schoolId: matchedSchoolId,
+        schoolName: matchedSchoolName,
       });
 
-      toast(`Connexion réussie ! Bienvenue sur ECOGEST.`, "success");
-      router.push(targetPath[loginRole]);
-    }, 500);
+      toast(`Connexion réussie ! Bienvenue dans votre espace ${matchedRole.toUpperCase()}.`, "success");
+      router.push(targetPath[matchedRole]);
+    } finally {
+      setLoginLoading(false);
+    }
   };
 
   // =========================================================================
@@ -123,11 +180,48 @@ export default function AuthPage() {
   const [schoolPassword, setSchoolPassword] = useState("");
   const [schoolChosenPlan, setSchoolChosenPlan] = useState<SchoolPlanCode>("STANDARD");
 
-  const handleRegisterSchool = (e: React.FormEvent) => {
+  const handleRegisterSchool = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!schoolName.trim() || !schoolEmail.trim()) {
       toast("Veuillez remplir tous les champs obligatoires.", "error");
       return;
+    }
+
+    if (!emailRegex.test(schoolEmail.trim())) {
+      toast("Format d'adresse e-mail invalide pour l'établissement.", "error");
+      return;
+    }
+
+    if (schoolPassword.length < 8) {
+      toast("Le mot de passe doit comporter au moins 8 caractères.", "error");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolName: schoolName.trim(),
+          directorName: schoolDirectorName.trim() || "Direction de l'Établissement",
+          email: schoolEmail.trim(),
+          phone: schoolPhone.trim(),
+          password: schoolPassword,
+          plan: schoolChosenPlan,
+          country: schoolCountry,
+          city: schoolCity,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 409) {
+          toast(data.error || "Cette adresse e-mail est déjà utilisée.", "error");
+          return;
+        }
+      }
+    } catch {
+      // Continue client fallback
     }
 
     // Créer dans le store d'authentification (statut en attente de paiement)
@@ -191,6 +285,16 @@ export default function AuthPage() {
     e.preventDefault();
     if (!parentName.trim() || !parentPhone.trim()) {
       toast("Veuillez renseigner votre nom et votre numéro de téléphone.", "error");
+      return;
+    }
+
+    if (parentEmail.trim() && !emailRegex.test(parentEmail.trim())) {
+      toast("Format d'adresse e-mail parent invalide.", "error");
+      return;
+    }
+
+    if (parentPassword.length < 8) {
+      toast("Le mot de passe doit comporter au moins 8 caractères.", "error");
       return;
     }
 
@@ -385,11 +489,23 @@ export default function AuthPage() {
                         type="email"
                         required
                         value={loginEmail}
-                        onChange={(e) => setLoginEmail(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-school-primary focus:ring-2 focus:ring-school-primary/20"
+                        onChange={(e) => {
+                          setLoginEmail(e.target.value);
+                          if (loginEmailError) setLoginEmailError("");
+                        }}
+                        className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm focus:ring-2 ${
+                          loginEmailError
+                            ? "border-rose-400 focus:border-rose-500 focus:ring-rose-200"
+                            : "border-slate-300 focus:border-school-primary focus:ring-school-primary/20"
+                        }`}
                         placeholder="nom@ecole.bj"
                       />
                     </div>
+                    {loginEmailError && (
+                      <p className="text-[11px] font-medium text-rose-600 animate-in fade-in">
+                        {loginEmailError}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">

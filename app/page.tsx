@@ -23,6 +23,7 @@ import {
   Clock,
   Layers,
   HelpCircle,
+  UserPlus,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -238,11 +239,11 @@ export default function HomePage() {
               Tarifs
             </a>
             <Link
-              href="/connexion"
+              href="/inscription"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-school-primary text-white text-xs font-bold hover:bg-school-700 shadow-sm transition"
             >
-              <Lock className="w-3.5 h-3.5" />
-              <span>Connexion</span>
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Inscription</span>
             </Link>
           </div>
         </div>
@@ -269,7 +270,7 @@ export default function HomePage() {
 
             <div className="max-w-3xl space-y-4">
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
-                La solution logicielle complète pour piloter vos établissements scolaires
+                Le logiciel Pro pour piloter vos établissements scolaires.
               </h1>
               <p className="text-sm md:text-base text-slate-200 leading-relaxed max-w-2xl">
                 <strong>ECOGEST</strong> simplifie, centralise et sécurise toute la gestion de votre collège ou lycée :

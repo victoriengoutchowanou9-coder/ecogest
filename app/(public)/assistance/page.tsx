@@ -44,22 +44,22 @@ export default function AssistanceContactsPage() {
 
   const contactChannels = [
     {
-      title: "Téléphone d'urgence & Support",
-      detail: "+229 21 30 45 80 / +229 97 00 11 22",
-      sub: "Ligne directe pour les directeurs et censeurs",
+      title: "Téléphone officiel ECOGEST",
+      detail: "+229 0155445122 / +2290161771334",
+      sub: "Ligne directe pour les directeurs, censeurs et administration",
       hours: "Lun - Sam : 07h30 - 19h00 (UTC+1)",
       icon: <Phone className="w-6 h-6 text-school-primary" />,
-      actionText: "Appeler le support",
-      actionHref: "tel:+22921304580",
+      actionText: "Appeler le +229 0155445122",
+      actionHref: "tel:+2290155445122",
     },
     {
-      title: "WhatsApp Officiel",
-      detail: "+229 96 12 34 56",
-      sub: "Échange instantané, capture d'écran et vocal",
-      hours: "Réponse en moins de 10 minutes",
+      title: "WhatsApp officiel ECOGEST",
+      detail: "+22955445122 / +229 61 77 13 34",
+      sub: "Assistance directe, échange instantané, capture et vocal",
+      hours: "Réponse rapide 7j/7",
       icon: <MessageSquare className="w-6 h-6 text-emerald-600" />,
       actionText: "Discuter sur WhatsApp",
-      actionHref: "https://wa.me/22996123456",
+      actionHref: "https://wa.me/22955445122",
     },
     {
       title: "Email d'assistance dédié",

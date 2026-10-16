@@ -89,28 +89,20 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ currentPath }) => {
 
           <Link
             href="/inscription"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-50 shadow-2xs transition"
-          >
-            <UserPlus className="w-3.5 h-3.5 text-school-primary" />
-            <span>S&apos;inscrire</span>
-          </Link>
-
-          <Link
-            href="/connexion"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-school-primary text-white text-xs font-bold hover:bg-school-700 shadow-sm transition"
           >
-            <Lock className="w-3.5 h-3.5" />
-            <span>Connexion</span>
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Inscription</span>
           </Link>
         </div>
 
         {/* Mobile menu trigger */}
         <div className="flex items-center gap-2 lg:hidden">
           <Link
-            href="/connexion"
+            href="/inscription"
             className="px-3 py-1.5 rounded-xl bg-school-primary text-white text-xs font-bold"
           >
-            Connexion
+            Inscription
           </Link>
           <button
             type="button"
@@ -127,22 +119,14 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ currentPath }) => {
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="lg:hidden border-t border-slate-200 mt-3 pt-3 pb-2 space-y-2">
-          <div className="grid grid-cols-2 gap-2 pb-2 border-b border-slate-100">
+          <div className="pb-2 border-b border-slate-100">
             <Link
               href="/inscription"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-school-50 text-school-primary text-xs font-bold"
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-school-primary text-white text-xs font-bold shadow-sm"
             >
               <UserPlus className="w-3.5 h-3.5" />
-              <span>S&apos;inscrire</span>
-            </Link>
-            <Link
-              href="/connexion"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-school-primary text-white text-xs font-bold"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              <span>Connexion</span>
+              <span>Inscription</span>
             </Link>
           </div>
 
