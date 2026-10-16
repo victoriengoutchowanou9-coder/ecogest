@@ -485,7 +485,7 @@ export default function VisiteGuideePage() {
             <span>VISITE GUIDÉE OFFICIELLE &bull; 18 ÉTAPES CLÉS</span>
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight">
-            Découvrez EducoGest pas à pas
+            Découvrez ECOGEST pas à pas
           </h1>
           <p className="text-sm md:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
             De la création de votre établissement à l&apos;émission des bulletins certifiés et au suivi financier, explorez le fonctionnement intégral du progiciel de référence.
@@ -668,7 +668,7 @@ export default function VisiteGuideePage() {
             Prêt à transformer la gestion de votre établissement ?
           </h3>
           <p className="text-slate-300 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
-            Rejoignez les dizaines d&apos;écoles et complexes scolaires qui ont modernisé leur gouvernance grâce à EducoGest PRO.
+            Rejoignez les dizaines d&apos;écoles et complexes scolaires qui ont modernisé leur gouvernance grâce à ECOGEST PRO.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link

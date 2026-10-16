@@ -676,7 +676,7 @@ export const BeninOfficialBulletin: React.FC<BeninOfficialBulletinProps> = ({
         </div>
         <div className="text-right">
           <p className="font-semibold">
-            Édité avec <strong className="font-bold text-black uppercase">{school.platformName || "EDUCOGEST"}</strong>
+            Édité avec <strong className="font-bold text-black uppercase">{school.platformName || "ECOGEST"}</strong>
           </p>
           <p className="text-[7px] text-gray-400 font-mono">
             Réf : {barcodeValue} &bull; Statut : {status} (v{version})

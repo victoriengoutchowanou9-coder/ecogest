@@ -208,7 +208,7 @@ export const ReceiptView: React.FC<ReceiptViewProps> = ({ receipt, onClose }) =>
               <span>Paiement certifié & enregistré en caisse</span>
             </div>
             <p className="text-[10px] text-slate-400">
-              Document officiel généré par le module Comptabilité & Finances EDUCOGEST.
+              Document officiel généré par le module Comptabilité & Finances ECOGEST.
             </p>
           </div>
 

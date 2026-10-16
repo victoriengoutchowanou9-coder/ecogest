@@ -1,4 +1,4 @@
-# ECOGEST (EDUCOGEST) - Plateforme de Gestion Scolaire Bivalente
+# ECOGEST (ECOGEST) - Plateforme de Gestion Scolaire Bivalente
 
 Système moderne de gestion scolaire bivalente (Primaire & Secondaire) adapté au programme béninois et sous-régional :
 - **Primaire :** Évaluation par compétences fondamentales, bulletins trimestriels avec cotes et appréciations.

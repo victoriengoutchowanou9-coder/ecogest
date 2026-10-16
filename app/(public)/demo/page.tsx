@@ -137,7 +137,7 @@ export default function DemoPage() {
           <span>DÉMONSTRATION INTERACTIVE EN DIRECT</span>
         </div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight">
-          Testez EducoGest avant de souscrire
+          Testez ECOGEST avant de souscrire
         </h1>
         <p className="text-sm md:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
           Accédez librement aux 5 espaces métiers pré-configurés avec des données réalistes de démonstration (notes, élèves, examens, comptabilité).
@@ -329,7 +329,7 @@ export default function DemoPage() {
             </div>
 
             <p className="text-xs text-slate-600">
-              Un conseiller EducoGest réalisera une présentation visio adaptée à votre établissement (primaire, secondaire ou complexe).
+              Un conseiller ECOGEST réalisera une présentation visio adaptée à votre établissement (primaire, secondaire ou complexe).
             </p>
 
             <form onSubmit={handleCustomDemoSubmit} className="space-y-3.5 text-xs">

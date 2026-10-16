@@ -270,7 +270,7 @@ export default function DocumentationPage() {
       <section className="bg-gradient-to-b from-slate-900 via-slate-800 to-school-primary text-white py-12 md:py-16 px-4 sm:px-6 lg:px-8 text-center space-y-4">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-school-200">
           <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-          <span>CENTRE DE DOCUMENTATION EDUCOGEST</span>
+          <span>CENTRE DE DOCUMENTATION ECOGEST</span>
         </div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight">
           Guides &amp; Manuels d&apos;utilisation
@@ -439,7 +439,7 @@ export default function DocumentationPage() {
                 </span>
                 <p>{selectedArticle.content}</p>
                 <p>
-                  Pour toute assistance complémentaire concernant cette procédure, vous pouvez vous adresser au Censorat ou initier une session avec le support technique EducoGest.
+                  Pour toute assistance complémentaire concernant cette procédure, vous pouvez vous adresser au Censorat ou initier une session avec le support technique ECOGEST.
                 </p>
               </div>
             </div>

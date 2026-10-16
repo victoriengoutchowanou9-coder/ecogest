@@ -1,5 +1,5 @@
 /**
- * Module de Sécurité & Chiffrement au repos — EducoGest
+ * Module de Sécurité & Chiffrement au repos — ECOGEST
  *
  * Protection des données sensibles :
  * - Coordonnées des élèves et parents

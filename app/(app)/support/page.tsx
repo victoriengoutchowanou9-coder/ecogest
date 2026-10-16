@@ -57,7 +57,7 @@ const FAQS = [
   {
     category: "Technique & Sauvegarde",
     q: "L'application fonctionne-t-elle sans connexion Internet permanente ?",
-    a: "Oui, EDUCOGEST PRO intègre un stockage local haute disponibilité permettant d'enregistrer les notes, appels et pointages même en cas de coupure de réseau.",
+    a: "Oui, ECOGEST PRO intègre un stockage local haute disponibilité permettant d'enregistrer les notes, appels et pointages même en cas de coupure de réseau.",
   },
 ];
 

@@ -406,7 +406,7 @@ export default function InscriptionPage() {
           <span>OUVERTURE DE COMPTE ECOGEST</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight">
-          Rejoignez la communauté EcoGest
+          Rejoignez la communauté ECOGEST
         </h1>
         <p className="text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
           Choisissez votre profil pour démarrer l&apos;enregistrement en quelques instants.

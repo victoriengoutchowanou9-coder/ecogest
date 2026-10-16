@@ -31,7 +31,7 @@ export default function ContactPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSent(true);
-    toast("Votre message a été transmis avec succès à l'équipe EducoGest ! Nous vous répondrons dans les plus brefs délais.", "success");
+    toast("Votre message a été transmis avec succès à l'équipe ECOGEST ! Nous vous répondrons dans les plus brefs délais.", "success");
     setTimeout(() => {
       setIsSent(false);
       setLastName("");
@@ -239,8 +239,8 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <strong className="block text-slate-900 font-bold">Courriers électroniques</strong>
-                    <span className="text-slate-600 block">contact@educogest.bj (Général)</span>
-                    <span className="text-slate-600 block">support@educogest.bj (Assistance)</span>
+                    <span className="text-slate-600 block">contact@ecogest.bj (Général)</span>
+                    <span className="text-slate-600 block">support@ecogest.bj (Assistance)</span>
                   </div>
                 </div>
 

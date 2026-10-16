@@ -252,7 +252,7 @@ export const ClassRegisterPDF: React.FC<ClassRegisterPDFProps> = ({
         <div className="mt-6 pt-2 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-school-primary" />
-            <span>Document officiel certifié généré par la plateforme EducoGest Pro Bénin</span>
+            <span>Document officiel certifié généré par la plateforme ECOGEST Pro Bénin</span>
           </div>
           <div>Édité le {new Date().toLocaleDateString("fr-FR")} à {new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</div>
         </div>

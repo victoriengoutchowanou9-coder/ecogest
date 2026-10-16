@@ -227,7 +227,7 @@ export const subscriptionStore = {
     return { allowed: true, current, max: plan.maxUsers, plan: plan.code };
   },
 
-  // Vérifier si l'établissement peut ajouter une 2ème école
+  // Vérifier si l'établissement peut ajouter une 2ème école selon l'abonnement
   canAddSchool(): {
     allowed: boolean;
     reason?: string;
@@ -236,14 +236,18 @@ export const subscriptionStore = {
     plan: SchoolPlanCode;
   } {
     const plan = SCHOOL_PLANS[memorySchoolState.currentPlan];
-    const current = memorySchoolState.schools.length;
+    const isInitialPlaceholderOnly =
+      memorySchoolState.schools.length === 1 &&
+      memorySchoolState.schools[0].id === "school-1" &&
+      memorySchoolState.schools[0].name === "Établissement Scolaire";
+    const current = isInitialPlaceholderOnly ? 0 : memorySchoolState.schools.length;
     if (current >= plan.maxSchools) {
       return {
         allowed: false,
         reason:
           plan.code === "PREMIUM"
-            ? `Vous avez déjà atteint le maximum de 2 établissements autorisés par la Formule Premium.`
-            : `Votre formule actuelle (${plan.name} à ${plan.priceFcfa.toLocaleString()} FCFA/mois) est limitée à 1 seul établissement. Pour gérer un 2ème établissement, passez au forfait PREMIUM (25 000 FCFA/mois).`,
+            ? `Vous avez déjà atteint le maximum de ${plan.maxSchools} établissements autorisés par votre formule.`
+            : `Votre formule actuelle (${plan.name} à ${plan.priceFcfa.toLocaleString()} FCFA/mois) est limitée à ${plan.maxSchools} seul établissement. Pour gérer un 2ème établissement, passez au forfait PREMIUM (25 000 FCFA/mois).`,
         current,
         max: plan.maxSchools,
         plan: plan.code,
@@ -252,19 +256,32 @@ export const subscriptionStore = {
     return { allowed: true, current, max: plan.maxSchools, plan: plan.code };
   },
 
-  // Créer un nouvel établissement (contrôlé par le forfait)
+  // Créer un nouvel établissement (contrôlé par le forfait et préservant les existants)
   createSchool(newSchool: Omit<SchoolProfile, "id">): { success: boolean; error?: string; school?: SchoolProfile } {
-    const check = this.canAddSchool();
-    if (!check.allowed) {
-      return { success: false, error: check.reason };
+    const isInitialPlaceholderOnly =
+      memorySchoolState.schools.length === 1 &&
+      memorySchoolState.schools[0].id === "school-1" &&
+      memorySchoolState.schools[0].name === "Établissement Scolaire";
+
+    if (!isInitialPlaceholderOnly) {
+      const check = this.canAddSchool();
+      if (!check.allowed) {
+        return { success: false, error: check.reason };
+      }
     }
+
     const created: SchoolProfile = {
       ...newSchool,
       id: `school-${Date.now()}`,
     };
+
+    const nextSchools = isInitialPlaceholderOnly
+      ? [created]
+      : [...memorySchoolState.schools, created];
+
     memorySchoolState = {
       ...memorySchoolState,
-      schools: [...memorySchoolState.schools, created],
+      schools: nextSchools,
       activeSchoolId: created.id,
     };
     saveSchoolState();

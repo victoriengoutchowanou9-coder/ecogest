@@ -24,7 +24,34 @@ export default function MisesAJourPage() {
 
   const releases = [
     {
-      version: "EducoGest 2.4 PRO",
+      version: "ECOGEST 2.5",
+      date: "Octobre 2026",
+      badge: "Mise à jour Récente",
+      badgeColor: "bg-emerald-600 text-white",
+      summary: "Harmonisation officielle de la marque ECOGEST, fiche récapitulative de l'établissement, attribution automatique du professeur principal, gestion complète des résultats publics et console de support synchronisée.",
+      sections: [
+        {
+          type: "Nouvelles fonctionnalités",
+          icon: <Zap className="w-4 h-4 text-amber-600" />,
+          items: [
+            "Fiche récapitulative de l'établissement dans les paramètres Directeur avec bascule d'édition et respect strict des quotas multi-établissements.",
+            "Sélection automatique du Professeur principal parmi les enseignants enregistrés lors de la création de classe.",
+            "Publication des résultats publics d'examens avec gestion complète (création, modification, consultation, visibilité).",
+            "Console de support technique alimentée exclusivement par les tickets réels avec suivi persistant des statuts.",
+          ],
+        },
+        {
+          type: "Amélioration de l'interface & Clarté",
+          icon: <Sparkles className="w-4 h-4 text-purple-600" />,
+          items: [
+            "Uniformisation du nom officiel ECOGEST sur l'ensemble des interfaces, documents et pages publiques.",
+            "Espace Abonnement Directeur recentré sur les informations et tarifs propres à l'établissement.",
+          ],
+        },
+      ],
+    },
+    {
+      version: "ECOGEST 2.4 PRO",
       date: "Octobre 2026",
       badge: "Mise à jour Majeure",
       badgeColor: "bg-school-primary text-white",
@@ -68,7 +95,7 @@ export default function MisesAJourPage() {
       ],
     },
     {
-      version: "EducoGest 2.2",
+      version: "ECOGEST 2.2",
       date: "Septembre 2026",
       badge: "Cycle Primaire",
       badgeColor: "bg-blue-600 text-white",
@@ -93,7 +120,7 @@ export default function MisesAJourPage() {
       ],
     },
     {
-      version: "EducoGest 2.0",
+      version: "ECOGEST 2.0",
       date: "Août 2026",
       badge: "Finances & Salaires",
       badgeColor: "bg-amber-600 text-white",
@@ -119,7 +146,7 @@ export default function MisesAJourPage() {
       ],
     },
     {
-      version: "EducoGest 1.5",
+      version: "ECOGEST 1.5",
       date: "Juin 2026",
       badge: "Liaison Parents",
       badgeColor: "bg-indigo-600 text-white",
@@ -144,11 +171,11 @@ export default function MisesAJourPage() {
       ],
     },
     {
-      version: "EducoGest 1.0",
+      version: "ECOGEST 1.0",
       date: "Mars 2026",
       badge: "Lancement Initial",
       badgeColor: "bg-slate-700 text-white",
-      summary: "Première version publique du progiciel EducoGest pour les établissements de Cotonou et Porto-Novo.",
+      summary: "Première version publique du progiciel ECOGEST pour les établissements de Cotonou et Porto-Novo.",
       sections: [
         {
           type: "Nouvelles fonctionnalités",
@@ -177,7 +204,7 @@ export default function MisesAJourPage() {
           Mises à jour &amp; Nouveautés
         </h1>
         <p className="text-sm md:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
-          Découvrez l&apos;historique chronologique des améliorations continues, modules ajoutés et optimisations de sécurité déployés sur EducoGest.
+          Découvrez l&apos;historique chronologique des améliorations continues, modules ajoutés et optimisations de sécurité déployés sur ECOGEST.
         </p>
       </section>
 
@@ -251,7 +278,7 @@ export default function MisesAJourPage() {
             Une suggestion pour la prochaine version ?
           </h3>
           <p className="text-xs text-slate-600 max-w-md mx-auto">
-            Nous co-construisons EducoGest avec les directeurs, censeurs et enseignants d&apos;Afrique de l&apos;Ouest. Partagez-nous vos besoins pédagogiques.
+            Nous co-construisons ECOGEST avec les directeurs, censeurs et enseignants d&apos;Afrique de l&apos;Ouest. Partagez-nous vos besoins pédagogiques.
           </p>
           <Link
             href="/contact"

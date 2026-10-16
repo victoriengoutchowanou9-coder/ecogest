@@ -1,5 +1,5 @@
 // =============================================================================
-// FORMULES D'ABONNEMENT — EDUCOGEST PRO
+// FORMULES D'ABONNEMENT — ECOGEST PRO
 // Module partagé (Client & Serveur) sans dépendances React
 // =============================================================================
 

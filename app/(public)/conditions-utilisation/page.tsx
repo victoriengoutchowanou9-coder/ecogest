@@ -29,7 +29,7 @@ export default function ConditionsUtilisationPage() {
           Conditions Générales d&apos;Utilisation
         </h1>
         <p className="text-sm md:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
-          Régissant l&apos;accès et l&apos;exploitation du progiciel de gestion scolaire EducoGest PRO.
+          Régissant l&apos;accès et l&apos;exploitation du progiciel de gestion scolaire ECOGEST PRO.
         </p>
 
         {/* Tab switcher */}
@@ -54,7 +54,7 @@ export default function ConditionsUtilisationPage() {
           <div className="space-y-2 border-b border-slate-100 pb-4">
             <span className="text-[11px] font-mono text-slate-400">Dernière révision : 1er Octobre 2026</span>
             <p className="text-slate-600 text-xs">
-              Les présentes Conditions Générales d&apos;Utilisation (ci-après « CGU ») régissent les relations contractuelles entre la société éditrice d&apos;EducoGest et tout utilisateur (établissements scolaires, personnel éducatif, parents d&apos;élèves).
+              Les présentes Conditions Générales d&apos;Utilisation (ci-après « CGU ») régissent les relations contractuelles entre la société éditrice d&apos;ECOGEST et tout utilisateur (établissements scolaires, personnel éducatif, parents d&apos;élèves).
             </p>
           </div>
 
@@ -65,7 +65,7 @@ export default function ConditionsUtilisationPage() {
               1. Conditions d&apos;accès au service
             </h2>
             <p>
-              L&apos;accès à EducoGest est subordonné à la souscription préalable d&apos;un abonnement valide par l&apos;établissement ou par le parent d&apos;élève. Chaque utilisateur accède au service via des identifiants personnels et confidentiels dont il est l&apos;unique gardien.
+              L&apos;accès à ECOGEST est subordonné à la souscription préalable d&apos;un abonnement valide par l&apos;établissement ou par le parent d&apos;élève. Chaque utilisateur accède au service via des identifiants personnels et confidentiels dont il est l&apos;unique gardien.
             </p>
           </section>
 
@@ -76,7 +76,7 @@ export default function ConditionsUtilisationPage() {
               2. Utilisation du logiciel
             </h2>
             <p>
-              EducoGest concède à l&apos;établissement scolaire un droit d&apos;usage non exclusif, personnel et non transférable du progiciel, strictement limité aux besoins de gestion administrative, pédagogique et financière de ses propres élèves et personnels.
+              ECOGEST concède à l&apos;établissement scolaire un droit d&apos;usage non exclusif, personnel et non transférable du progiciel, strictement limité aux besoins de gestion administrative, pédagogique et financière de ses propres élèves et personnels.
             </p>
           </section>
 
@@ -131,7 +131,7 @@ export default function ConditionsUtilisationPage() {
               7. Propriété intellectuelle
             </h2>
             <p>
-              L&apos;ensemble des architectures logicielles, algorithmes de calcul de notes, modèles de bulletins officiels, logos, marques et interfaces graphiques d&apos;EducoGest demeure la propriété exclusive de l&apos;éditeur.
+              L&apos;ensemble des architectures logicielles, algorithmes de calcul de notes, modèles de bulletins officiels, logos, marques et interfaces graphiques d&apos;ECOGEST demeure la propriété exclusive de l&apos;éditeur.
             </p>
           </section>
 
@@ -142,7 +142,7 @@ export default function ConditionsUtilisationPage() {
               8. Limitation de responsabilité
             </h2>
             <p>
-              EducoGest s&apos;engage à une obligation de moyens pour assurer la disponibilité continue du service (objectif de disponibilité de 99.8%). L&apos;éditeur ne saurait être tenu responsable des conséquences résultant d&apos;une mauvaise saisie de notes ou d&apos;une défaillance du réseau électrique ou Internet local de l&apos;établissement.
+              ECOGEST s&apos;engage à une obligation de moyens pour assurer la disponibilité continue du service (objectif de disponibilité de 99.8%). L&apos;éditeur ne saurait être tenu responsable des conséquences résultant d&apos;une mauvaise saisie de notes ou d&apos;une défaillance du réseau électrique ou Internet local de l&apos;établissement.
             </p>
           </section>
 

@@ -51,7 +51,7 @@ export default function PolitiqueSupportPage() {
           <span>CONDITIONS &amp; CHARTE DE SERVICE</span>
         </div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight">
-          Politique de soutien EducoGest
+          Politique de soutien ECOGEST
         </h1>
         <p className="text-sm md:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
           Notre engagement formel pour assurer la continuité opérationnelle, la réactivité et la sérénité de vos équipes pédagogiques.
@@ -95,7 +95,7 @@ export default function PolitiqueSupportPage() {
               <li>Lignes téléphoniques officielles ECOGEST (+229 0155445122 / +2290161771334)</li>
               <li>WhatsApp officiel ECOGEST (+22955445122 / +229 61 77 13 34) avec possibilité d&apos;envoi de captures et vocaux</li>
               <li>Chat d&apos;assistance interactif intégré au logiciel</li>
-              <li>Courriel de ticketing (support@educogest.bj)</li>
+              <li>Courriel de ticketing (support@ecogest.bj)</li>
             </ul>
           </div>
         </section>

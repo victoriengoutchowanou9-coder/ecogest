@@ -68,7 +68,7 @@ export default function DirecteurSupportConsolePage() {
     addReply(
       selectedTicket.id,
       "Direction / Support Administrateur",
-      "Administrateur EDUCOGEST",
+      "Administrateur ECOGEST",
       replyText.trim(),
       true // isStaff
     );
@@ -102,6 +102,14 @@ export default function DirecteurSupportConsolePage() {
       </span>
     );
   };
+
+  // Synchroniser le ticket sélectionné avec les données fraîches du store
+  React.useEffect(() => {
+    if (selectedTicket) {
+      const fresh = tickets.find((t) => t.id === selectedTicket.id);
+      if (fresh) setSelectedTicket(fresh);
+    }
+  }, [tickets]);
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -172,42 +180,54 @@ export default function DirecteurSupportConsolePage() {
           </p>
 
           <div className="space-y-2.5 max-h-[750px] overflow-y-auto pr-1">
-            {filteredTickets.map((t) => {
-              const isSelected = selectedTicket?.id === t.id;
-              return (
-                <div
-                  key={t.id}
-                  onClick={() => handleSelectTicket(t)}
-                  className={`p-4 rounded-2xl border cursor-pointer transition flex flex-col justify-between gap-2.5 ${
-                    isSelected
-                      ? "border-school-primary bg-school-50/70 shadow-sm ring-1 ring-school-primary/30"
-                      : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60"
-                  }`}
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-[11px] font-bold text-slate-500">
-                        {t.id}
-                      </span>
-                      {statusBadge(t.status)}
+            {filteredTickets.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2">
+                <LifeBuoy className="w-8 h-8 text-slate-300 mx-auto" />
+                <p className="text-xs font-bold text-slate-700">Aucun ticket enregistré</p>
+                <p className="text-[11px] text-slate-500">
+                  {tickets.length === 0
+                    ? "Aucune demande d'assistance n'a encore été enregistrée dans la base de données."
+                    : "Aucun ticket ne correspond à vos critères de recherche."}
+                </p>
+              </div>
+            ) : (
+              filteredTickets.map((t) => {
+                const isSelected = selectedTicket?.id === t.id;
+                return (
+                  <div
+                    key={t.id}
+                    onClick={() => handleSelectTicket(t)}
+                    className={`p-4 rounded-2xl border cursor-pointer transition flex flex-col justify-between gap-2.5 ${
+                      isSelected
+                        ? "border-school-primary bg-school-50/70 shadow-sm ring-1 ring-school-primary/30"
+                        : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60"
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[11px] font-bold text-slate-500">
+                          {t.id}
+                        </span>
+                        {statusBadge(t.status)}
+                      </div>
+                      <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1">
+                        {t.subject}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 line-clamp-2">
+                        {t.description}
+                      </p>
                     </div>
-                    <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1">
-                      {t.subject}
-                    </h4>
-                    <p className="text-[11px] text-slate-500 line-clamp-2">
-                      {t.description}
-                    </p>
-                  </div>
 
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                    <span className="font-medium text-slate-700 truncate max-w-[140px]">
-                      {t.userName} ({t.userRole})
-                    </span>
-                    <span>{t.createdAt.split(" ")[0]}</span>
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                      <span className="font-medium text-slate-700 truncate max-w-[140px]">
+                        {t.userName} ({t.userRole})
+                      </span>
+                      <span>{t.createdAt.split(" ")[0]}</span>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
 

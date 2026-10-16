@@ -15,6 +15,7 @@ import {
   Printer,
   Sparkles,
   Building2,
+  AlertCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable, Column } from "@/components/ui/DataTable";
@@ -25,6 +26,7 @@ import { EducationCycle, ClassRoom } from "@/lib/types/bulletin";
 import { useBulletinStore } from "@/lib/bulletin-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { useDisciplineStore } from "@/lib/discipline-store";
+import { useCenseurStore } from "@/lib/censeur-store";
 import { ClassRegisterPDF } from "@/components/school/ClassRegisterPDF";
 
 const PRIMARY_LEVELS = ["CI", "CP", "CE1", "CE2", "CM1", "CM2"];
@@ -35,6 +37,69 @@ export default function ClassesPage() {
   const { classrooms, saveClassroom, deleteClassroom, school, years } = useBulletinStore();
   const { activeSchool } = useSubscriptionStore();
   const { students } = useDisciplineStore();
+  const { teacherAccounts } = useCenseurStore();
+
+  const [registeredTeachers, setRegisteredTeachers] = useState<
+    Array<{ id: string; name: string; specialty?: string }>
+  >([]);
+
+  // Charger automatiquement les professeurs enregistrés dans ECOGEST
+  React.useEffect(() => {
+    const list: Array<{ id: string; name: string; specialty?: string }> = [];
+    const seen = new Set<string>();
+
+    const addTeacher = (id: string, name: string, specialty?: string) => {
+      const cleanName = (name || "").trim();
+      const key = cleanName.toLowerCase();
+      if (cleanName && !seen.has(key)) {
+        seen.add(key);
+        list.push({ id, name: cleanName, specialty });
+      }
+    };
+
+    // 1. Depuis le registre du Censeur
+    if (Array.isArray(teacherAccounts)) {
+      teacherAccounts.forEach((t) => {
+        addTeacher(t.id, t.name, t.specialty || t.roleTitle);
+      });
+    }
+
+    // 2. Depuis le registre des utilisateurs locaux
+    try {
+      const rawUsers = localStorage.getItem("ecogest_school_users_registry");
+      if (rawUsers) {
+        const parsed = JSON.parse(rawUsers);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((u: any) => {
+            const role = (u.role || "").toLowerCase();
+            if (role.includes("enseignant") || role.includes("prof")) {
+              addTeacher(u.id, u.name, "Enseignant");
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("Erreur chargement utilisateurs enseignants:", e);
+    }
+
+    // 3. Depuis l'API utilisateurs / Supabase
+    fetch("/api/auth/users")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.users && Array.isArray(data.users)) {
+          data.users.forEach((u: any) => {
+            const role = (u.role || "").toLowerCase();
+            if (role.includes("enseignant") || role.includes("prof")) {
+              addTeacher(u.id, u.full_name || u.name, "Enseignant");
+            }
+          });
+          setRegisteredTeachers([...list]);
+        }
+      })
+      .catch(() => {});
+
+    setRegisteredTeachers(list);
+  }, [teacherAccounts]);
 
   const [search, setSearch] = useState("");
   const [cycleFilter, setCycleFilter] = useState<"ALL" | "PRIMAIRE" | "SECONDAIRE">("ALL");
@@ -462,17 +527,43 @@ export default function ClassesPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">
-                    {formCycle === "PRIMAIRE" ? "Maître(sse) Titulaire" : "Professeur Principal"}
+                  <label className="text-xs font-semibold text-slate-700 block">
+                    {formCycle === "PRIMAIRE" ? "Maître(sse) Titulaire" : "Professeur Principal"} *
                   </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ex: M. Koffi TOSSOU"
-                    value={formTeacher}
-                    onChange={(e) => setFormTeacher(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs"
-                  />
+                  {registeredTeachers.length > 0 ? (
+                    <select
+                      required
+                      value={formTeacher}
+                      onChange={(e) => setFormTeacher(e.target.value)}
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-school-primary focus:outline-none"
+                    >
+                      <option value="">-- Sélectionner un professeur --</option>
+                      {formTeacher && !registeredTeachers.some((t) => t.name.toLowerCase() === formTeacher.toLowerCase()) && (
+                        <option value={formTeacher}>{formTeacher} (Assigné actuellement)</option>
+                      )}
+                      {registeredTeachers.map((t) => (
+                        <option key={t.id} value={t.name}>
+                          {t.name} {t.specialty ? `(${t.specialty})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs space-y-1">
+                      <p className="font-bold flex items-center gap-1.5 text-amber-800">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span>Aucun professeur enregistré</span>
+                      </p>
+                      <p className="text-[11px] text-amber-700 leading-snug">
+                        Veuillez d&apos;abord créer le compte du professeur dans ECOGEST avant de pouvoir l&apos;assigner comme professeur principal.
+                      </p>
+                      <Link
+                        href="/directeur/utilisateurs"
+                        className="inline-flex items-center gap-1 pt-0.5 font-bold text-xs text-school-primary hover:underline"
+                      >
+                        <span>Créer un compte professeur &rarr;</span>
+                      </Link>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-slate-700">Effectif prévu</label>

@@ -22,7 +22,7 @@ export default function LogicielsPage() {
   const softwareSolutions = [
     {
       id: "PRO",
-      name: "EducoGest PRO",
+      name: "ECOGEST PRO",
       badge: "Solution Principale & Active",
       badgeColor: "bg-school-primary text-white",
       icon: <Laptop className="w-6 h-6 text-school-primary" />,
@@ -36,13 +36,13 @@ export default function LogicielsPage() {
       ],
       targetAudience: "Directions d'école, Censeurs, Comptables, Enseignants et Fondateurs.",
       advantages: "Tout-en-un, zéro calcul manuel d'erreur de moyenne, conformité ministérielle totale.",
-      btnText: "Découvrir EducoGest PRO",
+      btnText: "Découvrir ECOGEST PRO",
       btnHref: "/demo",
       isLive: true,
     },
     {
       id: "MOBILE",
-      name: "EducoGest Mobile App",
+      name: "ECOGEST Mobile App",
       badge: "Application Compagnon",
       badgeColor: "bg-indigo-600 text-white",
       icon: <Smartphone className="w-6 h-6 text-indigo-600" />,
@@ -61,7 +61,7 @@ export default function LogicielsPage() {
     },
     {
       id: "CAISSE",
-      name: "EducoGest Caisse & Cantine (POS)",
+      name: "ECOGEST Caisse & Cantine (POS)",
       badge: "Module Spécialisé",
       badgeColor: "bg-amber-600 text-white",
       icon: <Store className="w-6 h-6 text-amber-600" />,
@@ -70,7 +70,7 @@ export default function LogicielsPage() {
         "Gestion des stocks de manuels et uniformes scolaires",
         "Comptes prépayés cantine pour les élèves avec carte à code-barres",
         "Rapprochement quotidien des recettes de caisse",
-        "Intégration directe avec la trésorerie générale d'EducoGest PRO",
+        "Intégration directe avec la trésorerie générale d'ECOGEST PRO",
       ],
       targetAudience: "Gestionnaires de cantine, intendants, secrétaires de scolarité.",
       advantages: "Supprime les pertes d'argent liquide à la cantine, transparence totale des flux.",
@@ -88,7 +88,7 @@ export default function LogicielsPage() {
       <section className="bg-gradient-to-b from-slate-900 via-slate-800 to-school-primary text-white py-12 md:py-16 px-4 sm:px-6 lg:px-8 text-center space-y-4">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-school-200">
           <Layers className="w-3.5 h-3.5 text-amber-400" />
-          <span>ÉCOSYSTÈME LOGICIEL EDUCOGEST</span>
+          <span>ÉCOSYSTÈME LOGICIEL ECOGEST</span>
         </div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight">
           Nos Solutions &amp; Logiciels

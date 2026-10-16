@@ -54,7 +54,7 @@ export default function AProposPage() {
           <span>NOTRE HISTOIRE &amp; NOTRE MISSION</span>
         </div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight">
-          À propos d&apos;EducoGest
+          À propos d&apos;ECOGEST
         </h1>
         <p className="text-sm md:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
           Le progiciel conçu au Bénin pour centraliser, simplifier et moderniser durablement la gestion de nos écoles et lycées.
@@ -64,14 +64,14 @@ export default function AProposPage() {
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16 flex-1 w-full text-xs text-slate-700 leading-relaxed">
         
-        {/* Section 1 : Pourquoi EducoGest a été créé & Le Problème résolu */}
+        {/* Section 1 : Pourquoi ECOGEST a été créé & Le Problème résolu */}
         <section className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 space-y-6 shadow-sm">
           <div className="space-y-2">
             <span className="text-xs font-bold text-school-primary uppercase tracking-wider">
               Genèse &amp; Constat de terrain
             </span>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900">
-              Pourquoi EducoGest a-t-il été créé ?
+              Pourquoi ECOGEST a-t-il été créé ?
             </h2>
           </div>
 
@@ -91,7 +91,7 @@ export default function AProposPage() {
             </div>
 
             <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 space-y-2">
-              <span className="font-bold text-emerald-950 text-xs block">La réponse apportée par EducoGest :</span>
+              <span className="font-bold text-emerald-950 text-xs block">La réponse apportée par ECOGEST :</span>
               <ul className="list-disc pl-5 space-y-1 text-slate-600 text-xs">
                 <li>Centralisation unifiée : pédagogie, finance, scolarité et vie scolaire sous un même toit.</li>
                 <li>Conformité légale immédiate avec les modèles officiels béninois (A4, QR Code, EducMaster).</li>
@@ -156,7 +156,7 @@ export default function AProposPage() {
             <h2 className="text-xl sm:text-2xl font-black text-slate-900">
               Nos Principes Directeurs
             </h2>
-            <p className="text-slate-500 text-xs">Ce qui guide chaque ligne de code et chaque mise à jour d&apos;EducoGest.</p>
+            <p className="text-slate-500 text-xs">Ce qui guide chaque ligne de code et chaque mise à jour d&apos;ECOGEST.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

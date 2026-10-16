@@ -179,7 +179,7 @@ export default function CenseurEnseignantsPage() {
       createTeacherAccount({
         name: formName.trim(),
         identifier: formIdentifier.trim(),
-        email: formEmail.trim() || `${formIdentifier.trim()}@educogest.bj`,
+        email: formEmail.trim() || `${formIdentifier.trim()}@ecogest.bj`,
         phone: formPhone.trim(),
         specialty: formSpecialty,
         roleTitle: formRoleTitle,
@@ -583,7 +583,7 @@ export default function CenseurEnseignantsPage() {
                   <label className="block text-xs font-bold text-slate-700 mb-1">Email</label>
                   <input
                     type="email"
-                    placeholder="koffi.tossou@educogest.bj"
+                    placeholder="koffi.tossou@ecogest.bj"
                     value={formEmail}
                     onChange={(e) => setFormEmail(e.target.value)}
                     className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-school-primary"

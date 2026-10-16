@@ -361,7 +361,7 @@ export default function CenseurMessagesPage() {
                   />
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-slate-400">
-                      Signataire automatique : Censeur des Études &middot; EDUCOGEST
+                      Signataire automatique : Censeur des Études &middot; ECOGEST
                     </span>
                     <button
                       type="submit"

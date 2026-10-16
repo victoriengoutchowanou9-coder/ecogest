@@ -56,7 +56,7 @@ export default function PolitiqueConfidentialitePage() {
           <div className="space-y-2 border-b border-slate-100 pb-4">
             <span className="text-[11px] font-mono text-slate-400">Norme active : ENCv1 &bull; Révision Octobre 2026</span>
             <p className="text-slate-600 text-xs">
-              La présente Politique de Confidentialité expose les engagements stricts pris par EducoGest quant à la collecte, au traitement, au chiffrement et à la conservation des données scolaires et personnelles.
+              La présente Politique de Confidentialité expose les engagements stricts pris par ECOGEST quant à la collecte, au traitement, au chiffrement et à la conservation des données scolaires et personnelles.
             </p>
           </div>
 
@@ -83,7 +83,7 @@ export default function PolitiqueConfidentialitePage() {
               2. Utilisation des données
             </h2>
             <p>
-              Les données sont utilisées exclusivement pour le suivi pédagogique de l&apos;élève, l&apos;édition des bulletins officiels, la gestion de la trésorerie scolaire et la communication école-famille. <strong>EducoGest ne vend, ne commercialise et ne loue aucune donnée scolaire à des tiers ou annonceurs publicitaires.</strong>
+              Les données sont utilisées exclusivement pour le suivi pédagogique de l&apos;élève, l&apos;édition des bulletins officiels, la gestion de la trésorerie scolaire et la communication école-famille. <strong>ECOGEST ne vend, ne commercialise et ne loue aucune donnée scolaire à des tiers ou annonceurs publicitaires.</strong>
             </p>
           </section>
 
@@ -130,7 +130,7 @@ export default function PolitiqueConfidentialitePage() {
               6. Droits des utilisateurs (Accès, Rectification, Suppression)
             </h2>
             <p>
-              Tout parent ou apprenant dispose d&apos;un droit d&apos;accès, de rectification et d&apos;opposition concernant ses données personnelles, exerçable directement auprès du secrétariat de son établissement ou par courriel à <strong>privacy@educogest.bj</strong>.
+              Tout parent ou apprenant dispose d&apos;un droit d&apos;accès, de rectification et d&apos;opposition concernant ses données personnelles, exerçable directement auprès du secrétariat de son établissement ou par courriel à <strong>privacy@ecogest.bj</strong>.
             </p>
           </section>
 
@@ -152,7 +152,7 @@ export default function PolitiqueConfidentialitePage() {
               8. Politique relative aux Cookies
             </h2>
             <p>
-              EducoGest utilise uniquement des cookies et tokens de session strictement indispensables au fonctionnement technique de la plateforme (authentification sécurisée, mémorisation de l&apos;enfant sélectionné, préférences linguistiques). Aucun cookie tiers de profilage commercial ou publicitaire n&apos;est utilisé sur nos applications.
+              ECOGEST utilise uniquement des cookies et tokens de session strictement indispensables au fonctionnement technique de la plateforme (authentification sécurisée, mémorisation de l&apos;enfant sélectionné, préférences linguistiques). Aucun cookie tiers de profilage commercial ou publicitaire n&apos;est utilisé sur nos applications.
             </p>
           </section>
 

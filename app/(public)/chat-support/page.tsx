@@ -37,7 +37,7 @@ export default function ChatSupportPage() {
     {
       id: "msg-1",
       sender: "support",
-      text: "Bonjour et bienvenue sur l'assistance en direct EducoGest ! Je suis votre conseiller technique. En quoi puis-je vous aider aujourd'hui ?",
+      text: "Bonjour et bienvenue sur l'assistance en direct ECOGEST ! Je suis votre conseiller technique. En quoi puis-je vous aider aujourd'hui ?",
       time: "À l'instant",
     },
   ]);
@@ -126,10 +126,10 @@ export default function ChatSupportPage() {
           <span>MESSAGERIE D&apos;ASSISTANCE EN DIRECT</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight">
-          Chat en Direct EducoGest
+          Chat en Direct ECOGEST
         </h1>
         <p className="text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
-          Dialoguez en temps réel avec un conseiller EducoGest pour résoudre tout blocage ou configurer votre établissement.
+          Dialoguez en temps réel avec un conseiller ECOGEST pour résoudre tout blocage ou configurer votre établissement.
         </p>
 
         {/* Live Support Indicator Bar (Requirement) */}
@@ -209,7 +209,7 @@ export default function ChatSupportPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-xs sm:text-sm text-white flex items-center gap-1.5">
-                    Conseiller EducoGest PRO
+                    Conseiller ECOGEST PRO
                     <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/30 text-emerald-300">
                       En ligne
                     </span>

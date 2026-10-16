@@ -126,7 +126,7 @@ export default function FormationsPage() {
       title: "Formation à distance (Webinaire visio)",
       icon: <Video className="w-6 h-6 text-blue-600" />,
       badge: "Direct & Interactif",
-      desc: "Sessions animées en visioconférence par un expert EducoGest avec partage d'écran, session de questions-réponses et cas pratiques de votre école.",
+      desc: "Sessions animées en visioconférence par un expert ECOGEST avec partage d'écran, session de questions-réponses et cas pratiques de votre école.",
     },
     {
       title: "Formation sur site (Dans votre école)",
@@ -144,7 +144,7 @@ export default function FormationsPage() {
       <section className="bg-gradient-to-b from-slate-900 via-slate-800 to-school-primary text-white py-12 md:py-16 px-4 sm:px-6 lg:px-8 text-center space-y-4">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-school-200">
           <GraduationCap className="w-3.5 h-3.5 text-amber-400" />
-          <span>ACADÉMIE DE FORMATION EDUCOGEST</span>
+          <span>ACADÉMIE DE FORMATION ECOGEST</span>
         </div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight">
           Formations pour Établissements Scolaires

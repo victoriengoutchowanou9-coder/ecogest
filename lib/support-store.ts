@@ -46,7 +46,8 @@ export interface SupportTicket {
 
 const INITIAL_TICKETS: SupportTicket[] = [];
 
-const STORAGE_KEY = "educogest_support_tickets_v1";
+const STORAGE_KEY = "ecogest_support_tickets_v1";
+const LEGACY_STORAGE_KEY = "educogest_support_tickets_v1";
 
 let memoryTickets: SupportTicket[] = INITIAL_TICKETS;
 let listeners: Array<() => void> = [];
@@ -58,13 +59,28 @@ function notify() {
 function loadTickets() {
   if (typeof window === "undefined") return;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
     if (raw) {
       memoryTickets = JSON.parse(raw);
     }
   } catch (e) {
     console.warn("Erreur chargement tickets support:", e);
   }
+
+  // Synchro avec l'API /api/support/tickets
+  fetch("/api/support/tickets")
+    .then((res) => (res.ok ? res.json() : null))
+    .then((data) => {
+      if (data?.tickets && Array.isArray(data.tickets) && data.tickets.length > 0) {
+        // Fusionner en évitant les doublons
+        const map = new Map<string, SupportTicket>();
+        memoryTickets.forEach((t) => map.set(t.id, t));
+        data.tickets.forEach((t: SupportTicket) => map.set(t.id, t));
+        memoryTickets = Array.from(map.values());
+        saveTickets();
+      }
+    })
+    .catch(() => {});
 }
 
 function saveTickets() {
@@ -136,6 +152,16 @@ export const supportStore = {
 
     memoryTickets = [newTicket, ...memoryTickets];
     saveTickets();
+
+    // Synchro API serveur / DB
+    try {
+      fetch("/api/support/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }).catch(() => {});
+    } catch {}
+
     return newTicket;
   },
 
@@ -176,6 +202,21 @@ export const supportStore = {
     });
 
     saveTickets();
+
+    // Synchro API serveur / DB
+    try {
+      fetch("/api/support/tickets", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticketId,
+          replyMessage: message,
+          senderName,
+          senderRole,
+          isStaff,
+        }),
+      }).catch(() => {});
+    } catch {}
   },
 
   updateTicketStatus(ticketId: string, newStatus: TicketStatus) {
@@ -186,6 +227,18 @@ export const supportStore = {
       t.id === ticketId ? { ...t, status: newStatus, updatedAt: dateStr } : t
     );
     saveTickets();
+
+    // Synchro API serveur / DB
+    try {
+      fetch("/api/support/tickets", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticketId,
+          status: newStatus,
+        }),
+      }).catch(() => {});
+    } catch {}
   },
 
   markUserTicketAsRead(ticketId: string) {

@@ -63,12 +63,12 @@ export default function AssistanceContactsPage() {
     },
     {
       title: "Email d'assistance dédié",
-      detail: "support@educogest.bj",
+      detail: "support@ecogest.bj",
       sub: "Pour les requêtes formelles, exports et factures",
       hours: "Prise en charge sous 4 heures ouvrées",
       icon: <Mail className="w-6 h-6 text-blue-600" />,
       actionText: "Envoyer un email",
-      actionHref: "mailto:support@educogest.bj",
+      actionHref: "mailto:support@ecogest.bj",
     },
     {
       title: "Chat en direct interactif",
@@ -92,7 +92,7 @@ export default function AssistanceContactsPage() {
           <span>CANAUX D&apos;ASSISTANCE OFFICIELS</span>
         </div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight">
-          Contacts d&apos;assistance EducoGest
+          Contacts d&apos;assistance ECOGEST
         </h1>
         <p className="text-sm md:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
           Une équipe dédiée pour accompagner les écoles, fondateurs, enseignants et parents au quotidien.
@@ -240,7 +240,7 @@ export default function AssistanceContactsPage() {
                 Nos spécialistes interviennent également directement dans vos établissements scolaires pour la formation initiale et les installations en réseau local :
               </p>
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1 text-slate-700">
-                <p className="font-bold text-slate-900">EducoGest Technologies Bénin</p>
+                <p className="font-bold text-slate-900">ECOGEST Technologies Bénin</p>
                 <p className="flex items-center gap-1.5 text-[11px]">
                   <MapPin className="w-3.5 h-3.5 text-slate-400" />
                   <span>Immeuble Kpassè, Boulevard de la Marina, Cotonou, Bénin</span>

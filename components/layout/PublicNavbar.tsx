@@ -45,7 +45,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ currentPath }) => {
             </div>
             <div>
               <span className="font-extrabold text-lg text-slate-900 tracking-tight flex items-center gap-1.5 leading-tight">
-                EDUCOGEST
+                ECOGEST
                 <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-school-50 text-school-primary border border-school-200">
                   PRO
                 </span>
