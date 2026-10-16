@@ -109,6 +109,20 @@ export async function POST(request: Request) {
       );
     }
 
+    // Journal d'audit développeur
+    try {
+      const { recordSystemAuditLog } = await import("@/lib/server/dev-auth");
+      await recordSystemAuditLog({
+        eventType: "CREATION_COMPTE",
+        severity: "INFO",
+        actionTitle: `Création du compte membre ${name.trim()} (${role})`,
+        details: { email: normalizedEmail, role: role.toLowerCase(), permissionsCount: permissions.length },
+        userEmail: normalizedEmail,
+        userRole: role.toLowerCase(),
+        schoolId: schoolId || undefined,
+      });
+    } catch {}
+
     return NextResponse.json({
       success: true,
       message: `Compte ${role} créé avec succès.`,
@@ -142,11 +156,22 @@ export async function PATCH(request: Request) {
       .update(updates)
       .eq("id", id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
+
+    // Audit log
+    try {
+      const { recordSystemAuditLog } = await import("@/lib/server/dev-auth");
+      await recordSystemAuditLog({
+        eventType: permissions ? "ATTRIBUTION_PERMISSION" : "MODIF_PROFIL",
+        severity: "INFO",
+        actionTitle: `Modification du compte utilisateur ${id} (Statut: ${status || "inchangé"})`,
+        details: { userId: id, status, permissions },
+      });
+    } catch {}
 
     return NextResponse.json({ success: true, user: updated });
   } catch (err: any) {

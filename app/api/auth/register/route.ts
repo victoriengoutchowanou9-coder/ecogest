@@ -144,6 +144,24 @@ export async function POST(request: Request) {
       console.error("[register] Erreur insertion school_users :", userInsertError);
     }
 
+    // Enregistrement dans le journal d'audit développeur
+    try {
+      const { recordSystemAuditLog } = await import("@/lib/server/dev-auth");
+      await recordSystemAuditLog({
+        eventType: pathway === "SCHOOL" ? "CREATION_ETABLISSEMENT" : "CREATION_COMPTE",
+        severity: "INFO",
+        actionTitle: pathway === "SCHOOL"
+          ? `Création de l'établissement « ${schoolName} » par le Directeur ${userName}`
+          : `Création du compte Parent ${userName}`,
+        details: { email: normalizedEmail, role: userRole, plan: chosenPlan },
+        userEmail: normalizedEmail,
+        userRole: userRole,
+        schoolName: createdSchool?.name || schoolName || "Établissement Scolaire",
+      });
+    } catch (auditErr) {
+      // non bloquant
+    }
+
     // 7. Tentative Supabase Auth (création du compte Auth Supabase avec email)
     try {
       await supabase.auth.signUp({
@@ -178,6 +196,15 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error("[register] Erreur inattendue :", error);
+    try {
+      const { recordSystemAuditLog } = await import("@/lib/server/dev-auth");
+      await recordSystemAuditLog({
+        eventType: "ERREUR_SERVEUR",
+        severity: "ERROR",
+        actionTitle: "Erreur inattendue lors de l'inscription utilisateur",
+        details: { message: error?.message },
+      });
+    } catch {}
     return NextResponse.json(
       {
         success: false,
