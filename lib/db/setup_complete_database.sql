@@ -418,3 +418,19 @@ VALUES (
     '2026-2027'
 )
 ON CONFLICT (code) DO NOTHING;
+
+-- -----------------------------------------------------------------------------
+-- 9. PERMISSIONS SUPABASE (Exposition des tables à l'API PostgREST / anon)
+-- -----------------------------------------------------------------------------
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO anon, authenticated;
+
+-- Rafraîchissement immédiat du cache de l'API Supabase
+NOTIFY pgrst, 'reload schema';
+
