@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Shield,
   CheckCircle2,
@@ -29,6 +30,7 @@ import {
 import { useAuthStore } from "@/lib/auth-store";
 
 export default function DirecteurAbonnementPage() {
+  const router = useRouter();
   const { toast } = useToast();
   const {
     schoolPlan,
@@ -59,9 +61,10 @@ export default function DirecteurAbonnementPage() {
       setPayingLoading(false);
       validatePayment("SCHOOL");
       toast(
-        `Paiement de ${schoolPlanDef.priceFcfa.toLocaleString()} FCFA validé avec succès ! Votre établissement est désormais actif et déverrouillé.`,
+        `Paiement de ${schoolPlanDef.priceFcfa.toLocaleString()} FCFA validé avec succès ! Votre établissement est désormais actif et déverrouillé. Redirection vers votre tableau de bord...`,
         "success"
       );
+      router.push("/directeur");
     }, 900);
   };
 

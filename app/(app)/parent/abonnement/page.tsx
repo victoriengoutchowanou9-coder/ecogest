@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Home,
   CheckCircle2,
@@ -29,6 +30,7 @@ import {
 import { useAuthStore } from "@/lib/auth-store";
 
 export default function ParentAbonnementPage() {
+  const router = useRouter();
   const { toast } = useToast();
   const {
     parentPlan,
@@ -56,9 +58,10 @@ export default function ParentAbonnementPage() {
       setPayingLoading(false);
       validatePayment("PARENT");
       toast(
-        `Forfait ${parentPlanDef.name} (${parentPlanDef.priceFcfa} FCFA) activé avec succès ! Vous avez désormais un accès illimité à l'espace de suivi.`,
+        `Forfait ${parentPlanDef.name} (${parentPlanDef.priceFcfa} FCFA) activé avec succès ! Redirection vers votre espace d'accueil parent...`,
         "success"
       );
+      router.push("/parent");
     }, 900);
   };
 

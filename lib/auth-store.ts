@@ -126,31 +126,35 @@ export const authStore = {
   },
 
   registerSchool(params: {
+    schoolId?: string;
     directorName: string;
     schoolName: string;
     schoolEmail: string;
     schoolPhone: string;
     schoolCity: string;
+    schoolRegion?: string;
     schoolCountry?: string;
     chosenPlan: SchoolPlanCode;
+    schoolCode?: string;
   }) {
     // 1. Définir le statut de souscription sur PENDING_PAYMENT
     subscriptionStore.changeSchoolPlan(params.chosenPlan);
     subscriptionStore.setSchoolStatus("PENDING_PAYMENT");
 
-    // 2. Créer l'établissement
+    // 2. Créer ou mettre à jour l'établissement
+    const schoolId = params.schoolId || `school-${Date.now()}`;
     const createdSchool: SchoolProfile = {
-      id: `school-${Date.now()}`,
-      code: `ECO-${Math.floor(100 + Math.random() * 900)}`,
+      id: schoolId,
+      code: params.schoolCode || `ECO-${Math.floor(100 + Math.random() * 900)}`,
       name: params.schoolName,
       shortName: params.schoolName.slice(0, 15),
       slug: params.schoolName.toLowerCase().replace(/[^a-z0-9]/g, "-"),
       logo: "",
       coverImage: "",
       country: params.schoolCountry || "Bénin",
-      region: "",
+      region: params.schoolRegion || "",
       city: params.schoolCity,
-      address: `${params.schoolCity}, ${params.schoolCountry || "Bénin"}`,
+      address: `${params.schoolCity}, ${params.schoolRegion || ""}, ${params.schoolCountry || "Bénin"}`.trim(),
       phone: params.schoolPhone,
       email: params.schoolEmail,
       devise: "Travail - Rigueur - Réussite",
@@ -183,12 +187,14 @@ export const authStore = {
   },
 
   registerParent(params: {
+    userId?: string;
     fullName: string;
     email: string;
     phone: string;
     schoolId: string;
     schoolName: string;
     chosenPlan: ParentPlanCode;
+    relationship?: string;
   }) {
     // 1. Définir le statut du forfait parent sur PENDING_PAYMENT
     subscriptionStore.changeParentPlan(params.chosenPlan);
@@ -196,7 +202,7 @@ export const authStore = {
 
     // 2. Connecter le parent avec l'établissement choisi et isSubscriptionPaid = false
     const user: AuthUser = {
-      id: `parent-${Date.now()}`,
+      id: params.userId || `parent-${Date.now()}`,
       email: params.email,
       fullName: params.fullName,
       role: "parent",

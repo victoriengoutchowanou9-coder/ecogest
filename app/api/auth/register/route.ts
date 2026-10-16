@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { validateGeoCoherence } from "@/lib/geo-data";
 
 // Validation rigoureuse de l'adresse email (RFC 5322 simplifiée)
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -12,13 +13,23 @@ export async function POST(request: Request) {
       password,
       role = "directeur",
       fullName,
-      schoolName,
+      lastName,
+      firstName,
+      directorLastName,
+      directorFirstName,
       directorName,
+      relationship,
+      schoolName,
+      schoolId,
       phone,
+      department,
+      region,
       city,
       country = "Bénin",
       chosenPlan = "STANDARD",
       pathway = "SCHOOL",
+      childMatricule,
+      childClass,
     } = body;
 
     // 1. Validation de l'adresse email obligatoire
@@ -56,7 +67,7 @@ export async function POST(request: Request) {
     }
 
     // 4. Vérification d'unicité de l'email dans la base de données
-    const { data: existingUser, error: checkError } = await supabase
+    const { data: existingUser } = await supabase
       .from("school_users")
       .select("id, email")
       .eq("email", normalizedEmail)
@@ -72,22 +83,73 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5. Inscription selon le type (Établissement / Directeur ou Parent)
-    let createdSchoolId: string | null = null;
-    let createdSchool = null;
-
+    // =========================================================================
+    // 5. PARCOURS ÉTABLISSEMENT
+    // =========================================================================
     if (pathway === "SCHOOL") {
       const cleanSchoolName = (schoolName || "").trim();
       if (!cleanSchoolName) {
         return NextResponse.json(
           {
             success: false,
-            error: "Le nom de l'établissement est obligatoire.",
+            error: "Le nom officiel de l'établissement est obligatoire.",
           },
           { status: 400 }
         );
       }
 
+      // Validation Nom et Prénom séparés du directeur
+      const finalDirectorLastName = (directorLastName || lastName || "").trim();
+      const finalDirectorFirstName = (directorFirstName || firstName || "").trim();
+      const finalDirectorName = (
+        finalDirectorLastName && finalDirectorFirstName
+          ? `${finalDirectorLastName.toUpperCase()} ${finalDirectorFirstName}`
+          : directorName || fullName || "Directeur / Fondateur"
+      ).trim();
+
+      if (!finalDirectorLastName && !directorName) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Le nom de famille du responsable de l'établissement est obligatoire.",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (!finalDirectorFirstName && !directorName) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Le prénom du responsable de l'établissement est obligatoire.",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Vérification géographique stricte (Pays, Département, Ville, Téléphone avec indicatif)
+      const selectedDept = (department || region || "").trim();
+      const selectedCity = (city || "").trim();
+      const selectedCountry = (country || "Bénin").trim();
+
+      const geoValidation = validateGeoCoherence(
+        selectedCountry,
+        selectedDept,
+        selectedCity,
+        phone || ""
+      );
+
+      if (!geoValidation.valid) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: geoValidation.error || "Informations géographiques ou téléphoniques incohérentes.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const formattedPhone = geoValidation.formattedPhone || phone.trim();
       const schoolCode = `ECO-${Math.floor(100 + Math.random() * 900)}`;
       const slug = `${cleanSchoolName.toLowerCase().replace(/[^a-z0-9]/g, "-")}-${Math.floor(10 + Math.random() * 90)}`;
 
@@ -99,10 +161,11 @@ export async function POST(request: Request) {
           name: cleanSchoolName,
           short_name: cleanSchoolName.slice(0, 20),
           slug,
-          country: country || "Bénin",
-          city: city || "Cotonou",
-          address: `${city || "Cotonou"}, ${country || "Bénin"}`,
-          phone: phone || "+229 ",
+          country: selectedCountry,
+          region: selectedDept,
+          city: selectedCity,
+          address: `${selectedCity}, ${selectedDept}, ${selectedCountry}`,
+          phone: formattedPhone,
           email: normalizedEmail,
           currency: "FCFA",
           active_year: "2026-2027",
@@ -112,88 +175,244 @@ export async function POST(request: Request) {
 
       if (schoolInsertError) {
         console.error("[register] Erreur insertion schools :", schoolInsertError);
-      } else if (schoolRow) {
-        createdSchoolId = schoolRow.id;
-        createdSchool = schoolRow;
-      }
-    }
-
-    // 6. Insertion de l'utilisateur dans school_users
-    const userRole = pathway === "PARENT" ? "parent" : "directeur";
-    const userName = (pathway === "PARENT" ? fullName : directorName || "Directeur / Fondateur").trim();
-
-    const { data: userRow, error: userInsertError } = await supabase
-      .from("school_users")
-      .insert({
-        school_id: createdSchoolId,
-        email: normalizedEmail,
-        password_hash: `hash_${Date.now()}`,
-        full_name: userName,
-        role: userRole,
-        phone: phone || "",
-        status: "ACTIF",
-        permissions:
-          userRole === "directeur"
-            ? ["ALL", "MANAGE_USERS", "MANAGE_SETTINGS", "MANAGE_CLASSES", "MANAGE_FINANCE"]
-            : ["VIEW_CHILD_RECORDS"],
-      })
-      .select()
-      .single();
-
-    if (userInsertError) {
-      console.error("[register] Erreur insertion school_users :", userInsertError);
-    }
-
-    // Enregistrement dans le journal d'audit développeur
-    try {
-      const { recordSystemAuditLog } = await import("@/lib/server/dev-auth");
-      await recordSystemAuditLog({
-        eventType: pathway === "SCHOOL" ? "CREATION_ETABLISSEMENT" : "CREATION_COMPTE",
-        severity: "INFO",
-        actionTitle: pathway === "SCHOOL"
-          ? `Création de l'établissement « ${schoolName} » par le Directeur ${userName}`
-          : `Création du compte Parent ${userName}`,
-        details: { email: normalizedEmail, role: userRole, plan: chosenPlan },
-        userEmail: normalizedEmail,
-        userRole: userRole,
-        schoolName: createdSchool?.name || schoolName || "Établissement Scolaire",
-      });
-    } catch (auditErr) {
-      // non bloquant
-    }
-
-    // 7. Tentative Supabase Auth (création du compte Auth Supabase avec email)
-    try {
-      await supabase.auth.signUp({
-        email: normalizedEmail,
-        password: password,
-        options: {
-          data: {
-            full_name: userName,
-            role: userRole,
-            school_id: createdSchoolId,
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Erreur lors de l'enregistrement de l'établissement dans la base de données.",
           },
+          { status: 500 }
+        );
+      }
+
+      const createdSchoolId = schoolRow.id;
+
+      // Insertion du directeur dans school_users
+      const { data: userRow, error: userInsertError } = await supabase
+        .from("school_users")
+        .insert({
+          school_id: createdSchoolId,
+          email: normalizedEmail,
+          password_hash: `hash_${Date.now()}`,
+          full_name: finalDirectorName,
+          role: "directeur",
+          phone: formattedPhone,
+          status: "ACTIF",
+          permissions: [
+            "ALL",
+            "MANAGE_USERS",
+            "MANAGE_SETTINGS",
+            "MANAGE_CLASSES",
+            "MANAGE_FINANCE",
+          ],
+        })
+        .select()
+        .single();
+
+      if (userInsertError) {
+        console.error("[register] Erreur insertion school_users directeur :", userInsertError);
+      }
+
+      // Enregistrement dans le journal d'audit développeur
+      try {
+        const { recordSystemAuditLog } = await import("@/lib/server/dev-auth");
+        await recordSystemAuditLog({
+          eventType: "CREATION_ETABLISSEMENT",
+          severity: "INFO",
+          actionTitle: `Création de l'établissement « ${cleanSchoolName} » (${selectedCountry}) par ${finalDirectorName}`,
+          details: {
+            email: normalizedEmail,
+            role: "directeur",
+            plan: chosenPlan,
+            country: selectedCountry,
+            department: selectedDept,
+            city: selectedCity,
+            phone: formattedPhone,
+          },
+          userEmail: normalizedEmail,
+          userRole: "directeur",
+          schoolName: cleanSchoolName,
+          schoolId: createdSchoolId,
+        });
+      } catch {}
+
+      return NextResponse.json({
+        success: true,
+        message: "Établissement et compte directeur créés avec succès !",
+        user: {
+          id: userRow?.id || `usr-${Date.now()}`,
+          email: normalizedEmail,
+          fullName: finalDirectorName,
+          role: "directeur",
+          phone: formattedPhone,
+          schoolId: createdSchoolId,
+          schoolName: cleanSchoolName,
         },
+        school: schoolRow,
       });
-    } catch (authErr) {
-      // Ignorer si configuration de mails Supabase externe ou continuer
-      console.warn("[register] Supabase auth.signUp avertissement :", authErr);
     }
 
-    return NextResponse.json({
-      success: true,
-      message: "Inscription réussie !",
-      user: {
-        id: userRow?.id || `usr-${Date.now()}`,
-        email: normalizedEmail,
-        fullName: userName,
-        role: userRole,
-        phone,
-        schoolId: createdSchoolId || "school-1",
-        schoolName: createdSchool?.name || schoolName || "Établissement Scolaire",
-      },
-      school: createdSchool,
-    });
+    // =========================================================================
+    // 6. PARCOURS PARENT (RÈGLE OBLIGATOIRE : ÉTABLISSEMENT EXISTANT REQUIS)
+    // =========================================================================
+    if (pathway === "PARENT") {
+      // RÈGLE 5 : Vérification absolue qu'au moins un établissement existe dans la base
+      const { data: existingSchools, error: schoolsCheckErr } = await supabase
+        .from("schools")
+        .select("id, name")
+        .limit(1);
+
+      if (schoolsCheckErr || !existingSchools || existingSchools.length === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "L'inscription parent n'est pas encore disponible. Un établissement doit d'abord être inscrit sur ECOGEST. Veuillez attendre que l'établissement de votre enfant soit enregistré sur la plateforme.",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Validation Nom et Prénom séparés
+      const finalParentLastName = (lastName || "").trim();
+      const finalParentFirstName = (firstName || "").trim();
+
+      if (!finalParentLastName) {
+        return NextResponse.json(
+          { success: false, error: "Le nom de famille est obligatoire." },
+          { status: 400 }
+        );
+      }
+
+      if (!finalParentFirstName) {
+        return NextResponse.json(
+          { success: false, error: "Le prénom est obligatoire." },
+          { status: 400 }
+        );
+      }
+
+      // Validation Lien parental obligatoire
+      const cleanRelationship = (relationship || "").trim();
+      if (!cleanRelationship) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Le choix du lien de parenté (Père, Mère, Tuteur légal, etc.) est obligatoire.",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Validation de l'établissement sélectionné dans la base de données
+      const cleanSchoolId = (schoolId || "").trim();
+      if (!cleanSchoolId) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Veuillez sélectionner un établissement scolaire existant.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const { data: matchedSchool, error: schoolMatchErr } = await supabase
+        .from("schools")
+        .select("id, name")
+        .eq("id", cleanSchoolId)
+        .maybeSingle();
+
+      if (schoolMatchErr || !matchedSchool) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "L'établissement sélectionné n'existe pas dans le système. Aucun compte orphelin ne peut être créé.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const finalParentName = `${finalParentLastName.toUpperCase()} ${finalParentFirstName}`;
+
+      // Insertion du parent dans school_users
+      const { data: userRow, error: userInsertError } = await supabase
+        .from("school_users")
+        .insert({
+          school_id: matchedSchool.id,
+          email: normalizedEmail,
+          password_hash: `hash_${Date.now()}`,
+          full_name: finalParentName,
+          role: "parent",
+          phone: (phone || "").trim(),
+          status: "ACTIF",
+          permissions: {
+            roles: ["VIEW_CHILD_RECORDS"],
+            relationship: cleanRelationship,
+            childMatricule: (childMatricule || "").trim(),
+            childClass: (childClass || "").trim(),
+            plan: chosenPlan,
+            lastName: finalParentLastName.toUpperCase(),
+            firstName: finalParentFirstName,
+          },
+        })
+        .select()
+        .single();
+
+      if (userInsertError) {
+        console.error("[register] Erreur insertion school_users parent :", userInsertError);
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Erreur lors de la création du compte parent dans la base de données.",
+          },
+          { status: 500 }
+        );
+      }
+
+      // Enregistrement dans le journal d'audit développeur
+      try {
+        const { recordSystemAuditLog } = await import("@/lib/server/dev-auth");
+        await recordSystemAuditLog({
+          eventType: "CREATION_COMPTE",
+          severity: "INFO",
+          actionTitle: `Création du compte Parent ${finalParentName} (${cleanRelationship}) pour l'établissement « ${matchedSchool.name} »`,
+          details: {
+            email: normalizedEmail,
+            role: "parent",
+            plan: chosenPlan,
+            relationship: cleanRelationship,
+            schoolId: matchedSchool.id,
+            schoolName: matchedSchool.name,
+            childMatricule: childMatricule || "",
+            childClass: childClass || "",
+          },
+          userEmail: normalizedEmail,
+          userRole: "parent",
+          schoolName: matchedSchool.name,
+          schoolId: matchedSchool.id,
+        });
+      } catch {}
+
+      return NextResponse.json({
+        success: true,
+        message: "Compte parent créé avec succès !",
+        user: {
+          id: userRow?.id || `usr-${Date.now()}`,
+          email: normalizedEmail,
+          fullName: finalParentName,
+          role: "parent",
+          phone: (phone || "").trim(),
+          schoolId: matchedSchool.id,
+          schoolName: matchedSchool.name,
+          relationship: cleanRelationship,
+        },
+        school: matchedSchool,
+      });
+    }
+
+    return NextResponse.json(
+      { success: false, error: "Type d'inscription (pathway) non reconnu." },
+      { status: 400 }
+    );
   } catch (error: any) {
     console.error("[register] Erreur inattendue :", error);
     try {

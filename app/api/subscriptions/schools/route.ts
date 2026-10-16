@@ -1,5 +1,24 @@
 import { NextResponse } from "next/server";
 import { SCHOOL_PLANS, SchoolPlanCode } from "@/lib/subscription-plans";
+import { supabase } from "@/lib/supabase";
+
+export async function GET() {
+  try {
+    const { data: schools, error } = await supabase
+      .from("schools")
+      .select("id, code, name, short_name, slug, country, region, city, address, phone, email, active_year, created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      return NextResponse.json({ success: false, error: error.message, schools: [] }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, schools: schools || [], count: schools?.length || 0 });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: "Erreur serveur.", schools: [] }, { status: 500 });
+  }
+}
+
 
 // Validation serveur de la création d'établissement selon le forfait actif
 export async function POST(request: Request) {
