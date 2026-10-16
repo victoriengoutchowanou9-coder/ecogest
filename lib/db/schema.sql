@@ -3,11 +3,22 @@
 -- Schéma SQL normalisé pour PostgreSQL / Supabase avec Row Level Security (RLS)
 -- =============================================================================
 
--- 1. Types ENUM pour les forfaits et statuts
-CREATE TYPE school_plan_type AS ENUM ('BASIC', 'STANDARD', 'PREMIUM');
-CREATE TYPE parent_plan_type AS ENUM ('PARENT_1', 'PARENT_2');
-CREATE TYPE subscription_status AS ENUM ('ACTIVE', 'TRIAL', 'EXPIRED', 'SUSPENDED');
-CREATE TYPE parent_access_status AS ENUM ('PENDING', 'AUTHORIZED', 'REJECTED', 'REVOKED');
+-- 1. Types ENUM pour les forfaits et statuts (Idempotents)
+DO $$ BEGIN
+    CREATE TYPE school_plan_type AS ENUM ('BASIC', 'STANDARD', 'PREMIUM');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE parent_plan_type AS ENUM ('PARENT_1', 'PARENT_2');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE subscription_status AS ENUM ('ACTIVE', 'TRIAL', 'EXPIRED', 'SUSPENDED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE parent_access_status AS ENUM ('PENDING', 'AUTHORIZED', 'REJECTED', 'REVOKED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- 2. Table des Établissements (Multi-Établissements / Multi-Tenancy)
 CREATE TABLE IF NOT EXISTS schools (
@@ -33,7 +44,6 @@ CREATE TABLE IF NOT EXISTS schools (
 );
 
 -- 3. Table des Abonnements des Établissements
--- Forfaits : BASIC (6 000 FCFA/m), STANDARD (10 000 FCFA/m), PREMIUM (25 000 FCFA/m)
 CREATE TABLE IF NOT EXISTS school_subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
@@ -42,7 +52,7 @@ CREATE TABLE IF NOT EXISTS school_subscriptions (
     price_fcfa INTEGER NOT NULL,
     status subscription_status NOT NULL DEFAULT 'ACTIVE',
     max_schools INTEGER NOT NULL DEFAULT 1,     -- BASIC: 1, STANDARD: 1, PREMIUM: 2
-    max_users INTEGER,                         -- BASIC: 5, STANDARD: 25 (paramétrable), PREMIUM: NULL (illimité)
+    max_users INTEGER,                         -- BASIC: 5, STANDARD: 25, PREMIUM: NULL (illimité)
     features JSONB NOT NULL DEFAULT '{}'::jsonb,
     start_date DATE NOT NULL DEFAULT CURRENT_DATE,
     expires_at DATE NOT NULL DEFAULT (CURRENT_DATE + INTERVAL '1 month'),
@@ -51,12 +61,10 @@ CREATE TABLE IF NOT EXISTS school_subscriptions (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Index pour recherche rapide par établissement et propriétaire
 CREATE INDEX IF NOT EXISTS idx_school_subscriptions_owner ON school_subscriptions(owner_user_id);
 CREATE INDEX IF NOT EXISTS idx_school_subscriptions_school ON school_subscriptions(school_id);
 
 -- 4. Table des Abonnements des Parents d'élèves
--- Forfaits : PARENT 1 (200 FCFA/m, 1 élève), PARENT 2 (300 FCFA/m, 2 élèves max)
 CREATE TABLE IF NOT EXISTS parent_subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     parent_user_id UUID NOT NULL,
@@ -120,7 +128,7 @@ ALTER TABLE parent_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE parent_student_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscription_transactions ENABLE ROW LEVEL SECURITY;
 
--- 1. Un utilisateur ne peut voir que les données de son école active
+DROP POLICY IF EXISTS rls_schools_isolation ON schools;
 CREATE POLICY rls_schools_isolation ON schools
     FOR ALL
     USING (
@@ -132,7 +140,7 @@ CREATE POLICY rls_schools_isolation ON schools
         )
     );
 
--- 2. Limite parent : interdiction d'avoir plus de 2 enfants (Forfait PARENT 2 max)
+-- Trigger limite parent
 CREATE OR REPLACE FUNCTION check_parent_children_limit()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -144,7 +152,7 @@ BEGIN
     WHERE parent_user_id = NEW.parent_user_id AND school_id = NEW.school_id AND status = 'ACTIVE';
 
     IF v_max_children IS NULL THEN
-        v_max_children := 1; -- Par défaut PARENT 1
+        v_max_children := 1;
     END IF;
 
     SELECT COUNT(*) INTO v_current_count
@@ -162,12 +170,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_check_parent_limit ON parent_student_links;
 CREATE TRIGGER trg_check_parent_limit
     BEFORE INSERT ON parent_student_links
     FOR EACH ROW
     EXECUTE FUNCTION check_parent_children_limit();
 
--- 3. Limite établissement : interdiction de créer plus d'écoles que le forfait ne le permet
+-- Trigger limite établissement
 CREATE OR REPLACE FUNCTION check_school_creation_limit()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -179,7 +188,7 @@ BEGIN
     WHERE owner_user_id = NEW.owner_user_id AND status = 'ACTIVE';
 
     IF v_max_schools IS NULL THEN
-        v_max_schools := 1; -- Par défaut Basic
+        v_max_schools := 1;
     END IF;
 
     SELECT COUNT(*) INTO v_current_count
@@ -194,6 +203,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_check_school_limit ON schools;
 CREATE TRIGGER trg_check_school_limit
     BEFORE INSERT ON schools
     FOR EACH ROW
