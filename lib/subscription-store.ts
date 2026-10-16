@@ -152,6 +152,23 @@ if (typeof window !== "undefined") {
 // =============================================================================
 
 export const subscriptionStore = {
+  getSnapshot() {
+    return {
+      school: memorySchoolState,
+      parent: memoryParentState,
+    };
+  },
+
+  setSchoolStatus(status: SubscriptionStatus) {
+    memorySchoolState = { ...memorySchoolState, status };
+    saveSchoolState();
+  },
+
+  setParentStatus(status: SubscriptionStatus) {
+    memoryParentState = { ...memoryParentState, status };
+    saveParentState();
+  },
+
   getSchoolState(): SchoolSubscriptionState {
     return memorySchoolState;
   },
@@ -397,6 +414,7 @@ export function useSubscriptionStore() {
     createSchool: subscriptionStore.createSchool.bind(subscriptionStore),
     changeSchoolPlan: subscriptionStore.changeSchoolPlan.bind(subscriptionStore),
     renewSchoolSubscription: subscriptionStore.renewSchoolSubscription.bind(subscriptionStore),
+    setSchoolStatus: subscriptionStore.setSchoolStatus.bind(subscriptionStore),
     setUsersCount: subscriptionStore.setUsersCount.bind(subscriptionStore),
 
     // Parent
@@ -409,6 +427,7 @@ export function useSubscriptionStore() {
     canParentAddChild: subscriptionStore.canParentAddChild.bind(subscriptionStore),
     changeParentPlan: subscriptionStore.changeParentPlan.bind(subscriptionStore),
     renewParentSubscription: subscriptionStore.renewParentSubscription.bind(subscriptionStore),
+    setParentStatus: subscriptionStore.setParentStatus.bind(subscriptionStore),
     setChildrenCount: subscriptionStore.setChildrenCount.bind(subscriptionStore),
   };
 }

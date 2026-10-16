@@ -5,7 +5,7 @@
 
 export type SchoolPlanCode = "BASIC" | "STANDARD" | "PREMIUM";
 export type ParentPlanCode = "PARENT_1" | "PARENT_2";
-export type SubscriptionStatus = "ACTIVE" | "EXPIRED" | "TRIAL";
+export type SubscriptionStatus = "ACTIVE" | "EXPIRED" | "TRIAL" | "PENDING_PAYMENT";
 
 export interface SchoolPlanDefinition {
   code: SchoolPlanCode;

@@ -26,6 +26,7 @@ import {
   PARENT_PLANS,
   ParentPlanCode,
 } from "@/lib/subscription-store";
+import { useAuthStore } from "@/lib/auth-store";
 
 export default function ParentAbonnementPage() {
   const { toast } = useToast();
@@ -39,11 +40,31 @@ export default function ParentAbonnementPage() {
     changeParentPlan,
     renewParentSubscription,
   } = useSubscriptionStore();
+  const { validatePayment, user: currentUser } = useAuthStore();
 
   const [confirmModalPlan, setConfirmModalPlan] = useState<ParentPlanCode | null>(null);
 
+  // Paiement Mobile Money Parent
+  const [paymentMethod, setPaymentMethod] = useState<"MTN" | "MOOV">("MTN");
+  const [paymentPhone, setPaymentPhone] = useState("+229 ");
+  const [payingLoading, setPayingLoading] = useState(false);
+
+  const handlePayAndActivate = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPayingLoading(true);
+    setTimeout(() => {
+      setPayingLoading(false);
+      validatePayment("PARENT");
+      toast(
+        `Forfait ${parentPlanDef.name} (${parentPlanDef.priceFcfa} FCFA) activé avec succès ! Vous avez désormais un accès illimité à l'espace de suivi.`,
+        "success"
+      );
+    }, 900);
+  };
+
   const handleApplyPlan = (code: ParentPlanCode) => {
     changeParentPlan(code);
+    validatePayment("PARENT");
     setConfirmModalPlan(null);
     toast(
       `Votre compte est désormais sous la formule ${PARENT_PLANS[code].name} (${PARENT_PLANS[code].priceFcfa} FCFA/mois).`,
@@ -53,6 +74,7 @@ export default function ParentAbonnementPage() {
 
   const handleRenew = () => {
     renewParentSubscription();
+    validatePayment("PARENT");
     toast(
       `Votre forfait ${parentPlanDef.name} a été renouvelé avec succès pour un mois !`,
       "success"
@@ -84,6 +106,107 @@ export default function ParentAbonnementPage() {
         }
       />
 
+      {/* Module de Paiement & Activation Immédiate si En Attente */}
+      {parentStatus === "PENDING_PAYMENT" && (
+        <div className="bg-white rounded-3xl border-2 border-amber-400 p-6 md:p-8 shadow-lg space-y-6 animate-in fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-800 flex items-center justify-center shrink-0">
+                <CreditCard className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">
+                  Activer votre abonnement Parent
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Montant à régler : <strong className="text-indigo-600 font-mono text-sm">{parentPlanDef.priceFcfa} FCFA</strong> pour le forfait <strong>{parentPlanDef.name}</strong> ({parentPlanDef.maxChildren} enfant(s))
+                </p>
+              </div>
+            </div>
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 self-start sm:self-auto border border-amber-200">
+              Activation Requise
+            </span>
+          </div>
+
+          <form onSubmit={handlePayAndActivate} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700 block">Moyen de règlement Mobile Money :</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("MTN")}
+                  className={`p-3 rounded-2xl border text-left transition flex items-center gap-3 ${
+                    paymentMethod === "MTN"
+                      ? "border-amber-500 bg-amber-50/60 ring-2 ring-amber-400 font-bold"
+                      : "border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  <span className="w-8 h-8 rounded-xl bg-amber-400 text-slate-900 flex items-center justify-center font-black text-xs shrink-0">
+                    MTN
+                  </span>
+                  <div>
+                    <p className="text-xs text-slate-900">MTN MoMo Bénin</p>
+                    <p className="text-[10px] text-slate-500 font-mono">*880# / Direct</p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("MOOV")}
+                  className={`p-3 rounded-2xl border text-left transition flex items-center gap-3 ${
+                    paymentMethod === "MOOV"
+                      ? "border-blue-500 bg-blue-50/60 ring-2 ring-blue-400 font-bold"
+                      : "border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  <span className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-xs shrink-0">
+                    MOOV
+                  </span>
+                  <div>
+                    <p className="text-xs text-slate-900">Moov Money Bénin</p>
+                    <p className="text-[10px] text-slate-500 font-mono">*855# / Direct</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 block">
+                Numéro de débit Mobile Money (Bénin) *
+              </label>
+              <input
+                type="text"
+                required
+                value={paymentPhone}
+                onChange={(e) => setPaymentPhone(e.target.value)}
+                placeholder="+229 97 00 00 00"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-mono text-slate-900"
+              />
+            </div>
+
+            <div className="pt-2 flex items-center justify-end">
+              <button
+                type="submit"
+                disabled={payingLoading}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs md:text-sm font-bold shadow-md transition flex items-center justify-center gap-2"
+              >
+                {payingLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Validation du paiement en cours...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>Payer {parentPlanDef.priceFcfa} FCFA &amp; Débloquer mon suivi</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* Bannière Forfait Parent Actuel */}
       <div className="rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 md:p-8 shadow-xl border border-indigo-900 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-6">
@@ -93,8 +216,18 @@ export default function ParentAbonnementPage() {
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Formule Actuelle</span>
               </span>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                {parentStatus === "ACTIVE" ? "Actif & Validé" : "Expiré"}
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                parentStatus === "ACTIVE"
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                  : parentStatus === "PENDING_PAYMENT"
+                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold"
+                  : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+              }`}>
+                {parentStatus === "ACTIVE"
+                  ? "Actif & Validé"
+                  : parentStatus === "PENDING_PAYMENT"
+                  ? "En attente de paiement"
+                  : "Expiré"}
               </span>
             </div>
 

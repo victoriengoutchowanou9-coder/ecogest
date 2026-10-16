@@ -22,12 +22,14 @@ import {
 import { PublicNavbar } from "@/components/layout/PublicNavbar";
 import { PublicFooter } from "@/components/layout/PublicFooter";
 import { useToast } from "@/components/ui/Toast";
-import { useSubscriptionStore, SchoolPlanCode } from "@/lib/subscription-store";
+import { useSubscriptionStore, SchoolPlanCode, ParentPlanCode } from "@/lib/subscription-store";
+import { useAuthStore } from "@/lib/auth-store";
 
 export default function InscriptionPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { createSchool, changeSchoolPlan, changeParentPlan } = useSubscriptionStore();
+  const { schools } = useSubscriptionStore();
+  const { registerSchool, registerParent } = useAuthStore();
 
   const [pathway, setPathway] = useState<"SCHOOL" | "PARENT">("SCHOOL");
   const [showPassword, setShowPassword] = useState(false);
@@ -50,7 +52,10 @@ export default function InscriptionPage() {
   const [parentEmail, setParentEmail] = useState("");
   const [parentPhone, setParentPhone] = useState("");
   const [parentPassword, setParentPassword] = useState("");
-  const [parentPlan, setParentPlan] = useState<"PARENT_1" | "PARENT_2">("PARENT_1");
+  const [parentPlan, setParentPlan] = useState<ParentPlanCode>("PARENT_1");
+  const [parentSchoolId, setParentSchoolId] = useState(schools[0]?.id || "");
+  const [parentSchoolName, setParentSchoolName] = useState(schools[0]?.name || "");
+  const [customSchoolName, setCustomSchoolName] = useState("");
   const [childMatricule, setChildMatricule] = useState("");
   const [childClass, setChildClass] = useState("3ème A");
 
@@ -60,42 +65,51 @@ export default function InscriptionPage() {
 
     setTimeout(() => {
       setLoading(false);
-      changeSchoolPlan(chosenPlan);
-      createSchool({
-        code: `SCH-${Math.floor(1000 + Math.random() * 9000)}`,
-        name: schoolName,
-        shortName: schoolName.slice(0, 15),
-        slug: schoolName
-          .toLowerCase()
-          .replace(/[^a-z0-9]/g, "-")
-          .replace(/-+/g, "-"),
-        logo: "/images/logo-ccpa.png",
-        country,
-        region,
-        city,
-        address: `${city}, ${region} (${country})`,
-        phone: schoolPhone,
-        email: schoolEmail,
-        devise: "Travail - Rigueur - Réussite",
-        currency: "FCFA",
-        activeYear: "2026-2027",
-        teachingType: "PRIMAIRE_SECONDAIRE",
+      registerSchool({
+        directorName: managerName.trim(),
+        schoolName: schoolName.trim(),
+        schoolEmail: schoolEmail.trim(),
+        schoolPhone: schoolPhone.trim(),
+        schoolCity: city.trim(),
+        schoolCountry: country,
+        chosenPlan,
       });
 
-      toast(`Établissement ${schoolName} enregistré avec succès ! Redirection vers la configuration initiale...`, "success");
-      router.push("/directeur/parametres");
-    }, 800);
+      toast(
+        `Établissement ${schoolName} enregistré ! Veuillez finaliser le paiement de votre abonnement pour activer votre accès.`,
+        "info"
+      );
+      router.push("/directeur/abonnement?activation=required");
+    }, 700);
   };
 
   const handleParentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const finalSchoolName = parentSchoolId === "CUSTOM" ? customSchoolName.trim() : parentSchoolName;
+    if (!finalSchoolName) {
+      toast("Veuillez sélectionner ou renseigner l'établissement fréquenté par votre enfant.", "error");
+      return;
+    }
+
     setLoading(true);
 
     setTimeout(() => {
       setLoading(false);
-      toast(`Compte Parent créé avec succès ! Bienvenue sur l'espace de suivi familial.`, "success");
-      router.push("/parent");
-    }, 800);
+      registerParent({
+        fullName: `${parentName.trim().toUpperCase()} ${parentFirstName.trim()}`,
+        email: parentEmail.trim(),
+        phone: parentPhone.trim(),
+        schoolId: parentSchoolId === "CUSTOM" ? `school-${Date.now()}` : parentSchoolId,
+        schoolName: finalSchoolName,
+        chosenPlan: parentPlan,
+      });
+
+      toast(
+        `Compte Parent créé pour l'établissement « ${finalSchoolName} » ! Veuillez activer votre forfait mensuel.`,
+        "info"
+      );
+      router.push("/parent/abonnement?activation=required");
+    }, 700);
   };
 
   return (
@@ -412,6 +426,42 @@ export default function InscriptionPage() {
                   onChange={(e) => setParentPassword(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900"
                 />
+              </div>
+
+              {/* Établissement fréquenté par l'enfant */}
+              <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                <label className="font-bold text-slate-800 block text-xs">
+                  Établissement scolaire fréquenté par votre enfant *
+                </label>
+                <select
+                  required
+                  value={parentSchoolId}
+                  onChange={(e) => {
+                    setParentSchoolId(e.target.value);
+                    const found = schools.find((s) => s.id === e.target.value);
+                    if (found) setParentSchoolName(found.name);
+                  }}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white"
+                >
+                  <option value="">-- Sélectionnez l&apos;établissement --</option>
+                  {schools.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} {s.city ? `(${s.city})` : ""}
+                    </option>
+                  ))}
+                  <option value="CUSTOM">Autre établissement (saisie manuelle)...</option>
+                </select>
+
+                {parentSchoolId === "CUSTOM" && (
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nom complet du collège ou lycée..."
+                    value={customSchoolName}
+                    onChange={(e) => setCustomSchoolName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 mt-2"
+                  />
+                )}
               </div>
 
               {/* Choix Formule Parent (200F ou 300F) */}

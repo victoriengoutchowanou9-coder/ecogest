@@ -26,6 +26,7 @@ import {
   PARENT_PLANS,
   SchoolPlanCode,
 } from "@/lib/subscription-store";
+import { useAuthStore } from "@/lib/auth-store";
 
 export default function DirecteurAbonnementPage() {
   const { toast } = useToast();
@@ -40,12 +41,33 @@ export default function DirecteurAbonnementPage() {
     changeSchoolPlan,
     renewSchoolSubscription,
   } = useSubscriptionStore();
+  const { validatePayment, user: currentUser } = useAuthStore();
 
   const [activeTab, setActiveTab] = useState<"SCHOOL" | "PARENTS">("SCHOOL");
   const [confirmModalPlan, setConfirmModalPlan] = useState<SchoolPlanCode | null>(null);
 
+  // Paiement Mobile Money & Carte
+  const [paymentMethod, setPaymentMethod] = useState<"MTN" | "MOOV" | "CARTE">("MTN");
+  const [paymentPhone, setPaymentPhone] = useState("+229 ");
+  const [paymentRef, setPaymentRef] = useState("");
+  const [payingLoading, setPayingLoading] = useState(false);
+
+  const handlePayAndActivate = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPayingLoading(true);
+    setTimeout(() => {
+      setPayingLoading(false);
+      validatePayment("SCHOOL");
+      toast(
+        `Paiement de ${schoolPlanDef.priceFcfa.toLocaleString()} FCFA validé avec succès ! Votre établissement est désormais actif et déverrouillé.`,
+        "success"
+      );
+    }, 900);
+  };
+
   const handleApplyPlan = (code: SchoolPlanCode) => {
     changeSchoolPlan(code);
+    validatePayment("SCHOOL");
     setConfirmModalPlan(null);
     toast(
       `Félicitations ! Votre établissement est désormais sous la ${SCHOOL_PLANS[code].name} (${SCHOOL_PLANS[code].priceFcfa.toLocaleString()} FCFA/mois).`,
@@ -55,6 +77,7 @@ export default function DirecteurAbonnementPage() {
 
   const handleRenew = () => {
     renewSchoolSubscription();
+    validatePayment("SCHOOL");
     toast(
       `Votre abonnement ${schoolPlanDef.name} a été renouvelé avec succès pour 1 mois supplémentaire !`,
       "success"
@@ -87,6 +110,140 @@ export default function DirecteurAbonnementPage() {
         }
       />
 
+      {/* Module de Paiement & Activation Immédiate si En Attente */}
+      {schoolStatus === "PENDING_PAYMENT" && (
+        <div className="bg-white rounded-3xl border-2 border-amber-400 p-6 md:p-8 shadow-lg space-y-6 animate-in fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                <CreditCard className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">
+                  Régler l&apos;abonnement pour débloquer votre établissement
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Montant à régler : <strong className="text-school-primary font-mono text-sm">{schoolPlanDef.priceFcfa.toLocaleString()} FCFA</strong> pour la formule <strong>{schoolPlanDef.name}</strong>
+                </p>
+              </div>
+            </div>
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 self-start sm:self-auto border border-amber-200">
+              Étape Obligatoire
+            </span>
+          </div>
+
+          <form onSubmit={handlePayAndActivate} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700 block">Moyen de règlement :</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("MTN")}
+                  className={`p-3 rounded-2xl border text-left transition flex items-center gap-3 ${
+                    paymentMethod === "MTN"
+                      ? "border-amber-500 bg-amber-50/60 ring-2 ring-amber-400 font-bold"
+                      : "border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  <span className="w-8 h-8 rounded-xl bg-amber-400 text-slate-900 flex items-center justify-center font-black text-xs shrink-0">
+                    MTN
+                  </span>
+                  <div>
+                    <p className="text-xs text-slate-900">MTN MoMo Bénin</p>
+                    <p className="text-[10px] text-slate-500 font-mono">*880# / Direct</p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("MOOV")}
+                  className={`p-3 rounded-2xl border text-left transition flex items-center gap-3 ${
+                    paymentMethod === "MOOV"
+                      ? "border-blue-500 bg-blue-50/60 ring-2 ring-blue-400 font-bold"
+                      : "border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  <span className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-xs shrink-0">
+                    MOOV
+                  </span>
+                  <div>
+                    <p className="text-xs text-slate-900">Moov Money Bénin</p>
+                    <p className="text-[10px] text-slate-500 font-mono">*855# / Direct</p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("CARTE")}
+                  className={`p-3 rounded-2xl border text-left transition flex items-center gap-3 ${
+                    paymentMethod === "CARTE"
+                      ? "border-emerald-500 bg-emerald-50/60 ring-2 ring-emerald-400 font-bold"
+                      : "border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-xs shrink-0">
+                    CARD
+                  </span>
+                  <div>
+                    <p className="text-xs text-slate-900">Carte / Virement</p>
+                    <p className="text-[10px] text-slate-500">Visa, Mastercard</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Numéro de débit Mobile Money / Contact *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={paymentPhone}
+                  onChange={(e) => setPaymentPhone(e.target.value)}
+                  placeholder="+229 97 00 00 00"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-mono text-slate-900"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Référence de transaction / Code reçu (optionnel)
+                </label>
+                <input
+                  type="text"
+                  value={paymentRef}
+                  onChange={(e) => setPaymentRef(e.target.value)}
+                  placeholder="Ex : TXN-89230192"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-mono text-slate-900"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end">
+              <button
+                type="submit"
+                disabled={payingLoading}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs md:text-sm font-bold shadow-md transition flex items-center justify-center gap-2"
+              >
+                {payingLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Traitement et validation en cours...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>Valider le paiement ({schoolPlanDef.priceFcfa.toLocaleString()} FCFA) &amp; Activer</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* Bannière de l'Abonnement Actuel */}
       <div className="rounded-3xl bg-gradient-to-r from-slate-900 via-school-950 to-slate-900 text-white p-6 md:p-8 shadow-xl border border-slate-800 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-6">
@@ -96,8 +253,18 @@ export default function DirecteurAbonnementPage() {
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Formule Actuelle</span>
               </span>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                {schoolStatus === "ACTIVE" ? "Actif & Validé" : "Expiré"}
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                schoolStatus === "ACTIVE"
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                  : schoolStatus === "PENDING_PAYMENT"
+                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold"
+                  : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+              }`}>
+                {schoolStatus === "ACTIVE"
+                  ? "Actif & Validé"
+                  : schoolStatus === "PENDING_PAYMENT"
+                  ? "En attente de paiement"
+                  : "Expiré"}
               </span>
             </div>
             <h2 className="text-2xl md:text-3xl font-black tracking-tight text-white mt-2">

@@ -6,9 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   School,
   Lock,
-  User,
   Mail,
-  Phone,
   Shield,
   BookOpenCheck,
   GraduationCap,
@@ -17,14 +15,13 @@ import {
   CheckCircle2,
   Building2,
   Sparkles,
-  ArrowRight,
   Eye,
   EyeOff,
   UserPlus,
   LogIn,
   Check,
 } from "lucide-react";
-import { Role, ROLE_NAVIGATIONS } from "@/lib/permissions";
+import { Role } from "@/lib/permissions";
 import {
   useSubscriptionStore,
   SCHOOL_PLANS,
@@ -32,16 +29,19 @@ import {
   SchoolPlanCode,
   ParentPlanCode,
 } from "@/lib/subscription-store";
+import { useAuthStore } from "@/lib/auth-store";
 import { useToast } from "@/components/ui/Toast";
 
 export default function AuthPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const authStore = useAuthStore();
   const {
     changeSchoolPlan,
     createSchool,
     changeParentPlan,
     activeSchool,
+    schools,
   } = useSubscriptionStore();
 
   // Mode principal : Connexion ou Inscription
@@ -58,19 +58,18 @@ export default function AuthPage() {
   // ÉTATS DE CONNEXION
   // =========================================================================
   const [loginRole, setLoginRole] = useState<Role>("directeur");
-  const [loginEmail, setLoginEmail] = useState("directeur@ccpa-cotonou.bj");
+  const [loginEmail, setLoginEmail] = useState("directeur@ecole.bj");
   const [loginPassword, setLoginPassword] = useState("********");
   const [loginLoading, setLoginLoading] = useState(false);
 
-  // Quand le rôle de connexion change, pré-remplir l'identifiant pour la démo
   const handleSelectRole = (r: Role) => {
     setLoginRole(r);
     const emails: Record<Role, string> = {
-      directeur: "directeur@ccpa-cotonou.bj",
-      censeur: "censeur@ccpa-cotonou.bj",
-      enseignant: "prof.hounkponou@ccpa-cotonou.bj",
-      comptabilite: "comptable@ccpa-cotonou.bj",
-      parent: "parent.adanhouan@gmail.com",
+      directeur: "directeur@ecole.bj",
+      censeur: "censeur@ecole.bj",
+      enseignant: "professeur@ecole.bj",
+      comptabilite: "comptable@ecole.bj",
+      parent: "parent@famille.bj",
     };
     setLoginEmail(emails[r]);
   };
@@ -90,9 +89,25 @@ export default function AuthPage() {
         parent: "/parent",
       };
 
-      toast(`Connexion réussie ! Bienvenue sur EDUCOGEST PRO.`, "success");
+      const roleNames: Record<Role, string> = {
+        directeur: "M. le Directeur",
+        censeur: "M. le Censeur",
+        enseignant: "Professeur Titulaire",
+        comptabilite: "Agent Comptable",
+        parent: "Parent d'Élève",
+      };
+
+      authStore.login({
+        email: loginEmail,
+        role: loginRole,
+        fullName: roleNames[loginRole],
+        schoolId: activeSchool?.id || "school-1",
+        schoolName: activeSchool?.name || "Établissement Scolaire",
+      });
+
+      toast(`Connexion réussie ! Bienvenue sur ECOGEST.`, "success");
       router.push(targetPath[loginRole]);
-    }, 600);
+    }, 500);
   };
 
   // =========================================================================
@@ -115,20 +130,31 @@ export default function AuthPage() {
       return;
     }
 
+    // Créer dans le store d'authentification (statut en attente de paiement)
+    authStore.registerSchool({
+      schoolName: schoolName.trim(),
+      directorName: schoolDirectorName.trim() || "Direction de l'Établissement",
+      schoolEmail: schoolEmail.trim(),
+      schoolPhone: schoolPhone.trim(),
+      schoolCountry: schoolCountry,
+      schoolCity: schoolCity,
+      chosenPlan: schoolChosenPlan,
+    });
+
     // Appliquer le forfait d'abonnement choisi
     changeSchoolPlan(schoolChosenPlan);
 
     // Mettre à jour les informations de l'école
     createSchool({
-      code: `SCH-${Math.floor(1000 + Math.random() * 9000)}`,
+      code: `ECO-${Math.floor(1000 + Math.random() * 9000)}`,
       name: schoolName.trim(),
       shortName: schoolShortName.trim() || schoolName.trim().slice(0, 15),
       slug: schoolName
         .toLowerCase()
         .replace(/[^a-z0-9]/g, "-")
         .replace(/-+/g, "-"),
-      logo: "/images/logo-ccpa.png",
-      coverImage: "/images/pexels-tosin-olowoleni-2148141635-34162713.jpg",
+      logo: "",
+      coverImage: "",
       country: schoolCountry,
       region: "Littoral",
       city: schoolCity,
@@ -141,10 +167,10 @@ export default function AuthPage() {
     });
 
     toast(
-      `Félicitations ! Établissement « ${schoolName} » créé avec succès sous la ${SCHOOL_PLANS[schoolChosenPlan].name} !`,
+      `Établissement « ${schoolName} » enregistré. Veuillez valider le paiement de l'abonnement pour finaliser l'activation.`,
       "success"
     );
-    router.push("/directeur");
+    router.push("/directeur/abonnement?activation=required");
   };
 
   // =========================================================================
@@ -157,7 +183,9 @@ export default function AuthPage() {
   const [parentChosenPlan, setParentChosenPlan] = useState<ParentPlanCode>("PARENT_1");
   const [childMatricule, setChildMatricule] = useState("");
   const [childName, setChildName] = useState("");
-  const [childClass, setChildClass] = useState("3ème A");
+  const [childClass, setChildClass] = useState("3ème");
+  const [selectedSchoolId, setSelectedSchoolId] = useState("");
+  const [customSchoolName, setCustomSchoolName] = useState("");
 
   const handleRegisterParent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,14 +194,30 @@ export default function AuthPage() {
       return;
     }
 
-    // Appliquer le forfait parent
+    if (!selectedSchoolId && !customSchoolName.trim()) {
+      toast("Veuillez sélectionner ou renseigner l'établissement scolaire de votre enfant.", "error");
+      return;
+    }
+
+    const matchedSchool = schools.find((s) => s.id === selectedSchoolId);
+    const chosenSchoolName = matchedSchool ? matchedSchool.name : customSchoolName.trim();
+
+    authStore.registerParent({
+      fullName: parentName.trim(),
+      email: parentEmail.trim(),
+      phone: parentPhone.trim(),
+      schoolId: selectedSchoolId || "custom-school",
+      schoolName: chosenSchoolName,
+      chosenPlan: parentChosenPlan,
+    });
+
     changeParentPlan(parentChosenPlan);
 
     toast(
-      `Compte parent créé avec succès sous le forfait ${PARENT_PLANS[parentChosenPlan].name} (${PARENT_PLANS[parentChosenPlan].priceFcfa} FCFA/mois) !`,
+      `Compte parent créé ! Veuillez valider le paiement de l'abonnement pour activer votre accès.`,
       "success"
     );
-    router.push("/parent");
+    router.push("/parent/abonnement?activation=required");
   };
 
   return (
@@ -181,17 +225,16 @@ export default function AuthPage() {
       <div className="max-w-6xl w-full mx-auto rounded-3xl overflow-hidden shadow-2xl bg-white border border-slate-200 grid grid-cols-1 lg:grid-cols-12 min-h-[680px]">
         
         {/* =================================================================== */}
-        {/* COLONNE GAUCHE : VISUEL PRINCIPAL AVEC L'IMAGE DU SITE WEB          */}
+        {/* COLONNE GAUCHE : VISUEL PRINCIPAL                                    */}
         {/* =================================================================== */}
-        <div className="lg:col-span-5 relative hidden lg:flex flex-col justify-between p-10 text-white overflow-hidden">
-          {/* Image de fond existante sur le site web */}
+        <div className="lg:col-span-5 relative hidden lg:flex flex-col justify-between p-10 text-white overflow-hidden bg-slate-950">
           <div
-            className="absolute inset-0 bg-cover bg-center"
+            className="absolute inset-0 bg-cover bg-center opacity-40"
             style={{
               backgroundImage: "url('/images/pexels-tosin-olowoleni-2148141635-34162713.jpg')",
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/85 to-school-950/70 backdrop-blur-[1px]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-school-950/60" />
 
           {/* Header marque */}
           <div className="relative z-10 space-y-3">
@@ -200,14 +243,11 @@ export default function AuthPage() {
                 E
               </div>
               <div>
-                <span className="font-black text-xl tracking-tight text-white flex items-center gap-1.5">
-                  EDUCOGEST
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/20 text-white">
-                    PRO
-                  </span>
+                <span className="font-black text-2xl tracking-tight text-white flex items-center gap-1.5">
+                  ECOGEST
                 </span>
                 <span className="block text-[11px] text-slate-300">
-                  Progiciel de Gestion Scolaire Intégré
+                  Gestion scolaire tout en un
                 </span>
               </div>
             </Link>
@@ -244,7 +284,7 @@ export default function AuthPage() {
 
           {/* Footer gauche */}
           <div className="relative z-10 text-[11px] text-slate-400">
-            &copy; {new Date().getFullYear()} EDUCOGEST PRO &bull; Haute disponibilité &bull; Support Bénin
+            &copy; {new Date().getFullYear()} ECOGEST &bull; Tous droits réservés
           </div>
         </div>
 
@@ -262,7 +302,7 @@ export default function AuthPage() {
               </Link>
             </div>
 
-            {/* Bascule principale : Se connecter / S'inscrire (Requirement 8) */}
+            {/* Bascule principale : Se connecter / S'inscrire */}
             <div className="flex items-center p-1.5 rounded-2xl bg-slate-100 max-w-md mx-auto mb-8 border border-slate-200">
               <button
                 type="button"
@@ -298,11 +338,11 @@ export default function AuthPage() {
                 <div className="text-center space-y-1">
                   <h1 className="text-2xl font-black text-slate-900">Connexion à votre espace</h1>
                   <p className="text-xs text-slate-500">
-                    Connectez-vous pour accéder au portail de votre établissement
+                    Connectez-vous pour accéder au portail de votre profil
                   </p>
                 </div>
 
-                {/* Sélecteur de rôle pour test rapide ou redirection auto */}
+                {/* Sélecteur de rôle d'accès */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
                     Votre Espace d&apos;accès :
@@ -386,7 +426,7 @@ export default function AuthPage() {
                     </label>
                     <button
                       type="button"
-                      onClick={() => toast("Contactez l'administrateur de l'école pour réinitialiser votre mot de passe.", "info")}
+                      onClick={() => toast("Contactez l'administration pour réinitialiser votre mot de passe.", "info")}
                       className="text-school-primary hover:underline text-[11px] font-semibold"
                     >
                       Mot de passe oublié ?
@@ -408,25 +448,25 @@ export default function AuthPage() {
                     )}
                   </button>
 
-                  {/* Link: Pas encore de compte ? S'inscrire */}
                   <div className="text-center text-xs text-slate-600 pt-2 border-t border-slate-100">
                     Pas encore de compte ?{" "}
-                    <Link
-                      href="/inscription"
+                    <button
+                      type="button"
+                      onClick={() => setAuthMode("REGISTER")}
                       className="font-bold text-school-primary hover:underline"
                     >
                       S&apos;inscrire
-                    </Link>
+                    </button>
                   </div>
                 </form>
 
                 <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600 space-y-1">
                   <p className="font-semibold text-slate-800 flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-school-primary" />
-                    <span>Redirection automatique selon le rôle :</span>
+                    <span>Espaces d&apos;accès personnalisés et étanches :</span>
                   </p>
                   <p className="text-[11px] text-slate-500">
-                    Direction &rarr; /directeur &bull; Censeur &rarr; /censeur &bull; Enseignant &rarr; /enseignant &bull; Comptable &rarr; /comptabilite &bull; Parent &rarr; /parent
+                    Chaque utilisateur accède exclusivement à l&apos;espace correspondant à ses prérogatives.
                   </p>
                 </div>
               </div>
@@ -440,7 +480,7 @@ export default function AuthPage() {
                 <div className="text-center space-y-1">
                   <h1 className="text-2xl font-black text-slate-900">Créer un nouveau compte</h1>
                   <p className="text-xs text-slate-500">
-                    Sélectionnez le type de compte à enregistrer sur EDUCOGEST
+                    Sélectionnez le profil de compte à enregistrer sur ECOGEST
                   </p>
                 </div>
 
@@ -456,7 +496,7 @@ export default function AuthPage() {
                     }`}
                   >
                     <Building2 className="w-4 h-4" />
-                    <span>Établissement</span>
+                    <span>Établissement (Directeur)</span>
                   </button>
                   <button
                     type="button"
@@ -472,7 +512,7 @@ export default function AuthPage() {
                   </button>
                 </div>
 
-                {/* Formulaire Établissement (avec choix forfait) */}
+                {/* Formulaire Établissement (Directeur) */}
                 {registerType === "SCHOOL" && (
                   <form onSubmit={handleRegisterSchool} className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -483,7 +523,7 @@ export default function AuthPage() {
                         <input
                           type="text"
                           required
-                          placeholder="Ex: Collège Sainte-Rita"
+                          placeholder="Ex: Complexe Scolaire d'Excellence"
                           value={schoolName}
                           onChange={(e) => setSchoolName(e.target.value)}
                           className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-school-primary/20"
@@ -494,7 +534,7 @@ export default function AuthPage() {
                         <label className="text-xs font-semibold text-slate-700">Sigle / Nom court</label>
                         <input
                           type="text"
-                          placeholder="CSR - Cotonou"
+                          placeholder="Ex: CSE"
                           value={schoolShortName}
                           onChange={(e) => setSchoolShortName(e.target.value)}
                           className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
@@ -518,7 +558,7 @@ export default function AuthPage() {
                         <input
                           type="text"
                           required
-                          placeholder="M. Jean DOSSA"
+                          placeholder="M. le Directeur"
                           value={schoolDirectorName}
                           onChange={(e) => setSchoolDirectorName(e.target.value)}
                           className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
@@ -562,7 +602,7 @@ export default function AuthPage() {
                       </div>
                     </div>
 
-                    {/* Choix de la formule d'abonnement établissement (Requirement 1, 8) */}
+                    {/* Choix de la formule d'abonnement établissement */}
                     <div className="space-y-2 pt-2 border-t border-slate-100">
                       <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
                         Choisissez votre Formule Mensuelle :
@@ -601,17 +641,21 @@ export default function AuthPage() {
                       </div>
                     </div>
 
+                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800">
+                      <strong>Activation requise :</strong> Après création, le règlement de l&apos;abonnement sera demandé pour activer votre espace opérationnel.
+                    </div>
+
                     <button
                       type="submit"
                       className="w-full py-3 rounded-xl bg-school-primary hover:bg-school-700 text-white font-bold text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 touch-target"
                     >
                       <Building2 className="w-4 h-4" />
-                      <span>Créer l&apos;Établissement &amp; Souscrire</span>
+                      <span>Créer l&apos;Établissement &amp; Valider l&apos;Abonnement</span>
                     </button>
                   </form>
                 )}
 
-                {/* Formulaire Parent (avec choix forfait et élève) */}
+                {/* Formulaire Parent */}
                 {registerType === "PARENT" && (
                   <form onSubmit={handleRegisterParent} className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -620,7 +664,7 @@ export default function AuthPage() {
                         <input
                           type="text"
                           required
-                          placeholder="M. Marc ADANHOUN"
+                          placeholder="Mme / M. Nom Prénom"
                           value={parentName}
                           onChange={(e) => setParentName(e.target.value)}
                           className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500/20"
@@ -632,7 +676,7 @@ export default function AuthPage() {
                         <input
                           type="tel"
                           required
-                          placeholder="+229 97 12 34 56"
+                          placeholder="+229 97 00 00 00"
                           value={parentPhone}
                           onChange={(e) => setParentPhone(e.target.value)}
                           className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono"
@@ -663,7 +707,38 @@ export default function AuthPage() {
                       </div>
                     </div>
 
-                    {/* Choix Formule Parent (200F ou 300F - Requirement 2, 8) */}
+                    {/* Établissement scolaire de l'enfant (OBLIGATOIRE) */}
+                    <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                      <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+                        Établissement fréquenté par votre enfant * :
+                      </label>
+                      <select
+                        value={selectedSchoolId}
+                        onChange={(e) => setSelectedSchoolId(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white text-slate-800"
+                      >
+                        <option value="">-- Sélectionnez l&apos;établissement dans la liste --</option>
+                        {schools.map((sch) => (
+                          <option key={sch.id} value={sch.id}>
+                            {sch.name} ({sch.city})
+                          </option>
+                        ))}
+                        <option value="other">Autre établissement (saisie manuelle)</option>
+                      </select>
+
+                      {(!selectedSchoolId || selectedSchoolId === "other") && (
+                        <input
+                          type="text"
+                          required={selectedSchoolId === "other"}
+                          placeholder="Précisez le nom complet de l'établissement scolaire"
+                          value={customSchoolName}
+                          onChange={(e) => setCustomSchoolName(e.target.value)}
+                          className="w-full mt-2 px-3 py-2 rounded-xl border border-slate-300 text-xs"
+                        />
+                      )}
+                    </div>
+
+                    {/* Choix Formule Parent */}
                     <div className="space-y-2 pt-2 border-t border-slate-100">
                       <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
                         Choisissez votre Forfait Parent :
@@ -702,11 +777,21 @@ export default function AuthPage() {
                     {/* Premier élève à associer */}
                     <div className="space-y-2 pt-2 border-t border-slate-100">
                       <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
-                        Élève à associer à votre compte :
+                        Élève à associer :
                       </label>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div className="space-y-1">
-                          <label className="text-[11px] font-medium text-slate-600">Matricule ou Educ Master</label>
+                          <label className="text-[11px] font-medium text-slate-600">Nom &amp; Prénoms de l&apos;élève</label>
+                          <input
+                            type="text"
+                            placeholder="Nom de l'enfant"
+                            value={childName}
+                            onChange={(e) => setChildName(e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-medium text-slate-600">Matricule / EducMaster</label>
                           <input
                             type="text"
                             placeholder="Ex: EM-2026-0042"
@@ -716,7 +801,7 @@ export default function AuthPage() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[11px] font-medium text-slate-600">Classe actuelle</label>
+                          <label className="text-[11px] font-medium text-slate-600">Classe</label>
                           <input
                             type="text"
                             placeholder="Ex: 3ème A"
@@ -728,12 +813,16 @@ export default function AuthPage() {
                       </div>
                     </div>
 
+                    <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-200 text-xs text-indigo-900">
+                      <strong>Activation requise :</strong> Le règlement de l&apos;abonnement sera requis pour activer la consultation des notes, absences et bulletins.
+                    </div>
+
                     <button
                       type="submit"
                       className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 touch-target"
                     >
                       <Home className="w-4 h-4" />
-                      <span>Créer mon Compte Parent &amp; Souscrire</span>
+                      <span>Créer mon Compte Parent &amp; Valider l&apos;Abonnement</span>
                     </button>
                   </form>
                 )}
@@ -742,7 +831,7 @@ export default function AuthPage() {
           </div>
 
           <div className="pt-6 border-t border-slate-100 text-center text-xs text-slate-400">
-            En continuant, vous acceptez les conditions d&apos;utilisation d&apos;EDUCOGEST PRO.
+            En continuant, vous acceptez les conditions d&apos;utilisation d&apos;ECOGEST.
           </div>
         </div>
 
