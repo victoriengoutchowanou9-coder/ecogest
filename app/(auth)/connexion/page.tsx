@@ -82,6 +82,48 @@ export default function AuthPage() {
     setLoginEmail(emails[r]);
   };
 
+  const handleQuickLogin = (r: Role) => {
+    handleSelectRole(r);
+    const emails: Record<Role, string> = {
+      directeur: "directeur@ecole.bj",
+      censeur: "censeur@ecole.bj",
+      secretariat: "secretariat@ecole.bj",
+      surveillant: "surveillant@ecole.bj",
+      enseignant: "professeur@ecole.bj",
+      comptabilite: "comptable@ecole.bj",
+      parent: "parent@famille.bj",
+    };
+    const targetPath: Record<Role, string> = {
+      directeur: "/directeur",
+      censeur: "/censeur",
+      secretariat: "/secretariat",
+      surveillant: "/surveillant",
+      enseignant: "/enseignant",
+      comptabilite: "/comptabilite",
+      parent: "/parent",
+    };
+    const roleNames: Record<Role, string> = {
+      directeur: "M. le Directeur",
+      censeur: "M. le Censeur",
+      secretariat: "Secrétariat Pédagogique",
+      surveillant: "Surveillant Général",
+      enseignant: "Professeur Titulaire",
+      comptabilite: "Agent Comptable",
+      parent: "Parent d'Élève",
+    };
+
+    authStore.login({
+      email: emails[r],
+      role: r,
+      fullName: roleNames[r],
+      schoolId: activeSchool?.id || "school-1",
+      schoolName: activeSchool?.name || "Établissement Scolaire",
+    });
+
+    toast(`Connexion réussie : ${roleNames[r]}`, "success");
+    router.push(targetPath[r]);
+  };
+
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginEmailError("");
@@ -592,14 +634,103 @@ export default function AuthPage() {
                   </div>
                 </form>
 
-                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600 space-y-1">
-                  <p className="font-semibold text-slate-800 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-school-primary" />
-                    <span>Espaces d&apos;accès personnalisés et étanches :</span>
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    Chaque utilisateur accède exclusivement à l&apos;espace correspondant à ses prérogatives.
-                  </p>
+                {/* Accès Démo & Rôles en 1 Clic */}
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-slate-800 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-school-primary" />
+                      <span>Accès instantané Démo (1 Clic) :</span>
+                    </p>
+                    <span className="text-[10px] text-slate-500 font-medium">Mot de passe : demo123</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => handleQuickLogin("secretariat")}
+                      className="p-2.5 rounded-xl border border-blue-200 bg-white hover:bg-blue-50 text-left transition flex items-center justify-between shadow-2xs group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                          <FileText className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-xs">Secrétariat</p>
+                          <p className="text-[10px] text-slate-500 font-mono">secretariat@ecole.bj</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-semibold text-blue-700 bg-blue-100/60 px-1.5 py-0.5 rounded">
+                        Entrer →
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleQuickLogin("surveillant")}
+                      className="p-2.5 rounded-xl border border-rose-200 bg-white hover:bg-rose-50 text-left transition flex items-center justify-between shadow-2xs group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
+                          <Clock className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-xs">Surveillant</p>
+                          <p className="text-[10px] text-slate-500 font-mono">surveillant@ecole.bj</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-semibold text-rose-700 bg-rose-100/60 px-1.5 py-0.5 rounded">
+                        Entrer →
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleQuickLogin("directeur")}
+                      className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-left transition flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-3.5 h-3.5 text-school-primary" />
+                        <span className="font-medium text-slate-800 text-xs">Directeur</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">directeur@ecole.bj</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleQuickLogin("censeur")}
+                      className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-left transition flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <BookOpenCheck className="w-3.5 h-3.5 text-amber-600" />
+                        <span className="font-medium text-slate-800 text-xs">Censeur</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">censeur@ecole.bj</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleQuickLogin("enseignant")}
+                      className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-left transition flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <GraduationCap className="w-3.5 h-3.5 text-purple-600" />
+                        <span className="font-medium text-slate-800 text-xs">Professeur</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">professeur@ecole.bj</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleQuickLogin("parent")}
+                      className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-left transition flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Home className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="font-medium text-slate-800 text-xs">Parent</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">parent@famille.bj</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
