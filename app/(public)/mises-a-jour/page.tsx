@@ -24,10 +24,49 @@ export default function MisesAJourPage() {
 
   const releases = [
     {
+      version: "ECOGEST 3.0",
+      date: "Octobre 2026",
+      badge: "Mise à jour Majeure : Vie Scolaire & Secrétariat",
+      badgeColor: "bg-school-primary text-white",
+      summary: "Intégration institutionnelle complète des espaces Secrétariat Pédagogique et Surveillant Général, séparation stricte des responsabilités administratives et disciplinaires, génération des documents scolaires officiels A4 et base de données commune temps réel pour chaque établissement.",
+      sections: [
+        {
+          type: "Espace Secrétariat Pédagogique",
+          icon: <Sparkles className="w-4 h-4 text-purple-600" />,
+          items: [
+            "Gestion administrative des élèves : inscription complète, attribution automatique des matricules et identifiants nationaux, affectation et réaffectation de classe, gestion des transferts et sorties.",
+            "Dossiers et documents scolaires officiels A4 : génération et impression immédiate avec en-tête République du Bénin du Certificat de scolarité, Attestation de fréquentation, Certificat de radiation, Fiche d'inscription et Fiche individuelle de l'élève.",
+            "Gestion des parents/tuteurs : répertoire de contact, association parent → enfants et vérification des demandes d'accès.",
+            "Protection stricte des responsabilités : consultation seule des classes créées par le Directeur/Censeur et consultation/impression des bulletins validés sans possibilité de modifier une note.",
+          ],
+        },
+        {
+          type: "Espace Surveillant Général & Vie Scolaire",
+          icon: <Zap className="w-4 h-4 text-rose-600" />,
+          items: [
+            "Tableau de bord de discipline : suivi en direct des présents, absents, retards minutés, incidents ouverts, sanctions en cours et alertes de récidive.",
+            "Pointage et présences : appel par classe avec enregistrement des retards en minutes, motifs, validation des justificatifs et registre des sorties exceptionnelles en journée.",
+            "Gestion des incidents disciplinaires : consignation détaillée (élève, classe, date/heure, type de fait, description, témoins, action prise, statut) avec historique disciplinaire complet.",
+            "Workflow de validation des sanctions : encadrement hiérarchique avec visa obligatoire du Directeur pour les sanctions lourdes (retenues, exclusions temporaires) avant notification aux parents.",
+            "Organisation de la surveillance : planning et répartition des surveillants par zone (entrées, sorties, récréations, couloirs, cour, examens).",
+            "Communication et convocations : émission de demandes de justificatifs, convocations de parents et traçabilité des réponses.",
+          ],
+        },
+        {
+          type: "Base de Données Commune & Synchronisation",
+          icon: <ShieldCheck className="w-4 h-4 text-emerald-600" />,
+          items: [
+            "Source unique de vérité : une classe ou un élève créé par le Directeur ou le Secrétariat apparaît instantanément pour le Censeur, le Surveillant général, les Enseignants et les Parents.",
+            "Aucune ressaisie ou silo de données entre les différents services de l'établissement.",
+          ],
+        },
+      ],
+    },
+    {
       version: "ECOGEST 2.6",
       date: "Octobre 2026",
       badge: "Censeur & Données Inter-Rôles",
-      badgeColor: "bg-school-primary text-white",
+      badgeColor: "bg-slate-700 text-white",
       summary: "Fenêtre de définition de l'heure 100% responsive (Effacer / Annuler / Définir), registre de classe adaptatif (tableau & fiches), affectation automatique multi-classes dans Matières et circulation unifiée des données réelles entre les rôles.",
       sections: [
         {

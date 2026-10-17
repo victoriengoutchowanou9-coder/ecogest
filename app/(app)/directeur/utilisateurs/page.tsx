@@ -29,7 +29,7 @@ export interface UserAccount {
   name: string;
   email: string;
   phone: string;
-  role: "Directeur" | "Censeur" | "Enseignant" | "Comptable" | "Administration" | "Parent";
+  role: "Directeur" | "Censeur" | "Secrétariat" | "Surveillant" | "Enseignant" | "Comptable" | "Administration" | "Parent";
   status: "ACTIF" | "SUSPENDU";
   lastLogin: string;
   permissions?: string[];
@@ -57,7 +57,27 @@ const DEFAULT_USERS: UserAccount[] = [
     permissions: ["GESTION_PEDAGOGIE", "VALIDATION_NOTES", "EMARGEMENT", "BULLETINS"],
   },
   {
-    id: "usr-cpt-03",
+    id: "usr-sec-03",
+    name: "Mme Solange HOUENOU",
+    email: "secretariat@ecole.bj",
+    phone: "+229 97 45 88 12",
+    role: "Secrétariat",
+    status: "ACTIF",
+    lastLogin: "Aujourd'hui à 08:15",
+    permissions: ["GESTION_ELEVES", "DOSSIERS_SCOLAIRES", "DOCUMENTS_PDF", "PARENTS_ADMIN"],
+  },
+  {
+    id: "usr-surv-04",
+    name: "M. Augustin SOSSOU",
+    email: "surveillant@ecole.bj",
+    phone: "+229 94 11 00 99",
+    role: "Surveillant",
+    status: "ACTIF",
+    lastLogin: "Aujourd'hui à 07:15",
+    permissions: ["DISCIPLINE", "APPEL_PRESENCE", "RETARDS", "SANCTIONS_PROPOSITION", "SURVEILLANCE_PLANNING"],
+  },
+  {
+    id: "usr-cpt-05",
     name: "Mme Clarisse AGBO",
     email: "comptable@ecole.bj",
     phone: "+229 95 44 22 11",
@@ -67,7 +87,7 @@ const DEFAULT_USERS: UserAccount[] = [
     permissions: ["TRESORERIE", "SCOLARITES", "REÇUS", "DEPENSES"],
   },
   {
-    id: "usr-ens-04",
+    id: "usr-ens-06",
     name: "M. Paul KOUASSI (Prof. Mathématiques)",
     email: "professeur@ecole.bj",
     phone: "+229 96 33 88 77",
@@ -75,16 +95,6 @@ const DEFAULT_USERS: UserAccount[] = [
     status: "ACTIF",
     lastLogin: "Hier à 14:20",
     permissions: ["SAISIE_NOTES", "APPEL_CLASSE", "CAHIER_TEXTES"],
-  },
-  {
-    id: "usr-adm-05",
-    name: "M. Augustin SOSSOU (Surveillant Général)",
-    email: "surveillant@ecole.bj",
-    phone: "+229 94 11 00 99",
-    role: "Administration",
-    status: "ACTIF",
-    lastLogin: "Il y a 3 jours",
-    permissions: ["DISCIPLINE", "APPEL_CLASSE", "REGISTRE"],
   },
 ];
 
@@ -383,6 +393,8 @@ export default function UtilisateursPage() {
               { value: "ALL", label: "Tous les rôles" },
               { value: "Directeur", label: "Directeur" },
               { value: "Censeur", label: "Censeur" },
+              { value: "Secrétariat", label: "Secrétariat" },
+              { value: "Surveillant", label: "Surveillant" },
               { value: "Enseignant", label: "Enseignant" },
               { value: "Comptable", label: "Comptable" },
               { value: "Administration", label: "Administration" },
@@ -453,9 +465,11 @@ export default function UtilisateursPage() {
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs bg-white font-semibold text-slate-800"
                 >
                   <option value="Censeur">Censeur des études (Supervision pédagogique)</option>
+                  <option value="Secrétariat">Secrétariat Pédagogique (Élèves, dossiers, certificats)</option>
+                  <option value="Surveillant">Surveillant Général (Discipline, présences, retards, surveillance)</option>
                   <option value="Comptable">Comptable (Trésorerie &amp; Recouvrement)</option>
                   <option value="Enseignant">Professeur / Enseignant (Notes &amp; Présences)</option>
-                  <option value="Administration">Autre membre d&apos;administration (Surveillant, Secrétaire)</option>
+                  <option value="Administration">Autre membre d&apos;administration</option>
                   <option value="Directeur">Directeur Adjoint / Co-directeur</option>
                 </select>
               </div>

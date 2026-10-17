@@ -35,6 +35,8 @@ export function extractRoleFromPath(pathname: string | null): Role {
   if (pathname.startsWith("/parent")) return "parent";
   if (pathname.startsWith("/comptabilite")) return "comptabilite";
   if (pathname.startsWith("/censeur")) return "censeur";
+  if (pathname.startsWith("/secretariat")) return "secretariat";
+  if (pathname.startsWith("/surveillant")) return "surveillant";
   if (pathname.startsWith("/enseignant")) return "enseignant";
   if (pathname.startsWith("/directeur")) return "directeur";
   return "directeur";

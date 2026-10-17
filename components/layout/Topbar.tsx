@@ -18,6 +18,8 @@ import {
   Check,
   LogOut,
   Settings,
+  FileText,
+  Clock,
 } from "lucide-react";
 import { Role, ROLE_NAVIGATIONS, SCHOOL_YEARS } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/context/RoleContext";
@@ -51,6 +53,8 @@ export const Topbar: React.FC<TopbarProps> = ({
   const roleIcons: Record<Role, React.ReactNode> = {
     directeur: <Shield className="w-4 h-4 text-purple-600" />,
     censeur: <BookOpenCheck className="w-4 h-4 text-blue-600" />,
+    secretariat: <FileText className="w-4 h-4 text-teal-600" />,
+    surveillant: <Clock className="w-4 h-4 text-orange-600" />,
     enseignant: <GraduationCap className="w-4 h-4 text-emerald-600" />,
     comptabilite: <CreditCard className="w-4 h-4 text-amber-600" />,
     parent: <Home className="w-4 h-4 text-indigo-600" />,

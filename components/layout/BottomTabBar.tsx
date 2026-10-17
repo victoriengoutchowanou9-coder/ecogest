@@ -32,6 +32,12 @@ import {
   Globe,
   ShieldAlert,
   LifeBuoy,
+  School,
+  FileText,
+  Mail,
+  BarChart3,
+  Scale,
+  Eye,
 } from "lucide-react";
 import { ROLE_NAVIGATIONS } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/context/RoleContext";
@@ -66,6 +72,12 @@ const ICONS: Record<string, React.ReactNode> = {
   Globe: <Globe className="w-5 h-5 shrink-0" />,
   ShieldAlert: <ShieldAlert className="w-5 h-5 shrink-0" />,
   LifeBuoy: <LifeBuoy className="w-5 h-5 shrink-0" />,
+  School: <School className="w-5 h-5 shrink-0" />,
+  FileText: <FileText className="w-5 h-5 shrink-0" />,
+  Mail: <Mail className="w-5 h-5 shrink-0" />,
+  BarChart3: <BarChart3 className="w-5 h-5 shrink-0" />,
+  Scale: <Scale className="w-5 h-5 shrink-0" />,
+  Eye: <Eye className="w-5 h-5 shrink-0" />,
 };
 
 export const BottomTabBar: React.FC = () => {

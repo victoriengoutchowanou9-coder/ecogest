@@ -39,6 +39,10 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     ? "parent"
     : pathname.startsWith("/censeur")
     ? "censeur"
+    : pathname.startsWith("/secretariat")
+    ? "secretariat"
+    : pathname.startsWith("/surveillant")
+    ? "surveillant"
     : pathname.startsWith("/enseignant")
     ? "enseignant"
     : pathname.startsWith("/comptabilite")

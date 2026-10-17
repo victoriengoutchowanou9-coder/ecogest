@@ -97,7 +97,15 @@ export const authStore = {
     const user: AuthUser = {
       id: `usr-${Date.now()}`,
       email: params.email,
-      fullName: params.fullName || (params.role === "directeur" ? "Directeur" : params.role === "censeur" ? "Censeur des Études" : params.role === "enseignant" ? "Professeur" : params.role === "comptabilite" ? "Comptable" : "Parent d'Élève"),
+      fullName: params.fullName || (
+        params.role === "directeur" ? "Directeur" :
+        params.role === "censeur" ? "Censeur des Études" :
+        params.role === "secretariat" ? "Secrétaire Pédagogique" :
+        params.role === "surveillant" ? "Surveillant Général" :
+        params.role === "enseignant" ? "Professeur" :
+        params.role === "comptabilite" ? "Comptable" :
+        "Parent d'Élève"
+      ),
       role: params.role,
       schoolId: params.schoolId || activeSchool.id,
       schoolName: params.schoolName || activeSchool.name,

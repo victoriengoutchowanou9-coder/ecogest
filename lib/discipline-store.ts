@@ -17,10 +17,45 @@ import { MOCK_BULLETIN_STUDENTS } from "./mock-bulletin-db";
 
 export const INITIAL_MEDICAL_RECORDS: Record<string, MedicalRecord> = {};
 
-export const INITIAL_DISCIPLINE_INCIDENTS: DisciplineIncident[] = [];
+export const INITIAL_DISCIPLINE_INCIDENTS: DisciplineIncident[] = [
+  {
+    id: "disc-init-01",
+    studentId: "std-03",
+    studentName: "Rodrigue KANHONOU",
+    matricule: "ECO-2026-0018",
+    className: "6ème A",
+    date: new Date().toISOString().split("T")[0],
+    incidentType: "Retard répété (15 min)",
+    description: "Arrivée tardive à la première heure de cours sans justificatif parental.",
+    location: "Portail principal",
+    involvedParties: "Surveillant de service",
+    recordedBy: "Augustin SOSSOU (Surveillant Général)",
+    sanction: "Avertissement & convocation parentale",
+    comment: "Dossier en attente de justification écrite du parent.",
+    status: "OUVERT",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "disc-init-02",
+    studentId: "std-05",
+    studentName: "Arnaud HOUNGBEDJI",
+    matricule: "ECO-2026-0028",
+    className: "5ème A",
+    date: new Date(Date.now() - 86400000).toISOString().split("T")[0],
+    incidentType: "Indiscipline en classe",
+    description: "Refus d'obtempérer et perturbation du cours d'Histoire-Géographie.",
+    location: "Salle 12",
+    involvedParties: "Professeur d'Histoire-Géo et élèves témoins",
+    recordedBy: "Augustin SOSSOU (Surveillant Général)",
+    sanction: "Travail d'intérêt pédagogique supplémentaire",
+    comment: "Devoir supplémentaire remis et validé par le professeur.",
+    status: "RESOLU",
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+  },
+];
 
 // Statuts initiaux des élèves
-export const INITIAL_STUDENTS_WITH_STATUS: StudentProfile[] = [];
+export const INITIAL_STUDENTS_WITH_STATUS: StudentProfile[] = MOCK_BULLETIN_STUDENTS;
 
 const STORAGE_KEY_MEDICAL = "educogest_medical_records_enc_v2";
 const STORAGE_KEY_DISCIPLINE = "educogest_discipline_incidents_v2";

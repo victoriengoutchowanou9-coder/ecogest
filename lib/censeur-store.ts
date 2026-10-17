@@ -157,7 +157,52 @@ export const INITIAL_TEACHER_SCHEDULES: TeacherCourseSchedule[] = [];
 
 export const INITIAL_HOMEWORK_PROGRAMS: HomeworkProgram[] = [];
 
-export const INITIAL_ATTENDANCE_ITEMS: CenseurAttendanceItem[] = [];
+export const INITIAL_ATTENDANCE_ITEMS: CenseurAttendanceItem[] = [
+  {
+    id: "att-01",
+    studentId: "std-01",
+    studentName: "Jean-Eudes DOSSOU",
+    matricule: "ECO-2026-0012",
+    classId: "6e-a",
+    className: "6ème A",
+    date: new Date().toISOString().split("T")[0],
+    sessionTime: "08:00 - 10:00",
+    subject: "Français",
+    recordedByTeacher: "Paul KOUASSI",
+    status: "PRESENT",
+    isConfirmedByCenseur: true,
+  },
+  {
+    id: "att-02",
+    studentId: "std-02",
+    studentName: "Marie-Josée AGBO",
+    matricule: "ECO-2026-0015",
+    classId: "6e-a",
+    className: "6ème A",
+    date: new Date().toISOString().split("T")[0],
+    sessionTime: "08:00 - 10:00",
+    subject: "Français",
+    recordedByTeacher: "Paul KOUASSI",
+    status: "ABS_JUSTIFIEE",
+    justificationNotes: "Maladie (certificat médical transmis par le parent)",
+    isConfirmedByCenseur: true,
+  },
+  {
+    id: "att-03",
+    studentId: "std-03",
+    studentName: "Rodrigue KANHONOU",
+    matricule: "ECO-2026-0018",
+    classId: "6e-a",
+    className: "6ème A",
+    date: new Date().toISOString().split("T")[0],
+    sessionTime: "08:00 - 10:00",
+    subject: "Français",
+    recordedByTeacher: "Paul KOUASSI",
+    status: "RETARD",
+    justificationNotes: "Retard de 15 minutes (Panne de transport)",
+    isConfirmedByCenseur: true,
+  },
+];
 
 export const INITIAL_PARENT_MESSAGES: ParentMessageItem[] = [];
 
@@ -387,6 +432,43 @@ export function useCenseurStore() {
     },
     []
   );
+
+  // Add new student
+  const addStudent = useCallback(
+    (studentData: Omit<StudentProfile, "id"> & { id?: string }) => {
+      const newStudent: StudentProfile = {
+        ...studentData,
+        id: studentData.id || `std-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        status: studentData.status || "ACTIF",
+      };
+
+      setStudentsList((prev) => {
+        const next = [newStudent, ...prev];
+        safeSetStorage(STORAGE_KEY_STUDENTS, next);
+        return next;
+      });
+      return newStudent;
+    },
+    []
+  );
+
+  // Update existing student
+  const updateStudent = useCallback((studentId: string, updates: Partial<StudentProfile>) => {
+    setStudentsList((prev) => {
+      const next = prev.map((s) => (s.id === studentId ? { ...s, ...updates } : s));
+      safeSetStorage(STORAGE_KEY_STUDENTS, next);
+      return next;
+    });
+  }, []);
+
+  // Delete student
+  const deleteStudent = useCallback((studentId: string) => {
+    setStudentsList((prev) => {
+      const next = prev.filter((s) => s.id !== studentId);
+      safeSetStorage(STORAGE_KEY_STUDENTS, next);
+      return next;
+    });
+  }, []);
 
   // 2. Modify & confirm student attendance status with mandatory audit log
   const updateAttendanceStatus = useCallback(
@@ -716,6 +798,9 @@ export function useCenseurStore() {
     subjects: MOCK_SUBJECTS,
     teachers: MOCK_TEACHERS,
     moveStudentClass,
+    addStudent,
+    updateStudent,
+    deleteStudent,
     updateAttendanceStatus,
     confirmAttendance,
     addHomeworkProgram,

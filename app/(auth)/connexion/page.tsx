@@ -20,6 +20,8 @@ import {
   UserPlus,
   LogIn,
   Check,
+  FileText,
+  Clock,
 } from "lucide-react";
 import { Role } from "@/lib/permissions";
 import {
@@ -71,6 +73,8 @@ export default function AuthPage() {
     const emails: Record<Role, string> = {
       directeur: "directeur@ecole.bj",
       censeur: "censeur@ecole.bj",
+      secretariat: "secretariat@ecole.bj",
+      surveillant: "surveillant@ecole.bj",
       enseignant: "professeur@ecole.bj",
       comptabilite: "comptable@ecole.bj",
       parent: "parent@famille.bj",
@@ -119,16 +123,22 @@ export default function AuthPage() {
               const roleMapping: Record<string, Role> = {
                 directeur: "directeur",
                 censeur: "censeur",
+                secretariat: "secretariat",
+                secretaire: "secretariat",
+                "secrétariat": "secretariat",
+                "secretariat pedagogique": "secretariat",
+                surveillant: "surveillant",
+                "surveillant général": "surveillant",
+                "surveillant general": "surveillant",
                 enseignant: "enseignant",
                 professeur: "enseignant",
                 comptabilite: "comptabilite",
                 comptable: "comptabilite",
                 parent: "parent",
-                surveillant: "censeur",
                 autre: "directeur",
               };
               matchedRole = roleMapping[found.role?.toLowerCase()] || loginRole;
-              matchedName = found.fullName || found.full_name || "";
+              matchedName = found.fullName || found.full_name || found.name || "";
             }
           } catch {
             // Pas de registre lisible
@@ -139,6 +149,8 @@ export default function AuthPage() {
       const targetPath: Record<Role, string> = {
         directeur: "/directeur",
         censeur: "/censeur",
+        secretariat: "/secretariat",
+        surveillant: "/surveillant",
         enseignant: "/enseignant",
         comptabilite: "/comptabilite",
         parent: "/parent",
@@ -147,6 +159,8 @@ export default function AuthPage() {
       const roleNames: Record<Role, string> = {
         directeur: "M. le Directeur",
         censeur: "M. le Censeur",
+        secretariat: "Secrétariat Pédagogique",
+        surveillant: "Surveillant Général",
         enseignant: "Professeur Titulaire",
         comptabilite: "Agent Comptable",
         parent: "Parent d'Élève",
@@ -451,11 +465,13 @@ export default function AuthPage() {
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
                     Votre Espace d&apos;accès :
                   </label>
-                  <div className="grid grid-cols-5 gap-1.5 p-1 bg-slate-100 rounded-xl">
+                  <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5 p-1 bg-slate-100 rounded-xl">
                     {(
                       [
                         { r: "directeur", label: "Directeur", icon: <Shield className="w-4 h-4" /> },
                         { r: "censeur", label: "Censeur", icon: <BookOpenCheck className="w-4 h-4" /> },
+                        { r: "secretariat", label: "Secrétariat", icon: <FileText className="w-4 h-4" /> },
+                        { r: "surveillant", label: "Surveillant", icon: <Clock className="w-4 h-4" /> },
                         { r: "enseignant", label: "Professeur", icon: <GraduationCap className="w-4 h-4" /> },
                         { r: "comptabilite", label: "Comptable", icon: <CreditCard className="w-4 h-4" /> },
                         { r: "parent", label: "Parent", icon: <Home className="w-4 h-4" /> },
