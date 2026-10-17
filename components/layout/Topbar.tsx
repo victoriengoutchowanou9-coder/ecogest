@@ -157,21 +157,23 @@ export const Topbar: React.FC<TopbarProps> = ({
 
       {/* Right Controls: Subscription Plan Badge + School Year + User Profile Menu */}
       <div className="flex items-center gap-2 md:gap-3 shrink-0">
-        {/* Subscription Plan Badge */}
-        <Link
-          href={currentRole === "parent" ? "/parent/abonnement" : "/directeur/abonnement"}
-          className={cn(
-            "hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold hover:shadow-xs transition",
-            planBadgeColors[schoolPlan]
-          )}
-          title="Gérer les forfaits et limites d'abonnement"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-          <span>{schoolPlanDef.name}</span>
-          <span className="text-[10px] opacity-75">
-            ({schoolPlanDef.priceFcfa.toLocaleString()} F/m)
-          </span>
-        </Link>
+        {/* Subscription Plan Badge - Uniquement pour le Directeur de l'établissement */}
+        {currentRole === "directeur" && (
+          <Link
+            href="/directeur/abonnement"
+            className={cn(
+              "hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold hover:shadow-xs transition",
+              planBadgeColors[schoolPlan]
+            )}
+            title="Gérer les forfaits et limites d'abonnement de l'établissement"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span>{schoolPlanDef.name}</span>
+            <span className="text-[10px] opacity-75">
+              ({schoolPlanDef.priceFcfa.toLocaleString()} F/m)
+            </span>
+          </Link>
+        )}
 
         {/* School Year Selector */}
         <div className="hidden lg:flex items-center gap-1.5 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5">
@@ -253,14 +255,27 @@ export const Topbar: React.FC<TopbarProps> = ({
                   <span>Mon Profil</span>
                 </Link>
 
-                <Link
-                  href={currentRole === "parent" ? "/parent/abonnement" : "/directeur/abonnement"}
-                  onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
-                >
-                  <Sparkles className="w-4 h-4 text-amber-500" />
-                  <span>Mon Abonnement</span>
-                </Link>
+                {currentRole === "directeur" && (
+                  <Link
+                    href="/directeur/abonnement"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
+                  >
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <span>Abonnement Établissement</span>
+                  </Link>
+                )}
+
+                {currentRole === "parent" && (
+                  <Link
+                    href="/parent/abonnement"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
+                  >
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <span>Mon Abonnement Parent</span>
+                  </Link>
+                )}
               </div>
 
               <div className="pt-1.5 border-t border-slate-100">

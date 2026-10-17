@@ -31,6 +31,7 @@ import {
   ChevronRight,
   ShieldCheck,
   Zap,
+  LifeBuoy,
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 
@@ -417,6 +418,15 @@ export default function DevAdminDashboard() {
             <Server className="w-3.5 h-3.5" />
             <span>État des Services</span>
           </button>
+
+          <Link
+            href="/directeur/support"
+            className="px-3.5 py-1.5 rounded-lg flex items-center gap-2 transition text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 border border-amber-500/20 ml-auto"
+            title="Accéder à la Console Support des requêtes utilisateurs et tickets"
+          >
+            <LifeBuoy className="w-3.5 h-3.5" />
+            <span>Console Support (Tickets) →</span>
+          </Link>
         </div>
       </header>
 

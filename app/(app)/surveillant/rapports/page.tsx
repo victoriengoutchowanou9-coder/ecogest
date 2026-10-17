@@ -187,7 +187,41 @@ export default function SurveillantRapportsPage() {
       </div>
 
       {/* PRINTABLE REPORT CONTAINER */}
-      <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-100 shadow-sm space-y-6">
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 12mm 15mm 12mm 15mm;
+          }
+          html, body {
+            background: #ffffff !important;
+            color: #000000 !important;
+          }
+          body * {
+            visibility: hidden !important;
+          }
+          #printable-surveillant-report,
+          #printable-surveillant-report * {
+            visibility: visible !important;
+          }
+          #printable-surveillant-report {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: #ffffff !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
+      <div id="printable-surveillant-report" className="bg-white p-6 sm:p-10 rounded-2xl border border-gray-200 shadow-sm space-y-6 max-w-5xl mx-auto">
         {/* Official Header */}
         <div className="flex flex-col sm:flex-row items-center justify-between pb-6 border-b border-gray-200 gap-4 text-center sm:text-left">
           <div>

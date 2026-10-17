@@ -589,122 +589,199 @@ export default function SanctionsPage() {
         </div>
       )}
 
-      {/* PRINT PREVIEW MODAL */}
+      {/* PRINT PREVIEW MODAL - RESPONSIVE & ADAPTÉ PC ET A4 */}
       {printSanction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl border border-gray-200 max-h-[90vh] overflow-y-auto">
-            {/* Republic Header */}
-            <div className="text-center pb-4 border-b-2 border-gray-800 mb-6">
-              <p className="text-xs font-serif uppercase tracking-widest text-gray-700">
-                RÉPUBLIQUE DU BÉNIN
-              </p>
-              <p className="text-xs font-serif text-gray-500">
-                MINISTÈRE DES ENSEIGNEMENTS SECONDAIRE, TECHNIQUE ET DE LA FORMATION PROFESSIONNELLE
-              </p>
-              <p className="text-xs font-bold uppercase tracking-wider text-gray-900 mt-1">
-                COMPLEXE SCOLAIRE ET COLLÈGE D'EXCELLENCE ECOGEST
-              </p>
-              <p className="text-[10px] text-gray-500">
-                Surveillance Générale - Service de la Vie Scolaire
-              </p>
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/75 backdrop-blur-md overflow-y-auto animate-in fade-in">
+          {/* Style d'impression dédié A4 */}
+          <style jsx global>{`
+            @media print {
+              @page {
+                size: A4 portrait;
+                margin: 12mm 15mm 12mm 15mm;
+              }
+              html, body {
+                background: #ffffff !important;
+                color: #000000 !important;
+              }
+              body * {
+                visibility: hidden !important;
+              }
+              #printable-sanction-doc,
+              #printable-sanction-doc * {
+                visibility: visible !important;
+              }
+              #printable-sanction-doc {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+                background: #ffffff !important;
+              }
+              .no-print {
+                display: none !important;
+              }
+            }
+          `}</style>
 
-            <div className="text-center my-6">
-              <span className="inline-block px-4 py-1.5 border-2 border-gray-900 font-bold uppercase tracking-wider text-base text-gray-900">
-                AVIS OFFICIEL DE SANCTION DISCIPLINAIRE
-              </span>
-              <p className="text-xs text-gray-500 mt-1">
-                Réf: SANCT-{printSanction.id.toUpperCase()}
-              </p>
-            </div>
-
-            <div className="space-y-4 text-sm text-gray-800">
-              <p>
-                Il est porté à la connaissance des parents / tuteurs légaux de l'élève :
-              </p>
-
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="text-gray-500">Nom & Prénoms :</span>{" "}
-                  <strong className="text-gray-900 text-sm block">{printSanction.studentName}</strong>
-                </div>
-                <div>
-                  <span className="text-gray-500">Matricule :</span>{" "}
-                  <strong className="text-gray-900 text-sm block">{printSanction.matricule}</strong>
-                </div>
-                <div>
-                  <span className="text-gray-500">Classe :</span>{" "}
-                  <strong className="text-gray-900 block">{printSanction.className}</strong>
-                </div>
-                <div>
-                  <span className="text-gray-500">Nature de la mesure :</span>{" "}
-                  <strong className="text-indigo-800 block">{printSanction.type}</strong>
-                </div>
+          <div className="bg-slate-900 rounded-3xl shadow-2xl max-w-4xl w-full border border-slate-700 overflow-hidden my-auto max-h-[95vh] flex flex-col">
+            {/* Toolbar no-print */}
+            <div className="no-print flex items-center justify-between px-5 py-3.5 bg-slate-900 border-b border-slate-800 text-white shrink-0">
+              <div className="flex items-center gap-2">
+                <Scale className="w-4 h-4 text-indigo-400" />
+                <h3 className="font-bold text-xs sm:text-sm">
+                  Aperçu Officiel &mdash; Notification de Sanction Disciplinaire
+                </h3>
               </div>
-
-              <div>
-                <h4 className="font-bold text-gray-900 text-xs uppercase mb-1">Motifs retenus :</h4>
-                <p className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs leading-relaxed text-gray-700">
-                  {printSanction.description}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 text-xs pt-2">
-                <div>
-                  <span className="text-gray-500">Date d'effet :</span>{" "}
-                  <strong>{printSanction.startDate}</strong>
-                </div>
-                {printSanction.duration && (
-                  <div>
-                    <span className="text-gray-500">Durée :</span>{" "}
-                    <strong>{printSanction.duration}</strong>
-                  </div>
-                )}
-              </div>
-
-              {printSanction.requiresDirectorApproval && (
-                <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-900">
-                  <strong>Validation administrative :</strong> Sanction visée et rendue exécutoire par la Direction de l'Établissement.
-                </div>
-              )}
-            </div>
-
-            {/* Signatures */}
-            <div className="grid grid-cols-2 gap-8 pt-10 mt-6 border-t border-gray-200 text-xs text-center">
-              <div>
-                <p className="font-semibold text-gray-700">Le Surveillant Général</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">Augustin SOSSOU</p>
-                <div className="h-14 mt-2 flex items-center justify-center text-gray-300 italic">
-                  [Cachet et Signature]
-                </div>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700">Le Chef d'Établissement</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">Direction Générale</p>
-                <div className="h-14 mt-2 flex items-center justify-center text-gray-300 italic">
-                  [Visa & Sceau de l'École]
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
-              <span className="text-[11px] text-gray-400">
-                Document généré via ECOGEST - Système Intégré de Vie Scolaire
-              </span>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setPrintSanction(null)}
-                  className="px-4 py-2 text-xs font-medium rounded-lg text-gray-600 hover:text-gray-800"
-                >
-                  Fermer
-                </button>
-                <button
+                  type="button"
                   onClick={() => window.print()}
-                  className="px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white inline-flex items-center gap-1.5 shadow-sm"
+                  className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition"
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  Imprimer la Notification
+                  <span>Imprimer / PDF</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setPrintSanction(null)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Document sheet */}
+            <div className="p-4 sm:p-8 overflow-y-auto flex-1 bg-slate-950 flex justify-center">
+              <div
+                id="printable-sanction-doc"
+                className="bg-white rounded-2xl w-full max-w-[800px] p-6 sm:p-10 shadow-2xl border border-slate-300 text-slate-900 space-y-6"
+              >
+                {/* Republic Header */}
+                <div className="border-b-2 border-slate-900 pb-4">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-3 text-center sm:text-left">
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-black uppercase tracking-wider text-slate-800">
+                        RÉPUBLIQUE DU BÉNIN
+                      </p>
+                      <p className="text-[9px] text-slate-600 font-semibold uppercase leading-tight">
+                        MINISTÈRE DES ENSEIGNEMENTS SECONDAIRE, TECHNIQUE ET DE LA FORMATION PROFESSIONNELLE
+                      </p>
+                      <div className="flex h-1 w-24 mx-auto sm:mx-0 rounded-full overflow-hidden mt-1">
+                        <span className="w-1/3 bg-emerald-600"></span>
+                        <span className="w-1/3 bg-amber-400"></span>
+                        <span className="w-1/3 bg-rose-600"></span>
+                      </div>
+                    </div>
+
+                    <div className="text-center sm:text-right space-y-0.5">
+                      <p className="text-xs sm:text-sm font-black uppercase text-slate-900">
+                        SURVEILLANCE GÉNÉRALE &bull; VIE SCOLAIRE
+                      </p>
+                      <p className="text-[10px] text-slate-500">
+                        Collège &amp; Complexe Scolaire d&apos;Excellence ECOGEST
+                      </p>
+                      <p className="text-[10px] font-mono text-slate-600">
+                        Réf: SANCT-{printSanction.id.toUpperCase().slice(0, 10)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-center my-4 py-3 bg-slate-50 rounded-xl border-2 border-slate-800">
+                  <span className="font-black uppercase tracking-wide text-sm sm:text-base text-slate-900">
+                    AVIS OFFICIEL DE SANCTION DISCIPLINAIRE
+                  </span>
+                </div>
+
+                <div className="space-y-4 text-xs sm:text-sm text-slate-800">
+                  <p className="leading-relaxed">
+                    Il est solennellement porté à la connaissance des parents / tuteurs légaux de l&apos;apprenant(e) :
+                  </p>
+
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-300 space-y-2">
+                    <div className="flex flex-col sm:flex-row justify-between py-1 border-b border-slate-200">
+                      <span className="text-slate-500 font-semibold sm:w-1/3">Nom &amp; Prénoms :</span>
+                      <strong className="text-slate-900 uppercase sm:w-2/3">{printSanction.studentName}</strong>
+                    </div>
+                    <div className="flex flex-col sm:flex-row justify-between py-1 border-b border-slate-200">
+                      <span className="text-slate-500 font-semibold sm:w-1/3">Matricule Établissement :</span>
+                      <span className="font-mono font-bold text-slate-800 sm:w-2/3">{printSanction.matricule}</span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row justify-between py-1 border-b border-slate-200">
+                      <span className="text-slate-500 font-semibold sm:w-1/3">Classe :</span>
+                      <strong className="text-slate-900 sm:w-2/3">{printSanction.className}</strong>
+                    </div>
+                    <div className="flex flex-col sm:flex-row justify-between py-1">
+                      <span className="text-slate-500 font-semibold sm:w-1/3">Nature de la mesure :</span>
+                      <strong className="text-indigo-800 sm:w-2/3">{printSanction.type}</strong>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-xs uppercase mb-1">Motifs constatés :</h4>
+                    <p className="p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs leading-relaxed text-slate-700">
+                      {printSanction.description}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row justify-between gap-2 text-xs pt-1">
+                    <div>
+                      <span className="text-slate-500">Prise d&apos;effet :</span>{" "}
+                      <strong>{printSanction.startDate}</strong>
+                    </div>
+                    {printSanction.duration && (
+                      <div>
+                        <span className="text-slate-500">Durée :</span>{" "}
+                        <strong>{printSanction.duration}</strong>
+                      </div>
+                    )}
+                  </div>
+
+                  {printSanction.requiresDirectorApproval && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-950 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-emerald-700 shrink-0" />
+                      <span>
+                        <strong>Visa Direction :</strong> Mesure instruite par la Surveillance générale et rendue exécutoire par la Direction de l&apos;Établissement.
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Signatures */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t-2 border-slate-900 text-xs text-center">
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-10">
+                    <div>
+                      <p className="font-bold text-slate-900 uppercase">Le Surveillant Général</p>
+                      <p className="text-[10px] text-slate-500">Service de la Vie Scolaire</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800">{printSanction.issuedBy}</p>
+                      <p className="text-[10px] text-slate-400 italic">[Cachet &amp; Signature]</p>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-10">
+                    <div>
+                      <p className="font-bold text-slate-900 uppercase">Le Chef d&apos;Établissement</p>
+                      <p className="text-[10px] text-slate-500">Direction Générale</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800">Direction de l&apos;Établissement</p>
+                      <p className="text-[10px] text-slate-400 italic">[Visa &amp; Sceau officiel]</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-dashed border-slate-200 flex flex-col sm:flex-row items-center justify-between text-[10px] text-slate-400 gap-1">
+                  <span>Document officiel généré via ECOGEST Pro &bull; Vie Scolaire &amp; Discipline</span>
+                  <span className="font-mono">ID: {printSanction.id}</span>
+                </div>
               </div>
             </div>
           </div>
