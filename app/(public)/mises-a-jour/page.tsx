@@ -24,6 +24,32 @@ export default function MisesAJourPage() {
 
   const releases = [
     {
+      version: "ECOGEST 3.1",
+      date: "Octobre 2026",
+      badge: "Documents Responsives & Sécurité des Rôles",
+      badgeColor: "bg-emerald-600 text-white",
+      summary: "Refonte ergonomique et responsive des attestations et documents scolaires officiels (format A4 certifié Bénin, contrôles de zoom pour ordinateur), bouton d'abonnement établissement réservé au Directeur seul et console support technique réservée au profil Développeur.",
+      sections: [
+        {
+          type: "Génération de Documents & Attestations",
+          icon: <Sparkles className="w-4 h-4 text-purple-600" />,
+          items: [
+            "Affichage 100% responsive sur ordinateurs, PC portables et tablettes : intégration d'une barre d'outils avec zoom dynamique (80% à 120%) évitant tout débordement ou troncature.",
+            "Conformité réglementaire République du Bénin : armoiries, devise, en-tête ministériel, cartouche de signature double (Secrétaire pédagogique & Chef d'établissement) et code de vérification anti-fraude.",
+            "Impression haute fidélité A4 : feuille de style d'impression (@media print) dédiée garantissant une sortie papier ou PDF standardisée sans éléments d'interface parasites.",
+          ],
+        },
+        {
+          type: "Cloisonnement & Permissions",
+          icon: <ShieldCheck className="w-4 h-4 text-emerald-600" />,
+          items: [
+            "Bouton d'abonnement établissement restreint : affiché uniquement pour le compte du Directeur de l'établissement (masqué pour le Secrétariat, le Surveillant général, les Enseignants, le Censeur et la Comptabilité).",
+            "Console Support technique réservée au Développeur : déplacée exclusivement dans la console d'administration développeur (/dev-admin) pour la gestion centrale des tickets.",
+          ],
+        },
+      ],
+    },
+    {
       version: "ECOGEST 3.0",
       date: "Octobre 2026",
       badge: "Mise à jour Majeure : Vie Scolaire & Secrétariat",
