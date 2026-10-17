@@ -17,24 +17,34 @@ import { DataTable, Column } from "@/components/ui/DataTable";
 import { RecordCard } from "@/components/ui/RecordCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useExamStore } from "@/lib/exam-store";
-import { MOCK_ACADEMIC_PERIODS, MOCK_PARENT_PROFILE } from "@/lib/mock-bulletin-db";
 import { ExamScheduleItem, StudentProfile } from "@/lib/types/bulletin";
 import { useCenseurStore } from "@/lib/censeur-store";
+import { useAuthStore } from "@/lib/auth-store";
+import { MOCK_ACADEMIC_PERIODS } from "@/lib/mock-bulletin-db";
 
 export default function ParentExamensPage() {
+  const { user: currentUser } = useAuthStore();
   const { exams } = useExamStore();
   const { studentsList, parentAccessRequests } = useCenseurStore();
 
   const myChildren = useMemo(() => {
+    const parentPhone = currentUser?.phone || "";
+    const parentEmail = currentUser?.email || "";
+    const parentId = currentUser?.id || "";
+    const parentIdent = currentUser?.identifier || "";
+
     const activatedRequests = parentAccessRequests.filter(
       (r) =>
-        (r.parentPhone === MOCK_PARENT_PROFILE.phoneNumber || r.parentId === MOCK_PARENT_PROFILE.id) &&
+        (r.parentPhone === parentPhone ||
+          r.parentEmail === parentEmail ||
+          r.parentId === parentId ||
+          r.parentId === parentIdent) &&
         r.status === "ACCEPTEE" &&
         r.isAccessActivated
     );
     const activeStudentIds = new Set(activatedRequests.map((r) => r.studentId));
     return studentsList.filter((s) => activeStudentIds.has(s.id));
-  }, [parentAccessRequests, studentsList]);
+  }, [parentAccessRequests, studentsList, currentUser]);
 
   const [selectedChild, setSelectedChild] = useState<StudentProfile | undefined>(myChildren[0]);
   const [selectedPeriodId, setSelectedPeriodId] = useState("T1");

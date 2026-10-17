@@ -23,9 +23,18 @@ import { FilterBar } from "@/components/ui/FilterBar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useToast } from "@/components/ui/Toast";
 import { useSubscriptionStore } from "@/lib/subscription-store";
+import {
+  getSchoolUsers,
+  registerSystemUser,
+  generateUserIdentifier,
+  updateSystemUserStatus,
+  SystemUser,
+} from "@/lib/user-registry";
+import { Role } from "@/lib/permissions";
 
 export interface UserAccount {
   id: string;
+  identifier: string;
   name: string;
   email: string;
   phone: string;
@@ -35,93 +44,50 @@ export interface UserAccount {
   permissions?: string[];
 }
 
-const DEFAULT_USERS: UserAccount[] = [
-  {
-    id: "usr-dir-01",
-    name: "Direction Générale (Fondateur)",
-    email: "directeur@ecole.bj",
-    phone: "+229 0155445122",
-    role: "Directeur",
-    status: "ACTIF",
-    lastLogin: "Aujourd'hui à 08:30",
-    permissions: ["TOUS_ACCÈS"],
-  },
-  {
-    id: "usr-cen-02",
-    name: "M. Marcellin DOKPO",
-    email: "censeur@ecole.bj",
-    phone: "+229 97 12 34 56",
-    role: "Censeur",
-    status: "ACTIF",
-    lastLogin: "Aujourd'hui à 07:45",
-    permissions: ["GESTION_PEDAGOGIE", "VALIDATION_NOTES", "EMARGEMENT", "BULLETINS"],
-  },
-  {
-    id: "usr-sec-03",
-    name: "Mme Solange HOUENOU",
-    email: "secretariat@ecole.bj",
-    phone: "+229 97 45 88 12",
-    role: "Secrétariat",
-    status: "ACTIF",
-    lastLogin: "Aujourd'hui à 08:15",
-    permissions: ["GESTION_ELEVES", "DOSSIERS_SCOLAIRES", "DOCUMENTS_PDF", "PARENTS_ADMIN"],
-  },
-  {
-    id: "usr-surv-04",
-    name: "M. Augustin SOSSOU",
-    email: "surveillant@ecole.bj",
-    phone: "+229 94 11 00 99",
-    role: "Surveillant",
-    status: "ACTIF",
-    lastLogin: "Aujourd'hui à 07:15",
-    permissions: ["DISCIPLINE", "APPEL_PRESENCE", "RETARDS", "SANCTIONS_PROPOSITION", "SURVEILLANCE_PLANNING"],
-  },
-  {
-    id: "usr-cpt-05",
-    name: "Mme Clarisse AGBO",
-    email: "comptable@ecole.bj",
-    phone: "+229 95 44 22 11",
-    role: "Comptable",
-    status: "ACTIF",
-    lastLogin: "Hier à 16:15",
-    permissions: ["TRESORERIE", "SCOLARITES", "REÇUS", "DEPENSES"],
-  },
-  {
-    id: "usr-ens-06",
-    name: "M. Paul KOUASSI (Prof. Mathématiques)",
-    email: "professeur@ecole.bj",
-    phone: "+229 96 33 88 77",
-    role: "Enseignant",
-    status: "ACTIF",
-    lastLogin: "Hier à 14:20",
-    permissions: ["SAISIE_NOTES", "APPEL_CLASSE", "CAHIER_TEXTES"],
-  },
-];
-
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 export default function UtilisateursPage() {
   const { toast } = useToast();
-  const { canAddUser, setUsersCount, schoolPlanDef } = useSubscriptionStore();
-  const [users, setUsers] = useState<UserAccount[]>(DEFAULT_USERS);
+  const { canAddUser, setUsersCount, schoolPlanDef, activeSchool } = useSubscriptionStore();
+  const schoolCode = activeSchool?.code || "4827";
+
+  const loadCurrentSchoolUsers = React.useCallback((): UserAccount[] => {
+    if (!activeSchool?.id) return [];
+    const list = getSchoolUsers(activeSchool.id);
+    return list.map((u): UserAccount => {
+      const roleDisplay: Record<Role, UserAccount["role"]> = {
+        directeur: "Directeur",
+        censeur: "Censeur",
+        secretariat: "Secrétariat",
+        surveillant: "Surveillant",
+        enseignant: "Enseignant",
+        comptabilite: "Comptable",
+        parent: "Parent",
+      };
+      return {
+        id: u.id,
+        identifier: u.identifier,
+        name: u.fullName,
+        email: u.email,
+        phone: u.phone || "—",
+        role: roleDisplay[u.role] || "Enseignant",
+        status: u.status,
+        lastLogin: u.lastLogin || "Jamais connecté",
+        permissions: u.permissions || [],
+      };
+    });
+  }, [activeSchool?.id]);
+
+  const [users, setUsers] = useState<UserAccount[]>([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
 
-  // Charger depuis le registre local au démarrage
+  // Charger depuis le registre système officiel
   React.useEffect(() => {
-    try {
-      const stored = localStorage.getItem("ecogest_school_users_registry");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setUsers(parsed);
-          setUsersCount(parsed.length);
-        }
-      }
-    } catch (e) {
-      console.warn("Erreur lecture utilisateurs enregistrés :", e);
-    }
-  }, [setUsersCount]);
+    const list = loadCurrentSchoolUsers();
+    setUsers(list);
+    setUsersCount(list.length);
+  }, [loadCurrentSchoolUsers, setUsersCount]);
 
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -150,20 +116,13 @@ export default function UtilisateursPage() {
   };
 
   const handleToggleStatus = (id: string) => {
-    setUsers((prev) => {
-      const updated = prev.map((u) => {
-        if (u.id === id) {
-          const nextStatus: "ACTIF" | "SUSPENDU" = u.status === "ACTIF" ? "SUSPENDU" : "ACTIF";
-          toast(`Compte de ${u.name} passé à ${nextStatus}`, nextStatus === "ACTIF" ? "success" : "info");
-          return { ...u, status: nextStatus };
-        }
-        return u;
-      });
-      try {
-        localStorage.setItem("ecogest_school_users_registry", JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
-    });
+    const target = users.find((u) => u.id === id);
+    if (!target) return;
+    const nextStatus: "ACTIF" | "SUSPENDU" = target.status === "ACTIF" ? "SUSPENDU" : "ACTIF";
+    updateSystemUserStatus(id, nextStatus);
+    const refreshed = loadCurrentSchoolUsers();
+    setUsers(refreshed);
+    toast(`Compte de ${target.name} (${target.identifier}) passé à ${nextStatus}`, nextStatus === "ACTIF" ? "success" : "info");
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -186,7 +145,12 @@ export default function UtilisateursPage() {
       return;
     }
 
-    // Vérifier si l'e-mail est déjà utilisé localement
+    if (!formPassword || formPassword.length < 6) {
+      toast("Le mot de passe doit comporter au moins 6 caractères.", "error");
+      return;
+    }
+
+    // Vérifier si l'e-mail est déjà utilisé dans cet établissement
     const alreadyExists = users.some((u) => u.email.toLowerCase() === cleanEmail);
     if (alreadyExists) {
       setFormEmailError("Cette adresse e-mail est déjà attribuée à un compte de l'établissement.");
@@ -202,54 +166,48 @@ export default function UtilisateursPage() {
       return;
     }
 
-    const newUser: UserAccount = {
-      id: `u-${Date.now()}`,
-      name: formName.trim(),
-      email: cleanEmail,
-      phone: formPhone.trim(),
-      role: formRole,
-      status: "ACTIF",
-      lastLogin: "Jamais connecté",
-      permissions: selectedPermissions,
+    const roleMapping: Record<UserAccount["role"], Role> = {
+      Directeur: "directeur",
+      Censeur: "censeur",
+      Secrétariat: "secretariat",
+      Surveillant: "surveillant",
+      Enseignant: "enseignant",
+      Comptable: "comptabilite",
+      Administration: "directeur",
+      Parent: "parent",
     };
+    const mappedRole = roleMapping[formRole] || "enseignant";
+    const newIdentifier = generateUserIdentifier(schoolCode, mappedRole);
 
-    // Tentative d'enregistrement API / Supabase
     try {
-      await fetch("/api/auth/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formName.trim(),
-          email: cleanEmail,
-          phone: formPhone.trim(),
-          role: formRole,
-          password: formPassword,
-          permissions: selectedPermissions,
-        }),
+      registerSystemUser({
+        identifier: newIdentifier,
+        email: cleanEmail,
+        fullName: formName.trim(),
+        role: mappedRole,
+        schoolId: activeSchool.id,
+        schoolName: activeSchool.name,
+        schoolCode: schoolCode,
+        password: formPassword,
+        phone: formPhone.trim(),
+        status: "ACTIF",
+        permissions: selectedPermissions,
       });
-    } catch (err) {
-      console.warn("[utilisateurs] Synchro serveur différée :", err);
-    }
 
-    const nextUsers = [newUser, ...users];
-    setUsers(nextUsers);
-    setUsersCount(nextUsers.length);
-    try {
-      localStorage.setItem("ecogest_school_users_registry", JSON.stringify(nextUsers));
-      // Si c'est un enseignant, synchroniser également dans le registre enseignants du Censeur
-      if (formRole === "Enseignant") {
+      // Synchronisation Censeur si c'est un enseignant
+      if (mappedRole === "enseignant") {
         const rawTeachers = localStorage.getItem("educogest_censeur_teachers_v1");
         const currentTeachers = rawTeachers ? JSON.parse(rawTeachers) : [];
         const existsInCenseur = currentTeachers.some(
-          (t: any) => t.email.toLowerCase() === cleanEmail.toLowerCase()
+          (t: any) => t.email?.toLowerCase() === cleanEmail.toLowerCase()
         );
         if (!existsInCenseur) {
           const newTeacherEntry = {
-            id: newUser.id,
-            name: newUser.name,
-            identifier: cleanEmail.split("@")[0],
+            id: `tea-${Date.now()}`,
+            name: formName.trim(),
+            identifier: newIdentifier,
             email: cleanEmail,
-            phone: newUser.phone,
+            phone: formPhone.trim(),
             specialty: "Enseignement Général",
             roleTitle: "Professeur Titulaire",
             status: "ACTIF" as const,
@@ -265,17 +223,27 @@ export default function UtilisateursPage() {
           );
         }
       }
+
       window.dispatchEvent(new Event("ecogest_shared_data_update"));
       window.dispatchEvent(new Event("educogest_censeur_storage_update"));
-    } catch (e) {}
 
-    setIsModalOpen(false);
-    toast(`Compte de ${formRole} créé avec succès pour ${formName}`, "success");
-    setFormName("");
-    setFormEmail("");
-    setFormEmailError("");
-    setFormPhone("+229 ");
-    setFormPassword("Pass2026!");
+      const refreshed = loadCurrentSchoolUsers();
+      setUsers(refreshed);
+      setUsersCount(refreshed.length);
+
+      setIsModalOpen(false);
+      toast(
+        `Compte créé avec succès ! Identifiant : ${newIdentifier} | Mot de passe : ${formPassword}`,
+        "success"
+      );
+      setFormName("");
+      setFormEmail("");
+      setFormEmailError("");
+      setFormPhone("+229 ");
+      setFormPassword("Pass2026!");
+    } catch (err: any) {
+      toast(err?.message || "Erreur lors de la création du compte.", "error");
+    }
   };
 
   const filtered = users.filter((u) => {
@@ -285,6 +253,15 @@ export default function UtilisateursPage() {
   });
 
   const columns: Column<UserAccount>[] = [
+    {
+      key: "identifier" as any,
+      header: "Identifiant",
+      render: (item) => (
+        <span className="font-mono text-xs font-bold text-school-primary bg-school-50 px-2 py-1 rounded-md border border-school-200">
+          {item.identifier}
+        </span>
+      ),
+    },
     {
       key: "name",
       header: "Nom & Prénom",
@@ -472,6 +449,29 @@ export default function UtilisateursPage() {
                   <option value="Administration">Autre membre d&apos;administration</option>
                   <option value="Directeur">Directeur Adjoint / Co-directeur</option>
                 </select>
+              </div>
+
+              {/* Aperçu de l'identifiant généré avec le code établissement */}
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-amber-800 block">
+                    Identifiant de connexion généré (Préfixe : {schoolCode})
+                  </span>
+                  <span className="text-sm font-mono font-black text-slate-900">
+                    {generateUserIdentifier(
+                      schoolCode,
+                      formRole === "Directeur" ? "directeur" :
+                      formRole === "Censeur" ? "censeur" :
+                      formRole === "Secrétariat" ? "secretariat" :
+                      formRole === "Surveillant" ? "surveillant" :
+                      formRole === "Comptable" ? "comptabilite" :
+                      "enseignant"
+                    )}
+                  </span>
+                </div>
+                <span className="text-[10px] text-amber-800 bg-amber-200/70 px-2 py-0.5 rounded font-bold">
+                  Code {schoolCode}
+                </span>
               </div>
 
               <div className="space-y-1">

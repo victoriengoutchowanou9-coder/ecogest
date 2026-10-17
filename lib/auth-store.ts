@@ -3,14 +3,17 @@
 import { useSyncExternalStore } from "react";
 import { Role } from "@/lib/permissions";
 import { subscriptionStore, SchoolProfile, SchoolPlanCode, ParentPlanCode } from "./subscription-store";
+import { registerSystemUser, generateUserIdentifier, validateSchoolCode, SystemUser } from "./user-registry";
 
 export interface AuthUser {
   id: string;
+  identifier: string; // Ex: 4827DIR01
   email: string;
   fullName: string;
   role: Role;
   schoolId: string;
   schoolName: string;
+  schoolCode: string; // 4 chiffres obligatoires
   phone?: string;
   isSubscriptionPaid: boolean;
   avatar?: string;
@@ -23,19 +26,10 @@ export interface AuthState {
 
 const STORAGE_KEY = "ecogest_auth_session_v2";
 
-// État initial par défaut (Directeur pour le premier accès si aucune session n'existe)
+// État initial par défaut : STRICTEMENT NON CONNECTÉ
 const DEFAULT_AUTH_STATE: AuthState = {
-  user: {
-    id: "user-directeur-1",
-    email: "directeur@ecogest.bj",
-    fullName: "Direction Générale",
-    role: "directeur",
-    schoolId: "school-1",
-    schoolName: "Établissement Scolaire",
-    phone: "+229 97 00 00 00",
-    isSubscriptionPaid: false, // En attente de paiement par défaut
-  },
-  isAuthenticated: true,
+  user: null,
+  isAuthenticated: false,
 };
 
 let memoryAuthState: AuthState = DEFAULT_AUTH_STATE;
@@ -50,17 +44,27 @@ function loadStateFromStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      memoryAuthState = JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.user && parsed.isAuthenticated) {
+        memoryAuthState = parsed;
+        return;
+      }
     }
+    memoryAuthState = DEFAULT_AUTH_STATE;
   } catch (e) {
     console.error("[auth-store] Erreur lecture localStorage :", e);
+    memoryAuthState = DEFAULT_AUTH_STATE;
   }
 }
 
 function saveStateToStorage() {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryAuthState));
+    if (memoryAuthState.user && memoryAuthState.isAuthenticated) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryAuthState));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
   } catch (e) {
     console.error("[auth-store] Erreur sauvegarde localStorage :", e);
   }
@@ -84,18 +88,28 @@ export const authStore = {
   },
 
   login(params: {
+    id?: string;
+    identifier?: string;
     email: string;
     fullName?: string;
     role: Role;
     schoolId?: string;
     schoolName?: string;
+    schoolCode?: string;
     phone?: string;
   }) {
     const activeSchool = subscriptionStore.getActiveSchool();
     const isPaid = subscriptionStore.getSnapshot().school.status === "ACTIVE";
 
+    const schoolId = params.schoolId || activeSchool.id;
+    const schoolName = params.schoolName || activeSchool.name;
+    const schoolCode = params.schoolCode || activeSchool.code || "0000";
+
+    const identifier = params.identifier || generateUserIdentifier(schoolCode, params.role);
+
     const user: AuthUser = {
-      id: `usr-${Date.now()}`,
+      id: params.id || `usr-${Date.now()}`,
+      identifier,
       email: params.email,
       fullName: params.fullName || (
         params.role === "directeur" ? "Directeur" :
@@ -107,8 +121,9 @@ export const authStore = {
         "Parent d'Élève"
       ),
       role: params.role,
-      schoolId: params.schoolId || activeSchool.id,
-      schoolName: params.schoolName || activeSchool.name,
+      schoolId,
+      schoolName,
+      schoolCode,
       phone: params.phone,
       isSubscriptionPaid: params.role === "parent" ? subscriptionStore.getSnapshot().parent.status === "ACTIVE" : isPaid,
     };
@@ -129,6 +144,8 @@ export const authStore = {
     };
     if (typeof window !== "undefined") {
       localStorage.removeItem(STORAGE_KEY);
+      // Supprimer les flags de session temporaire
+      sessionStorage.clear();
     }
     notify();
   },
@@ -143,8 +160,17 @@ export const authStore = {
     schoolRegion?: string;
     schoolCountry?: string;
     chosenPlan: SchoolPlanCode;
-    schoolCode?: string;
+    schoolCode: string; // 4 chiffres obligatoires
+    password?: string;
   }) {
+    // Validation du code établissement à 4 chiffres
+    const codeCheck = validateSchoolCode(params.schoolCode);
+    if (!codeCheck.valid) {
+      throw new Error(codeCheck.error || "Code établissement invalide.");
+    }
+
+    const cleanSchoolCode = params.schoolCode.trim();
+
     // 1. Définir le statut de souscription sur PENDING_PAYMENT
     subscriptionStore.changeSchoolPlan(params.chosenPlan);
     subscriptionStore.setSchoolStatus("PENDING_PAYMENT");
@@ -153,7 +179,7 @@ export const authStore = {
     const schoolId = params.schoolId || `school-${Date.now()}`;
     const createdSchool: SchoolProfile = {
       id: schoolId,
-      code: params.schoolCode || `ECO-${Math.floor(100 + Math.random() * 900)}`,
+      code: cleanSchoolCode,
       name: params.schoolName,
       shortName: params.schoolName.slice(0, 15),
       slug: params.schoolName.toLowerCase().replace(/[^a-z0-9]/g, "-"),
@@ -173,14 +199,34 @@ export const authStore = {
 
     subscriptionStore.createSchool(createdSchool);
 
-    // 3. Connecter le directeur avec isSubscriptionPaid = false
-    const user: AuthUser = {
-      id: `dir-${Date.now()}`,
+    // 3. Générer l'identifiant unique du Directeur avec le préfixe à 4 chiffres (ex: 4827DIR01)
+    const dirIdentifier = generateUserIdentifier(cleanSchoolCode, "directeur");
+    const directorPassword = params.password || "Directeur2026!";
+
+    // 4. Enregistrer dans le registre persistant des utilisateurs
+    const systemUser = registerSystemUser({
+      identifier: dirIdentifier,
       email: params.schoolEmail,
       fullName: params.directorName || "Directeur",
       role: "directeur",
       schoolId: createdSchool.id,
       schoolName: createdSchool.name,
+      schoolCode: cleanSchoolCode,
+      password: directorPassword,
+      phone: params.schoolPhone,
+      status: "ACTIF",
+    });
+
+    // 5. Connecter le directeur avec isSubscriptionPaid = false
+    const user: AuthUser = {
+      id: systemUser.id,
+      identifier: dirIdentifier,
+      email: params.schoolEmail,
+      fullName: params.directorName || "Directeur",
+      role: "directeur",
+      schoolId: createdSchool.id,
+      schoolName: createdSchool.name,
+      schoolCode: cleanSchoolCode,
       phone: params.schoolPhone,
       isSubscriptionPaid: false,
     };
@@ -191,7 +237,7 @@ export const authStore = {
     };
     saveStateToStorage();
     notify();
-    return { user, school: createdSchool };
+    return { user, school: createdSchool, identifier: dirIdentifier };
   },
 
   registerParent(params: {
@@ -201,21 +247,50 @@ export const authStore = {
     phone: string;
     schoolId: string;
     schoolName: string;
+    schoolCode?: string;
     chosenPlan: ParentPlanCode;
     relationship?: string;
+    password?: string;
   }) {
     // 1. Définir le statut du forfait parent sur PENDING_PAYMENT
     subscriptionStore.changeParentPlan(params.chosenPlan);
     subscriptionStore.setParentStatus("PENDING_PAYMENT");
 
-    // 2. Connecter le parent avec l'établissement choisi et isSubscriptionPaid = false
-    const user: AuthUser = {
-      id: params.userId || `parent-${Date.now()}`,
+    // Récupérer le code établissement
+    let schoolCode = params.schoolCode;
+    if (!schoolCode) {
+      const sch = subscriptionStore.getSchoolState().schools.find((s) => s.id === params.schoolId);
+      schoolCode = sch?.code || "0000";
+    }
+
+    // 2. Générer l'identifiant unique du Parent avec le préfixe de l'établissement (ex: 4827PAR01)
+    const parentIdentifier = generateUserIdentifier(schoolCode, "parent");
+    const parentPassword = params.password || "Parent2026!";
+
+    // 3. Enregistrer dans le registre persistant
+    const systemUser = registerSystemUser({
+      identifier: parentIdentifier,
       email: params.email,
       fullName: params.fullName,
       role: "parent",
       schoolId: params.schoolId,
       schoolName: params.schoolName,
+      schoolCode,
+      password: parentPassword,
+      phone: params.phone,
+      status: "ACTIF",
+    });
+
+    // 4. Connecter le parent avec l'établissement choisi et isSubscriptionPaid = false
+    const user: AuthUser = {
+      id: systemUser.id,
+      identifier: parentIdentifier,
+      email: params.email,
+      fullName: params.fullName,
+      role: "parent",
+      schoolId: params.schoolId,
+      schoolName: params.schoolName,
+      schoolCode,
       phone: params.phone,
       isSubscriptionPaid: false,
     };
@@ -226,7 +301,7 @@ export const authStore = {
     };
     saveStateToStorage();
     notify();
-    return user;
+    return { user, identifier: parentIdentifier };
   },
 
   validatePayment(type: "SCHOOL" | "PARENT") {

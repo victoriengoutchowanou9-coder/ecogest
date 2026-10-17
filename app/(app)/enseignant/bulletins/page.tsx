@@ -108,7 +108,7 @@ export default function EnseignantBulletinsPage() {
 
   // Current student subject row in teacher's subject
   const currentSubjectRow = useMemo(() => {
-    return currentBulletin?.rows.find((r) => r.subjectId === selectedSubjectId);
+    return currentBulletin?.rows.find((r: any) => r.subjectId === selectedSubjectId);
   }, [currentBulletin, selectedSubjectId]);
 
   // Quick navigation helpers (Previous / Next student)
@@ -283,7 +283,7 @@ export default function EnseignantBulletinsPage() {
             <div className="space-y-1.5 max-h-[620px] overflow-y-auto pr-1">
               {filteredStudents.map((st, idx) => {
                 const b = classBulletinsMap.get(st.id);
-                const subjRow = b?.rows.find((r) => r.subjectId === selectedSubjectId);
+                const subjRow = b?.rows.find((r: any) => r.subjectId === selectedSubjectId);
                 const isSelected = st.id === selectedStudentId;
 
                 // Status check

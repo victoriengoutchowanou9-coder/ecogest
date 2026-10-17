@@ -103,7 +103,7 @@ export default function SecretariatParentsPage() {
   };
 
   const handleQuickValidateRequest = (requestId: string, approve: boolean) => {
-    validateParentAccessRequest(requestId, approve, approve, undefined, "Secrétariat Pédagogique");
+    validateParentAccessRequest(requestId, approve ? "ACCEPTEE" : "REFUSEE", "Secrétariat Pédagogique");
     toast(
       approve ? "Demande d'accès parent validée." : "Demande d'accès parent refusée.",
       approve ? "success" : "info"

@@ -39,21 +39,20 @@ import {
   computePrimaryClassBulletins,
   roundToTwoDecimals,
 } from "./bulletin-utils";
+import { getScopedStorageKey } from "./school-context";
 
-const STORAGE_KEY_SUBJECTS = "educogest_bulletin_subjects_v2";
-const STORAGE_KEY_GRADES = "educogest_bulletin_grades_v2";
-const STORAGE_KEY_AUDIT = "educogest_bulletin_audit_v2";
-const STORAGE_KEY_PRIMARY_GRADES = "educogest_bulletin_primary_grades_v1";
-const STORAGE_KEY_CLASSES = "educogest_school_classes_v2";
-const STORAGE_KEY_STATUSES = "educogest_bulletin_statuses_v2";
+const getSubjectsKey = () => getScopedStorageKey("educogest_bulletin_subjects_v3");
+const getGradesKey = () => getScopedStorageKey("educogest_bulletin_grades_v3");
+const getAuditKey = () => getScopedStorageKey("educogest_bulletin_audit_v3");
+const getPrimaryGradesKey = () => getScopedStorageKey("educogest_bulletin_primary_grades_v3");
+const getClassesKey = () => getScopedStorageKey("educogest_school_classes_v3");
+const getStatusesKey = () => getScopedStorageKey("educogest_bulletin_statuses_v3");
+const getStudentsKey = () => getScopedStorageKey("educogest_censeur_students_v2");
 
 const STORAGE_EVENT = "educogest_bulletin_storage_update";
 
-// Par défaut, la classe 3ème A et CE2 B sont publiées pour la démo initiale
-const INITIAL_BULLETIN_STATUSES: Record<string, BulletinStatus> = {
-  "3e-a-T1": "PUBLIE",
-  "ce2-b-T1": "PUBLIE",
-};
+// Par défaut : AUCUN bulletin publié au démarrage d'un établissement
+const INITIAL_BULLETIN_STATUSES: Record<string, BulletinStatus> = {};
 
 function safeGetStorage<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -82,34 +81,37 @@ function safeSetStorage<T>(key: string, value: T): void {
  */
 export function useBulletinStore() {
   const [subjects, setSubjects] = useState<SubjectConfig[]>(() =>
-    safeGetStorage(STORAGE_KEY_SUBJECTS, MOCK_SUBJECTS)
+    safeGetStorage(getSubjectsKey(), MOCK_SUBJECTS)
   );
 
   const [grades, setGrades] = useState<GradeRecord[]>(() =>
-    safeGetStorage(STORAGE_KEY_GRADES, MOCK_GRADE_RECORDS)
+    safeGetStorage(getGradesKey(), [])
   );
 
   const [primaryGrades, setPrimaryGrades] = useState<CompetencyGradeRecord[]>(() =>
-    safeGetStorage(STORAGE_KEY_PRIMARY_GRADES, MOCK_PRIMARY_GRADE_RECORDS)
+    safeGetStorage(getPrimaryGradesKey(), [])
   );
 
   const [auditLogs, setAuditLogs] = useState<BulletinAuditLog[]>(() =>
-    safeGetStorage(STORAGE_KEY_AUDIT, [])
+    safeGetStorage(getAuditKey(), [])
   );
 
   const [classrooms, setClassrooms] = useState<ClassRoom[]>(() =>
-    safeGetStorage(STORAGE_KEY_CLASSES, MOCK_CLASSROOMS)
+    safeGetStorage(getClassesKey(), [])
   );
 
   const [bulletinStatuses, setBulletinStatuses] = useState<Record<string, BulletinStatus>>(() =>
-    safeGetStorage(STORAGE_KEY_STATUSES, INITIAL_BULLETIN_STATUSES)
+    safeGetStorage(getStatusesKey(), INITIAL_BULLETIN_STATUSES)
+  );
+
+  const [students, setStudents] = useState<StudentProfile[]>(() =>
+    safeGetStorage(getStudentsKey(), [])
   );
 
   const school = MOCK_SCHOOL_SETTINGS;
   const years = MOCK_ACADEMIC_YEARS;
   const periods = MOCK_ACADEMIC_PERIODS;
   const teachers = MOCK_TEACHERS;
-  const students = MOCK_BULLETIN_STUDENTS;
   const primaryDomains = MOCK_PRIMARY_DOMAINS;
   const primaryCompetencies = MOCK_PRIMARY_COMPETENCIES;
   const primaryCompetencyLevels = DEFAULT_COMPETENCY_LEVELS;
@@ -117,12 +119,13 @@ export function useBulletinStore() {
   // Sync across tabs and components
   useEffect(() => {
     const handleStorageUpdate = () => {
-      setSubjects(safeGetStorage(STORAGE_KEY_SUBJECTS, MOCK_SUBJECTS));
-      setGrades(safeGetStorage(STORAGE_KEY_GRADES, MOCK_GRADE_RECORDS));
-      setPrimaryGrades(safeGetStorage(STORAGE_KEY_PRIMARY_GRADES, MOCK_PRIMARY_GRADE_RECORDS));
-      setAuditLogs(safeGetStorage(STORAGE_KEY_AUDIT, []));
-      setClassrooms(safeGetStorage(STORAGE_KEY_CLASSES, MOCK_CLASSROOMS));
-      setBulletinStatuses(safeGetStorage(STORAGE_KEY_STATUSES, INITIAL_BULLETIN_STATUSES));
+      setSubjects(safeGetStorage(getSubjectsKey(), MOCK_SUBJECTS));
+      setGrades(safeGetStorage(getGradesKey(), []));
+      setPrimaryGrades(safeGetStorage(getPrimaryGradesKey(), []));
+      setAuditLogs(safeGetStorage(getAuditKey(), []));
+      setClassrooms(safeGetStorage(getClassesKey(), []));
+      setBulletinStatuses(safeGetStorage(getStatusesKey(), INITIAL_BULLETIN_STATUSES));
+      setStudents(safeGetStorage(getStudentsKey(), []));
     };
 
     window.addEventListener(STORAGE_EVENT, handleStorageUpdate);
@@ -151,7 +154,7 @@ export function useBulletinStore() {
       } else {
         next = [...prev, cls];
       }
-      safeSetStorage(STORAGE_KEY_CLASSES, next);
+      safeSetStorage(getClassesKey(), next);
       return next;
     });
   }, []);
@@ -159,7 +162,7 @@ export function useBulletinStore() {
   const deleteClassroom = useCallback((classId: string) => {
     setClassrooms((prev) => {
       const next = prev.filter((c) => c.id !== classId);
-      safeSetStorage(STORAGE_KEY_CLASSES, next);
+      safeSetStorage(getClassesKey(), next);
       return next;
     });
   }, []);
@@ -180,7 +183,7 @@ export function useBulletinStore() {
           }
           return s;
         });
-        safeSetStorage(STORAGE_KEY_SUBJECTS, next);
+        safeSetStorage(getSubjectsKey(), next);
         return next;
       });
 
@@ -200,7 +203,7 @@ export function useBulletinStore() {
 
       setAuditLogs((prev) => {
         const next = [logEntry, ...prev];
-        safeSetStorage(STORAGE_KEY_AUDIT, next);
+        safeSetStorage(getAuditKey(), next);
         return next;
       });
     },
@@ -243,7 +246,7 @@ export function useBulletinStore() {
           next = [...prev, newRecord];
         }
 
-        safeSetStorage(STORAGE_KEY_GRADES, next);
+        safeSetStorage(getGradesKey(), next);
         return next;
       });
 
@@ -262,7 +265,7 @@ export function useBulletinStore() {
         };
         setAuditLogs((prev) => {
           const next = [logEntry, ...prev];
-          safeSetStorage(STORAGE_KEY_AUDIT, next);
+          safeSetStorage(getAuditKey(), next);
           return next;
         });
       }
@@ -292,7 +295,7 @@ export function useBulletinStore() {
         const next = prev.filter(
           (g) => !(g.studentId === studentId && g.subjectId === subjectId && g.periodId === periodId)
         );
-        safeSetStorage(STORAGE_KEY_GRADES, next);
+        safeSetStorage(getGradesKey(), next);
         return next;
       });
 
@@ -311,7 +314,7 @@ export function useBulletinStore() {
 
       setAuditLogs((prev) => {
         const next = [logEntry, ...prev];
-        safeSetStorage(STORAGE_KEY_AUDIT, next);
+        safeSetStorage(getAuditKey(), next);
         return next;
       });
     },
@@ -331,7 +334,7 @@ export function useBulletinStore() {
     ) => {
       setBulletinStatuses((prev) => {
         const next = { ...prev, [targetKey]: status };
-        safeSetStorage(STORAGE_KEY_STATUSES, next);
+        safeSetStorage(getStatusesKey(), next);
         return next;
       });
 
@@ -349,7 +352,7 @@ export function useBulletinStore() {
 
       setAuditLogs((prev) => {
         const next = [logEntry, ...prev];
-        safeSetStorage(STORAGE_KEY_AUDIT, next);
+        safeSetStorage(getAuditKey(), next);
         return next;
       });
     },
@@ -365,7 +368,7 @@ export function useBulletinStore() {
           }
           return g;
         });
-        safeSetStorage(STORAGE_KEY_GRADES, next);
+        safeSetStorage(getGradesKey(), next);
         return next;
       });
 
@@ -381,7 +384,7 @@ export function useBulletinStore() {
       };
       setAuditLogs((prev) => {
         const next = [logEntry, ...prev];
-        safeSetStorage(STORAGE_KEY_AUDIT, next);
+        safeSetStorage(getAuditKey(), next);
         return next;
       });
     },
@@ -449,7 +452,6 @@ export function useBulletinStore() {
 
   const isBulletinPublished = useCallback(
     (studentId: string, classId: string, periodId: string): boolean => {
-      // Vérifie si le bulletin individuel ou le bulletin de la classe entière est PUBLIE ou MODIFIE_APRES_PUBLICATION
       const studentStatus = bulletinStatuses[`${studentId}-${periodId}`];
       const classStatus = bulletinStatuses[`${classId}-${periodId}`];
       const effectiveStatus = studentStatus || classStatus || "BROUILLON";
@@ -462,11 +464,19 @@ export function useBulletinStore() {
    * 6. Compute all bulletins for a classroom and period dynamically
    */
   const getClassBulletins = useCallback(
-    (classId: string = "3e-a", periodId: string = "T1") => {
-      const activeClass = classrooms.find((c) => c.id === classId) || classrooms[0];
+    (classId: string, periodId: string = "T1") => {
+      if (!classId) return new Map();
+      const activeClass = classrooms.find((c) => c.id === classId);
+      if (!activeClass) return new Map();
+
       const activePeriod = periods.find((p) => p.id === periodId) || periods[0];
       const activeYear = years[0];
       const classStudents = students.filter((s) => s.classId === classId);
+
+      // Si aucun élève n'est inscrit dans cette classe, retourner une liste vide
+      if (classStudents.length === 0) {
+        return new Map();
+      }
 
       const auditMap = new Map<string, BulletinAuditLog[]>();
       auditLogs.forEach((log) => {
@@ -475,7 +485,6 @@ export function useBulletinStore() {
         auditMap.set(log.bulletinId, current);
       });
 
-      // Status map
       const classStatus = bulletinStatuses[`${classId}-${periodId}`];
       const statusMap = new Map<string, BulletinStatus>();
       classStudents.forEach((std) => {
@@ -492,7 +501,7 @@ export function useBulletinStore() {
         activeYear,
         activePeriod,
         activeClass,
-        classStudents.length > 0 ? classStudents : students,
+        classStudents,
         subjects,
         grades,
         teachers,
@@ -507,7 +516,7 @@ export function useBulletinStore() {
    * 7. Retrieve a single student's official bulletin (Secondaire)
    */
   const getStudentBulletin = useCallback(
-    (studentId: string, classId: string = "3e-a", periodId: string = "T1"): ComputedBulletin | null => {
+    (studentId: string, classId: string, periodId: string = "T1"): ComputedBulletin | null => {
       const map = getClassBulletins(classId, periodId);
       return map.get(studentId) || null;
     },
@@ -555,7 +564,7 @@ export function useBulletinStore() {
           next = [...prev, newRecord];
         }
 
-        safeSetStorage(STORAGE_KEY_PRIMARY_GRADES, next);
+        safeSetStorage(getPrimaryGradesKey(), next);
         return next;
       });
     },
@@ -566,11 +575,18 @@ export function useBulletinStore() {
    * 9. Calcul des bulletins du Cycle Primaire
    */
   const getPrimaryClassBulletins = useCallback(
-    (classId: string = "ce2-b", periodId: string = "T1") => {
-      const activeClass = classrooms.find((c) => c.id === classId) || classrooms[1];
+    (classId: string, periodId: string = "T1") => {
+      if (!classId) return new Map();
+      const activeClass = classrooms.find((c) => c.id === classId);
+      if (!activeClass) return new Map();
+
       const activePeriod = periods.find((p) => p.id === periodId) || periods[0];
       const activeYear = years[0];
       const classStudents = students.filter((s) => s.classId === classId);
+
+      if (classStudents.length === 0) {
+        return new Map();
+      }
 
       const auditMap = new Map<string, BulletinAuditLog[]>();
       auditLogs.forEach((log) => {
@@ -595,7 +611,7 @@ export function useBulletinStore() {
         activeYear,
         activePeriod,
         activeClass,
-        classStudents.length > 0 ? classStudents : students.filter((s) => s.cycle === "PRIMAIRE"),
+        classStudents,
         primaryDomains,
         primaryCompetencies,
         primaryGrades,
@@ -611,7 +627,7 @@ export function useBulletinStore() {
    * 10. Récupération du bulletin primaire individuel
    */
   const getPrimaryStudentBulletin = useCallback(
-    (studentId: string, classId: string = "ce2-b", periodId: string = "T1"): ComputedPrimaryBulletin | null => {
+    (studentId: string, classId: string, periodId: string = "T1"): ComputedPrimaryBulletin | null => {
       const map = getPrimaryClassBulletins(classId, periodId);
       return map.get(studentId) || null;
     },
@@ -622,18 +638,18 @@ export function useBulletinStore() {
    * 11. Reset to defaults
    */
   const resetToDefaults = useCallback(() => {
-    safeSetStorage(STORAGE_KEY_SUBJECTS, MOCK_SUBJECTS);
-    safeSetStorage(STORAGE_KEY_GRADES, MOCK_GRADE_RECORDS);
-    safeSetStorage(STORAGE_KEY_PRIMARY_GRADES, MOCK_PRIMARY_GRADE_RECORDS);
-    safeSetStorage(STORAGE_KEY_AUDIT, []);
-    safeSetStorage(STORAGE_KEY_CLASSES, MOCK_CLASSROOMS);
-    safeSetStorage(STORAGE_KEY_STATUSES, INITIAL_BULLETIN_STATUSES);
+    safeSetStorage(getSubjectsKey(), MOCK_SUBJECTS);
+    safeSetStorage(getGradesKey(), []);
+    safeSetStorage(getPrimaryGradesKey(), []);
+    safeSetStorage(getAuditKey(), []);
+    safeSetStorage(getClassesKey(), []);
+    safeSetStorage(getStatusesKey(), {});
     setSubjects(MOCK_SUBJECTS);
-    setGrades(MOCK_GRADE_RECORDS);
-    setPrimaryGrades(MOCK_PRIMARY_GRADE_RECORDS);
+    setGrades([]);
+    setPrimaryGrades([]);
     setAuditLogs([]);
-    setClassrooms(MOCK_CLASSROOMS);
-    setBulletinStatuses(INITIAL_BULLETIN_STATUSES);
+    setClassrooms([]);
+    setBulletinStatuses({});
   }, []);
 
   return {

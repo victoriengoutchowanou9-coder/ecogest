@@ -272,7 +272,7 @@ export const subscriptionStore = {
 
     const created: SchoolProfile = {
       ...newSchool,
-      id: `school-${Date.now()}`,
+      id: (newSchool as any).id || `school-${Date.now()}`,
     };
 
     const nextSchools = isInitialPlaceholderOnly

@@ -8,6 +8,8 @@ import {
   MOCK_TEACHERS,
 } from "./mock-bulletin-db";
 import { StudentProfile, SubjectConfig, ClassRoom, TeacherInfo } from "./types/bulletin";
+import { getScopedStorageKey, getActiveSchoolId } from "./school-context";
+import { getSchoolUsers } from "./user-registry";
 
 export interface TeacherCourseSchedule {
   id: string;
@@ -110,6 +112,7 @@ export interface CenseurSubjectItem {
   className: string;
   teacherId: string;
   teacherName: string;
+  teacherEmail?: string;
   weeklyHours: number;
   isConduite?: boolean;
 }
@@ -126,7 +129,7 @@ export interface CenseurTeacherAccount {
   status: "ACTIF" | "INACTIF";
   assignedClasses: { classId: string; className: string }[];
   assignedSubjects: { subjectId: string; subjectName: string }[];
-  allowedPermissions: string[]; // ex: "saisie_notes", "appel_presence", "cahier_textes", "bulletins"
+  allowedPermissions: string[];
   weeklyHours: number;
   createdAt: string;
 }
@@ -152,83 +155,30 @@ export interface ParentChildAccessRequest {
   refusalReason?: string;
 }
 
-// Initial mock datasets
+// Clean production datasets: AUCUNE donnée fictive
 export const INITIAL_TEACHER_SCHEDULES: TeacherCourseSchedule[] = [];
-
 export const INITIAL_HOMEWORK_PROGRAMS: HomeworkProgram[] = [];
-
-export const INITIAL_ATTENDANCE_ITEMS: CenseurAttendanceItem[] = [
-  {
-    id: "att-01",
-    studentId: "std-01",
-    studentName: "Jean-Eudes DOSSOU",
-    matricule: "ECO-2026-0012",
-    classId: "6e-a",
-    className: "6ème A",
-    date: new Date().toISOString().split("T")[0],
-    sessionTime: "08:00 - 10:00",
-    subject: "Français",
-    recordedByTeacher: "Paul KOUASSI",
-    status: "PRESENT",
-    isConfirmedByCenseur: true,
-  },
-  {
-    id: "att-02",
-    studentId: "std-02",
-    studentName: "Marie-Josée AGBO",
-    matricule: "ECO-2026-0015",
-    classId: "6e-a",
-    className: "6ème A",
-    date: new Date().toISOString().split("T")[0],
-    sessionTime: "08:00 - 10:00",
-    subject: "Français",
-    recordedByTeacher: "Paul KOUASSI",
-    status: "ABS_JUSTIFIEE",
-    justificationNotes: "Maladie (certificat médical transmis par le parent)",
-    isConfirmedByCenseur: true,
-  },
-  {
-    id: "att-03",
-    studentId: "std-03",
-    studentName: "Rodrigue KANHONOU",
-    matricule: "ECO-2026-0018",
-    classId: "6e-a",
-    className: "6ème A",
-    date: new Date().toISOString().split("T")[0],
-    sessionTime: "08:00 - 10:00",
-    subject: "Français",
-    recordedByTeacher: "Paul KOUASSI",
-    status: "RETARD",
-    justificationNotes: "Retard de 15 minutes (Panne de transport)",
-    isConfirmedByCenseur: true,
-  },
-];
-
+export const INITIAL_ATTENDANCE_ITEMS: CenseurAttendanceItem[] = [];
 export const INITIAL_PARENT_MESSAGES: ParentMessageItem[] = [];
-
-// Initial Censeur Subjects List
 export const INITIAL_CENSEUR_SUBJECTS: CenseurSubjectItem[] = [];
-
-// Initial Teacher Accounts List
 export const INITIAL_TEACHER_ACCOUNTS: CenseurTeacherAccount[] = [];
-
-// Initial Parent Child Access Requests
 export const INITIAL_PARENT_ACCESS_REQUESTS: ParentChildAccessRequest[] = [];
 
-const STORAGE_KEY_SCHEDULES = "educogest_censeur_schedules_v1";
-const STORAGE_KEY_ASSIGNMENTS_HISTORY = "educogest_censeur_assign_hist_v1";
-const STORAGE_KEY_ATTENDANCE = "educogest_censeur_attendance_v1";
-const STORAGE_KEY_ATTENDANCE_AUDIT = "educogest_censeur_att_audit_v1";
-const STORAGE_KEY_HOMEWORK = "educogest_censeur_homework_v1";
-const STORAGE_KEY_MESSAGES = "educogest_censeur_messages_v1";
-const STORAGE_KEY_STUDENTS = "educogest_censeur_students_v1";
-const STORAGE_KEY_CENSEUR_SUBJECTS = "educogest_censeur_subjects_v1";
-const STORAGE_KEY_TEACHER_ACCOUNTS = "educogest_censeur_teachers_v1";
-const STORAGE_KEY_PARENT_REQUESTS = "educogest_censeur_parent_requests_v1";
-const STORAGE_KEY_CLASSES = "educogest_school_classes_v2";
+// Scoped Storage Keys
+const getSchedulesKey = () => getScopedStorageKey("educogest_censeur_schedules_v2");
+const getAssignHistKey = () => getScopedStorageKey("educogest_censeur_assign_hist_v2");
+const getAttendanceKey = () => getScopedStorageKey("educogest_censeur_attendance_v2");
+const getAttAuditKey = () => getScopedStorageKey("educogest_censeur_att_audit_v2");
+const getHomeworkKey = () => getScopedStorageKey("educogest_censeur_homework_v2");
+const getMessagesKey = () => getScopedStorageKey("educogest_censeur_messages_v2");
+const getStudentsKey = () => getScopedStorageKey("educogest_censeur_students_v2");
+const getCenseurSubjectsKey = () => getScopedStorageKey("educogest_censeur_subjects_v2");
+const getTeacherAccountsKey = () => getScopedStorageKey("educogest_censeur_teachers_v2");
+const getParentRequestsKey = () => getScopedStorageKey("educogest_censeur_parent_requests_v2");
+const getClassesKey = () => getScopedStorageKey("educogest_school_classes_v3");
 
 const STORAGE_EVENT = "educogest_censeur_storage_update";
-const BULLETIN_SUBJECTS_STORAGE_KEY = "educogest_bulletin_subjects_v2";
+const BULLETIN_SUBJECTS_STORAGE_KEY = "educogest_bulletin_subjects_v3";
 const BULLETIN_STORAGE_EVENT = "educogest_bulletin_storage_update";
 const SHARED_STORAGE_EVENT = "ecogest_shared_data_update";
 
@@ -255,52 +205,52 @@ function safeSetStorage<T>(key: string, value: T): void {
 
 function getMergedTeacherAccounts(): CenseurTeacherAccount[] {
   const directTeachers = safeGetStorage<CenseurTeacherAccount[]>(
-    STORAGE_KEY_TEACHER_ACCOUNTS,
+    getTeacherAccountsKey(),
     INITIAL_TEACHER_ACCOUNTS
   );
+
   try {
-    const rawUsers =
-      typeof window !== "undefined"
-        ? localStorage.getItem("ecogest_school_users_registry")
-        : null;
-    if (rawUsers) {
-      const users = JSON.parse(rawUsers);
-      if (Array.isArray(users)) {
-        const existingEmails = new Set(directTeachers.map((t) => (t.email || "").toLowerCase()));
-        const extraTeachers: CenseurTeacherAccount[] = [];
-        users.forEach((u: any) => {
-          const role = (u.role || "").toLowerCase();
-          const email = (u.email || "").toLowerCase();
-          if (
-            (role.includes("enseignant") || role.includes("prof")) &&
-            email &&
-            !existingEmails.has(email)
-          ) {
-            existingEmails.add(email);
-            extraTeachers.push({
-              id: u.id,
-              name: u.name,
-              identifier: (u.email || "prof").split("@")[0],
-              email: u.email,
-              phone: u.phone || "+229 ",
-              specialty: "Enseignement Général",
-              roleTitle: "Professeur Titulaire",
-              status: u.status === "ACTIF" ? "ACTIF" : "INACTIF",
-              assignedClasses: [],
-              assignedSubjects: [],
-              allowedPermissions: u.permissions || [
-                "saisie_notes",
-                "appel_presence",
-                "cahier_textes",
-              ],
-              weeklyHours: 12,
-              createdAt: new Date().toISOString().split("T")[0],
-            });
-          }
+    const currentSchoolId = getActiveSchoolId();
+    const schoolUsers = getSchoolUsers(currentSchoolId);
+
+    const existingEmails = new Set(directTeachers.map((t) => (t.email || "").toLowerCase()));
+    const existingIds = new Set(directTeachers.map((t) => t.id));
+    const extraTeachers: CenseurTeacherAccount[] = [];
+
+    schoolUsers.forEach((u) => {
+      const role = (u.role || "").toLowerCase();
+      const email = (u.email || "").toLowerCase();
+      if (
+        (role === "enseignant" || role.includes("prof")) &&
+        email &&
+        !existingEmails.has(email) &&
+        !existingIds.has(u.id)
+      ) {
+        existingEmails.add(email);
+        existingIds.add(u.id);
+        extraTeachers.push({
+          id: u.id,
+          name: u.fullName,
+          identifier: u.identifier || (u.email || "prof").split("@")[0],
+          email: u.email,
+          phone: u.phone || "+229 ",
+          specialty: u.specialty || "Enseignement Général",
+          roleTitle: "Professeur Titulaire",
+          status: u.status === "ACTIF" ? "ACTIF" : "INACTIF",
+          assignedClasses: u.assignedClasses || [],
+          assignedSubjects: u.assignedSubjects || [],
+          allowedPermissions: u.permissions || [
+            "saisie_notes",
+            "appel_presence",
+            "cahier_textes",
+          ],
+          weeklyHours: 12,
+          createdAt: u.createdAt ? u.createdAt.split("T")[0] : new Date().toISOString().split("T")[0],
         });
-        return [...directTeachers, ...extraTeachers];
       }
-    }
+    });
+
+    return [...directTeachers, ...extraTeachers];
   } catch (e) {
     console.warn("Erreur chargement comptes enseignants fusionnés:", e);
   }
@@ -309,35 +259,35 @@ function getMergedTeacherAccounts(): CenseurTeacherAccount[] {
 
 export function useCenseurStore() {
   const [schedules, setSchedules] = useState<TeacherCourseSchedule[]>(() =>
-    safeGetStorage(STORAGE_KEY_SCHEDULES, INITIAL_TEACHER_SCHEDULES)
+    safeGetStorage(getSchedulesKey(), INITIAL_TEACHER_SCHEDULES)
   );
 
   const [assignmentHistory, setAssignmentHistory] = useState<StudentAssignmentHistory[]>(() =>
-    safeGetStorage(STORAGE_KEY_ASSIGNMENTS_HISTORY, [])
+    safeGetStorage(getAssignHistKey(), [])
   );
 
   const [attendanceItems, setAttendanceItems] = useState<CenseurAttendanceItem[]>(() =>
-    safeGetStorage(STORAGE_KEY_ATTENDANCE, INITIAL_ATTENDANCE_ITEMS)
+    safeGetStorage(getAttendanceKey(), INITIAL_ATTENDANCE_ITEMS)
   );
 
   const [attendanceAuditLogs, setAttendanceAuditLogs] = useState<AttendanceAuditLog[]>(() =>
-    safeGetStorage(STORAGE_KEY_ATTENDANCE_AUDIT, [])
+    safeGetStorage(getAttAuditKey(), [])
   );
 
   const [homeworkPrograms, setHomeworkPrograms] = useState<HomeworkProgram[]>(() =>
-    safeGetStorage(STORAGE_KEY_HOMEWORK, INITIAL_HOMEWORK_PROGRAMS)
+    safeGetStorage(getHomeworkKey(), INITIAL_HOMEWORK_PROGRAMS)
   );
 
   const [parentMessages, setParentMessages] = useState<ParentMessageItem[]>(() =>
-    safeGetStorage(STORAGE_KEY_MESSAGES, INITIAL_PARENT_MESSAGES)
+    safeGetStorage(getMessagesKey(), INITIAL_PARENT_MESSAGES)
   );
 
   const [studentsList, setStudentsList] = useState<StudentProfile[]>(() =>
-    safeGetStorage(STORAGE_KEY_STUDENTS, MOCK_BULLETIN_STUDENTS)
+    safeGetStorage(getStudentsKey(), [])
   );
 
   const [subjectsList, setSubjectsList] = useState<CenseurSubjectItem[]>(() =>
-    safeGetStorage(STORAGE_KEY_CENSEUR_SUBJECTS, INITIAL_CENSEUR_SUBJECTS)
+    safeGetStorage(getCenseurSubjectsKey(), INITIAL_CENSEUR_SUBJECTS)
   );
 
   const [teacherAccounts, setTeacherAccounts] = useState<CenseurTeacherAccount[]>(() =>
@@ -345,36 +295,38 @@ export function useCenseurStore() {
   );
 
   const [parentAccessRequests, setParentAccessRequests] = useState<ParentChildAccessRequest[]>(() =>
-    safeGetStorage(STORAGE_KEY_PARENT_REQUESTS, INITIAL_PARENT_ACCESS_REQUESTS)
+    safeGetStorage(getParentRequestsKey(), INITIAL_PARENT_ACCESS_REQUESTS)
   );
 
   const [classrooms, setClassrooms] = useState<ClassRoom[]>(() =>
-    safeGetStorage(STORAGE_KEY_CLASSES, MOCK_CLASSROOMS)
+    safeGetStorage(getClassesKey(), [])
   );
 
   useEffect(() => {
     const handleUpdate = () => {
-      setSchedules(safeGetStorage(STORAGE_KEY_SCHEDULES, INITIAL_TEACHER_SCHEDULES));
-      setAssignmentHistory(safeGetStorage(STORAGE_KEY_ASSIGNMENTS_HISTORY, []));
-      setAttendanceItems(safeGetStorage(STORAGE_KEY_ATTENDANCE, INITIAL_ATTENDANCE_ITEMS));
-      setAttendanceAuditLogs(safeGetStorage(STORAGE_KEY_ATTENDANCE_AUDIT, []));
-      setHomeworkPrograms(safeGetStorage(STORAGE_KEY_HOMEWORK, INITIAL_HOMEWORK_PROGRAMS));
-      setParentMessages(safeGetStorage(STORAGE_KEY_MESSAGES, INITIAL_PARENT_MESSAGES));
-      setStudentsList(safeGetStorage(STORAGE_KEY_STUDENTS, MOCK_BULLETIN_STUDENTS));
-      setSubjectsList(safeGetStorage(STORAGE_KEY_CENSEUR_SUBJECTS, INITIAL_CENSEUR_SUBJECTS));
+      setSchedules(safeGetStorage(getSchedulesKey(), INITIAL_TEACHER_SCHEDULES));
+      setAssignmentHistory(safeGetStorage(getAssignHistKey(), []));
+      setAttendanceItems(safeGetStorage(getAttendanceKey(), INITIAL_ATTENDANCE_ITEMS));
+      setAttendanceAuditLogs(safeGetStorage(getAttAuditKey(), []));
+      setHomeworkPrograms(safeGetStorage(getHomeworkKey(), INITIAL_HOMEWORK_PROGRAMS));
+      setParentMessages(safeGetStorage(getMessagesKey(), INITIAL_PARENT_MESSAGES));
+      setStudentsList(safeGetStorage(getStudentsKey(), []));
+      setSubjectsList(safeGetStorage(getCenseurSubjectsKey(), INITIAL_CENSEUR_SUBJECTS));
       setTeacherAccounts(getMergedTeacherAccounts());
-      setParentAccessRequests(safeGetStorage(STORAGE_KEY_PARENT_REQUESTS, INITIAL_PARENT_ACCESS_REQUESTS));
-      setClassrooms(safeGetStorage(STORAGE_KEY_CLASSES, MOCK_CLASSROOMS));
+      setParentAccessRequests(safeGetStorage(getParentRequestsKey(), INITIAL_PARENT_ACCESS_REQUESTS));
+      setClassrooms(safeGetStorage(getClassesKey(), []));
     };
 
     window.addEventListener(STORAGE_EVENT, handleUpdate);
     window.addEventListener(BULLETIN_STORAGE_EVENT, handleUpdate);
     window.addEventListener(SHARED_STORAGE_EVENT, handleUpdate);
+    window.addEventListener("ecogest_users_registry_update", handleUpdate);
     window.addEventListener("storage", handleUpdate);
     return () => {
       window.removeEventListener(STORAGE_EVENT, handleUpdate);
       window.removeEventListener(BULLETIN_STORAGE_EVENT, handleUpdate);
       window.removeEventListener(SHARED_STORAGE_EVENT, handleUpdate);
+      window.removeEventListener("ecogest_users_registry_update", handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
   }, []);
@@ -400,16 +352,20 @@ export function useCenseurStore() {
             prevClassName = s.className;
             studentName = `${s.lastName} ${s.firstName}`;
             matricule = s.matricule;
-            return { ...s, classId: newClassId, className: newClassName };
+            return {
+              ...s,
+              classId: newClassId,
+              className: newClassName,
+            };
           }
           return s;
         });
-        safeSetStorage(STORAGE_KEY_STUDENTS, next);
+        safeSetStorage(getStudentsKey(), next);
         return next;
       });
 
       if (prevClassId && prevClassId !== newClassId) {
-        const log: StudentAssignmentHistory = {
+        const logEntry: StudentAssignmentHistory = {
           id: `hist-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
           studentId,
           studentName,
@@ -418,14 +374,13 @@ export function useCenseurStore() {
           previousClassName: prevClassName,
           newClassId,
           newClassName,
-          date: new Date().toLocaleDateString("fr-FR"),
+          date: new Date().toISOString().split("T")[0],
           author,
           reason,
         };
-
         setAssignmentHistory((prev) => {
-          const next = [log, ...prev];
-          safeSetStorage(STORAGE_KEY_ASSIGNMENTS_HISTORY, next);
+          const next = [logEntry, ...prev];
+          safeSetStorage(getAssignHistKey(), next);
           return next;
         });
       }
@@ -433,95 +388,80 @@ export function useCenseurStore() {
     []
   );
 
-  // Add new student
-  const addStudent = useCallback(
-    (studentData: Omit<StudentProfile, "id"> & { id?: string }) => {
-      const newStudent: StudentProfile = {
-        ...studentData,
-        id: studentData.id || `std-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        status: studentData.status || "ACTIF",
-      };
+  const addStudent = useCallback((student: StudentProfile) => {
+    setStudentsList((prev) => {
+      const next = [...prev, student];
+      safeSetStorage(getStudentsKey(), next);
+      return next;
+    });
+  }, []);
 
-      setStudentsList((prev) => {
-        const next = [newStudent, ...prev];
-        safeSetStorage(STORAGE_KEY_STUDENTS, next);
-        return next;
-      });
-      return newStudent;
-    },
-    []
-  );
-
-  // Update existing student
   const updateStudent = useCallback((studentId: string, updates: Partial<StudentProfile>) => {
     setStudentsList((prev) => {
       const next = prev.map((s) => (s.id === studentId ? { ...s, ...updates } : s));
-      safeSetStorage(STORAGE_KEY_STUDENTS, next);
+      safeSetStorage(getStudentsKey(), next);
       return next;
     });
   }, []);
 
-  // Delete student
   const deleteStudent = useCallback((studentId: string) => {
     setStudentsList((prev) => {
       const next = prev.filter((s) => s.id !== studentId);
-      safeSetStorage(STORAGE_KEY_STUDENTS, next);
+      safeSetStorage(getStudentsKey(), next);
       return next;
     });
   }, []);
 
-  // 2. Modify & confirm student attendance status with mandatory audit log
+  // 2. Attendance confirmation & status update
   const updateAttendanceStatus = useCallback(
     (
       attendanceId: string,
-      newStatus: CenseurAttendanceItem["status"],
-      reason: string,
-      author: string = "Censeur des Études"
+      status: CenseurAttendanceItem["status"],
+      justification?: string,
+      author: string = "Censeur des Études",
+      reason: string = "Vérification administrative du Censeur"
     ) => {
-      let studentId = "";
-      let studentName = "";
-      let className = "";
+      let targetStudentName = "";
+      let targetClassName = "";
+      let prevStatus = "";
       let date = "";
-      let previousStatus = "";
 
       setAttendanceItems((prev) => {
         const next = prev.map((item) => {
           if (item.id === attendanceId) {
-            studentId = item.studentId;
-            studentName = item.studentName;
-            className = item.className;
+            targetStudentName = item.studentName;
+            targetClassName = item.className;
+            prevStatus = item.status;
             date = item.date;
-            previousStatus = item.status;
             return {
               ...item,
-              status: newStatus,
+              status,
+              justificationNotes: justification !== undefined ? justification : item.justificationNotes,
               isConfirmedByCenseur: true,
-              justificationNotes: reason || item.justificationNotes,
             };
           }
           return item;
         });
-        safeSetStorage(STORAGE_KEY_ATTENDANCE, next);
+        safeSetStorage(getAttendanceKey(), next);
         return next;
       });
 
-      if (previousStatus && previousStatus !== newStatus) {
+      if (prevStatus && prevStatus !== status) {
         const auditLog: AttendanceAuditLog = {
           id: `att-aud-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-          studentId,
-          studentName,
-          className,
+          studentId: attendanceId,
+          studentName: targetStudentName,
+          className: targetClassName,
           date,
           time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-          previousStatus,
-          newStatus,
+          previousStatus: prevStatus,
+          newStatus: status,
           author,
-          reason: reason || "Régularisation administrative du Censeur",
+          reason: justification ? `${reason} : ${justification}` : reason,
         };
-
         setAttendanceAuditLogs((prev) => {
           const next = [auditLog, ...prev];
-          safeSetStorage(STORAGE_KEY_ATTENDANCE_AUDIT, next);
+          safeSetStorage(getAttAuditKey(), next);
           return next;
         });
       }
@@ -529,18 +469,17 @@ export function useCenseurStore() {
     []
   );
 
-  // Confirm attendance without modifying
   const confirmAttendance = useCallback((attendanceId: string) => {
     setAttendanceItems((prev) => {
       const next = prev.map((item) =>
         item.id === attendanceId ? { ...item, isConfirmedByCenseur: true } : item
       );
-      safeSetStorage(STORAGE_KEY_ATTENDANCE, next);
+      safeSetStorage(getAttendanceKey(), next);
       return next;
     });
   }, []);
 
-  // 3. Add or update Homework / TD Program
+  // 3. Homework & Devoir program
   const addHomeworkProgram = useCallback((program: Omit<HomeworkProgram, "id">) => {
     const newItem: HomeworkProgram = {
       ...program,
@@ -548,7 +487,7 @@ export function useCenseurStore() {
     };
     setHomeworkPrograms((prev) => {
       const next = [newItem, ...prev];
-      safeSetStorage(STORAGE_KEY_HOMEWORK, next);
+      safeSetStorage(getHomeworkKey(), next);
       return next;
     });
   }, []);
@@ -556,12 +495,12 @@ export function useCenseurStore() {
   const updateHomeworkStatus = useCallback((id: string, status: HomeworkProgram["status"]) => {
     setHomeworkPrograms((prev) => {
       const next = prev.map((h) => (h.id === id ? { ...h, status } : h));
-      safeSetStorage(STORAGE_KEY_HOMEWORK, next);
+      safeSetStorage(getHomeworkKey(), next);
       return next;
     });
   }, []);
 
-  // 4. Reply to parent message
+  // 4. Parent messages
   const replyToParentMessage = useCallback(
     (messageId: string, replyText: string, repliedBy: string = "Censeur des Études") => {
       setParentMessages((prev) => {
@@ -571,12 +510,12 @@ export function useCenseurStore() {
                 ...m,
                 status: "REPONDU" as const,
                 replyText,
-                repliedAt: `${new Date().toLocaleDateString("fr-FR")} ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`,
+                repliedAt: new Date().toISOString(),
                 repliedBy,
               }
             : m
         );
-        safeSetStorage(STORAGE_KEY_MESSAGES, next);
+        safeSetStorage(getMessagesKey(), next);
         return next;
       });
     },
@@ -588,26 +527,27 @@ export function useCenseurStore() {
       const next = prev.map((m) =>
         m.id === messageId && m.status === "NON_LU" ? { ...m, status: "LU" as const } : m
       );
-      safeSetStorage(STORAGE_KEY_MESSAGES, next);
+      safeSetStorage(getMessagesKey(), next);
       return next;
     });
   }, []);
 
-  // 5. SUBJECTS MANAGEMENT (GESTION DES MATIÈRES)
+  // 5. Subject management & Teacher assignment by Censeur
   const addSubject = useCallback((subject: Omit<CenseurSubjectItem, "id">) => {
     const newSub: CenseurSubjectItem = {
       ...subject,
       id: `sub-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
     };
+
     setSubjectsList((prev) => {
-      const next = [newSub, ...prev];
-      safeSetStorage(STORAGE_KEY_CENSEUR_SUBJECTS, next);
+      const next = [...prev, newSub];
+      safeSetStorage(getCenseurSubjectsKey(), next);
       return next;
     });
 
-    // Also synchronize into bulletin subjects store if relevant
+    // Also sync to bulletin subjects
     try {
-      const currentBulletinSubs = safeGetStorage<SubjectConfig[]>(BULLETIN_SUBJECTS_STORAGE_KEY, MOCK_SUBJECTS);
+      const currentBulletinSubs = safeGetStorage<SubjectConfig[]>(getScopedStorageKey(BULLETIN_SUBJECTS_STORAGE_KEY), MOCK_SUBJECTS);
       const exists = currentBulletinSubs.some((s) => s.code.toLowerCase() === newSub.code.toLowerCase());
       if (!exists) {
         const newBulletinSub: SubjectConfig = {
@@ -620,10 +560,8 @@ export function useCenseurStore() {
           isConduite: newSub.isConduite,
         };
         const updated = [...currentBulletinSubs, newBulletinSub];
-        if (typeof window !== "undefined") {
-          localStorage.setItem(BULLETIN_SUBJECTS_STORAGE_KEY, JSON.stringify(updated));
-          window.dispatchEvent(new Event(BULLETIN_STORAGE_EVENT));
-        }
+        safeSetStorage(getScopedStorageKey(BULLETIN_SUBJECTS_STORAGE_KEY), updated);
+        window.dispatchEvent(new Event(BULLETIN_STORAGE_EVENT));
       }
     } catch (e) {
       console.error("Error syncing bulletin subjects:", e);
@@ -632,43 +570,38 @@ export function useCenseurStore() {
 
   const updateSubject = useCallback((id: string, updates: Partial<CenseurSubjectItem>) => {
     let updatedCode = "";
-    let updatedCoef = 0;
 
     setSubjectsList((prev) => {
       const next = prev.map((s) => {
         if (s.id === id) {
           const res = { ...s, ...updates };
           updatedCode = res.code;
-          updatedCoef = res.coef;
           return res;
         }
         return s;
       });
-      safeSetStorage(STORAGE_KEY_CENSEUR_SUBJECTS, next);
+      safeSetStorage(getCenseurSubjectsKey(), next);
       return next;
     });
 
-    // Sync coefficient with bulletin store
     if (updates.coef && updatedCode) {
       try {
-        const currentBulletinSubs = safeGetStorage<SubjectConfig[]>(BULLETIN_SUBJECTS_STORAGE_KEY, MOCK_SUBJECTS);
+        const currentBulletinSubs = safeGetStorage<SubjectConfig[]>(getScopedStorageKey(BULLETIN_SUBJECTS_STORAGE_KEY), MOCK_SUBJECTS);
         const updated = currentBulletinSubs.map((s) => {
           if (s.code.toLowerCase() === updatedCode.toLowerCase()) {
             return { ...s, coef: updates.coef! };
           }
           return s;
         });
-        if (typeof window !== "undefined") {
-          localStorage.setItem(BULLETIN_SUBJECTS_STORAGE_KEY, JSON.stringify(updated));
-          window.dispatchEvent(new Event(BULLETIN_STORAGE_EVENT));
-        }
+        safeSetStorage(getScopedStorageKey(BULLETIN_SUBJECTS_STORAGE_KEY), updated);
+        window.dispatchEvent(new Event(BULLETIN_STORAGE_EVENT));
       } catch (e) {
         console.error("Error syncing coef with bulletin store:", e);
       }
     }
   }, []);
 
-  // 6. TEACHER ACCOUNTS MANAGEMENT
+  // 6. Teacher account management
   const createTeacherAccount = useCallback(
     (teacher: Omit<CenseurTeacherAccount, "id" | "createdAt">) => {
       const newTeacher: CenseurTeacherAccount = {
@@ -677,8 +610,8 @@ export function useCenseurStore() {
         createdAt: new Date().toISOString().split("T")[0],
       };
       setTeacherAccounts((prev) => {
-        const next = [newTeacher, ...prev];
-        safeSetStorage(STORAGE_KEY_TEACHER_ACCOUNTS, next);
+        const next = [...prev, newTeacher];
+        safeSetStorage(getTeacherAccountsKey(), next);
         return next;
       });
       return newTeacher;
@@ -686,37 +619,34 @@ export function useCenseurStore() {
     []
   );
 
-  const updateTeacherAccount = useCallback((id: string, updates: Partial<CenseurTeacherAccount>) => {
-    setTeacherAccounts((prev) => {
-      const next = prev.map((t) => (t.id === id ? { ...t, ...updates } : t));
-      safeSetStorage(STORAGE_KEY_TEACHER_ACCOUNTS, next);
-      return next;
-    });
-  }, []);
+  const updateTeacherAccount = useCallback(
+    (id: string, updates: Partial<CenseurTeacherAccount>) => {
+      setTeacherAccounts((prev) => {
+        const next = prev.map((t) => (t.id === id ? { ...t, ...updates } : t));
+        safeSetStorage(getTeacherAccountsKey(), next);
+        return next;
+      });
+    },
+    []
+  );
 
-  // 7. PARENT CHILD ACCESS REQUESTS & VALIDATION
+  // 7. Parent access requests & student validation
   const submitParentAccessRequest = useCallback(
-    (
-      data: Omit<
-        ParentChildAccessRequest,
-        "id" | "requestDate" | "requestTime" | "status" | "isAccessActivated"
-      >
-    ) => {
-      const newRequest: ParentChildAccessRequest = {
-        ...data,
+    (req: Omit<ParentChildAccessRequest, "id" | "requestDate" | "requestTime" | "status" | "isAccessActivated">) => {
+      const newReq: ParentChildAccessRequest = {
+        ...req,
         id: `req-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        requestDate: new Date().toLocaleDateString("fr-FR"),
+        requestDate: new Date().toISOString().split("T")[0],
         requestTime: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
         status: "EN_ATTENTE",
         isAccessActivated: false,
       };
-
       setParentAccessRequests((prev) => {
-        const next = [newRequest, ...prev];
-        safeSetStorage(STORAGE_KEY_PARENT_REQUESTS, next);
+        const next = [newReq, ...prev];
+        safeSetStorage(getParentRequestsKey(), next);
         return next;
       });
-      return newRequest;
+      return newReq;
     },
     []
   );
@@ -724,26 +654,25 @@ export function useCenseurStore() {
   const validateParentAccessRequest = useCallback(
     (
       requestId: string,
-      approved: boolean,
-      activateAccess: boolean = true,
-      reason?: string,
-      validator: string = "Censeur des Études"
+      status: "ACCEPTEE" | "REFUSEE",
+      validatedBy: string = "Censeur des Études",
+      refusalReason?: string
     ) => {
       setParentAccessRequests((prev) => {
         const next = prev.map((req) => {
           if (req.id === requestId) {
             return {
               ...req,
-              status: (approved ? "ACCEPTEE" : "REFUSEE") as "ACCEPTEE" | "REFUSEE",
-              isAccessActivated: approved ? activateAccess : false,
-              validatedBy: validator,
-              validatedAt: `${new Date().toLocaleDateString("fr-FR")} ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`,
-              refusalReason: approved ? undefined : reason || "Demande non conforme aux dossiers d'inscription",
+              status,
+              isAccessActivated: status === "ACCEPTEE",
+              validatedBy,
+              validatedAt: new Date().toISOString(),
+              refusalReason: status === "REFUSEE" ? refusalReason : undefined,
             };
           }
           return req;
         });
-        safeSetStorage(STORAGE_KEY_PARENT_REQUESTS, next);
+        safeSetStorage(getParentRequestsKey(), next);
         return next;
       });
     },
@@ -762,17 +691,22 @@ export function useCenseurStore() {
         }
         return req;
       });
-      safeSetStorage(STORAGE_KEY_PARENT_REQUESTS, next);
+      safeSetStorage(getParentRequestsKey(), next);
       return next;
     });
   }, []);
 
   // Helper: get authorized children for a parent
   const getAuthorizedChildrenForParent = useCallback(
-    (parentIdOrPhone: string) => {
+    (parentQuery: string) => {
+      const clean = (parentQuery || "").trim().toLowerCase();
+      if (!clean) return [];
+
       const activeRequests = parentAccessRequests.filter(
         (r) =>
-          (r.parentId === parentIdOrPhone || r.parentPhone === parentIdOrPhone) &&
+          (r.parentId?.toLowerCase() === clean ||
+            r.parentPhone?.toLowerCase() === clean ||
+            r.parentEmail?.toLowerCase() === clean) &&
           r.status === "ACCEPTEE" &&
           r.isAccessActivated
       );

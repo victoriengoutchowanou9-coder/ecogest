@@ -86,9 +86,7 @@ export default function CenseurDemandesParentsPage() {
     if (!selectedRequest) return;
     validateParentAccessRequest(
       selectedRequest.id,
-      true,
-      confirmActivation,
-      undefined,
+      "ACCEPTEE",
       "Censeur des Études"
     );
     setSelectedRequest(null);
@@ -102,10 +100,9 @@ export default function CenseurDemandesParentsPage() {
     }
     validateParentAccessRequest(
       selectedRequest.id,
-      false,
-      false,
-      refusalReason.trim(),
-      "Censeur des Études"
+      "REFUSEE",
+      "Censeur des Études",
+      refusalReason.trim()
     );
     setSelectedRequest(null);
   };

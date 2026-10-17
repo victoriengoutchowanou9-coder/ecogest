@@ -150,14 +150,17 @@ export async function POST(request: Request) {
       }
 
       const formattedPhone = geoValidation.formattedPhone || phone.trim();
-      const schoolCode = `ECO-${Math.floor(100 + Math.random() * 900)}`;
+      const rawSchoolCode = (body.schoolCode || "").toString().trim();
+      const finalSchoolCode = /^\d{4}$/.test(rawSchoolCode)
+        ? rawSchoolCode
+        : `${Math.floor(1000 + Math.random() * 9000)}`;
       const slug = `${cleanSchoolName.toLowerCase().replace(/[^a-z0-9]/g, "-")}-${Math.floor(10 + Math.random() * 90)}`;
 
       // Insertion dans la table schools de Supabase
       const { data: schoolRow, error: schoolInsertError } = await supabase
         .from("schools")
         .insert({
-          code: schoolCode,
+          code: finalSchoolCode,
           name: cleanSchoolName,
           short_name: cleanSchoolName.slice(0, 20),
           slug,

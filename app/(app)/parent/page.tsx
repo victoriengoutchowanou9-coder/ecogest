@@ -32,22 +32,31 @@ import {
   MOCK_HOMEWORK_ITEMS,
   MOCK_UPCOMING_EVALUATIONS,
   MOCK_ABSENCE_RECORDS,
-  MOCK_PARENT_PROFILE,
 } from "@/lib/mock-bulletin-db";
 import { useCenseurStore } from "@/lib/censeur-store";
+import { useAuthStore } from "@/lib/auth-store";
 import { StudentProfile } from "@/lib/types/bulletin";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { Plus, Search, ShieldCheck, X } from "lucide-react";
 
 export default function ParentDashboardPage() {
+  const { user: currentUser } = useAuthStore();
   const { studentsList, parentAccessRequests, submitParentAccessRequest } = useCenseurStore();
+
+  const parentPhone = currentUser?.phone || "";
+  const parentEmail = currentUser?.email || "";
+  const parentId = currentUser?.id || "";
+  const parentIdent = currentUser?.identifier || "";
 
   // Initial base children + any children whose access has been validated and activated by Censeur
   const myChildren = React.useMemo(() => {
     const list: Student[] = [];
     const activatedRequests = parentAccessRequests.filter(
       (r) =>
-        (r.parentPhone === MOCK_PARENT_PROFILE.phoneNumber || r.parentId === MOCK_PARENT_PROFILE.id) &&
+        (r.parentPhone === parentPhone ||
+          r.parentEmail === parentEmail ||
+          r.parentId === parentId ||
+          r.parentId === parentIdent) &&
         r.status === "ACCEPTEE" &&
         r.isAccessActivated
     );
@@ -81,7 +90,7 @@ export default function ParentDashboardPage() {
     });
 
     return list;
-  }, [parentAccessRequests, studentsList]);
+  }, [parentAccessRequests, studentsList, parentPhone, parentEmail, parentId, parentIdent]);
 
   const [selectedChild, setSelectedChild] = useState<Student | undefined>(undefined);
 
@@ -116,7 +125,10 @@ export default function ParentDashboardPage() {
   // Check pending requests for this parent
   const pendingRequests = parentAccessRequests.filter(
     (r) =>
-      (r.parentPhone === MOCK_PARENT_PROFILE.phoneNumber || r.parentId === MOCK_PARENT_PROFILE.id) &&
+      (r.parentPhone === parentPhone ||
+        r.parentEmail === parentEmail ||
+        r.parentId === parentId ||
+        r.parentId === parentIdent) &&
       r.status === "EN_ATTENTE"
   );
 
@@ -152,10 +164,10 @@ export default function ParentDashboardPage() {
     if (!searchedStudent) return;
 
     submitParentAccessRequest({
-      parentId: MOCK_PARENT_PROFILE.id,
-      parentName: MOCK_PARENT_PROFILE.fullName,
-      parentPhone: MOCK_PARENT_PROFILE.phoneNumber,
-      parentEmail: MOCK_PARENT_PROFILE.email,
+      parentId: currentUser?.identifier || currentUser?.id || "parent",
+      parentName: currentUser?.fullName || "Parent d'élève",
+      parentPhone: currentUser?.phone || "",
+      parentEmail: currentUser?.email || "",
       studentId: searchedStudent.id,
       studentName: `${searchedStudent.lastName} ${searchedStudent.firstName}`,
       matricule: searchedStudent.matricule,

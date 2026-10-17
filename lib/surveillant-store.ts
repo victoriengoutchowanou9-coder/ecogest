@@ -92,15 +92,17 @@ export interface ExceptionalExitRecord {
   date: string;
 }
 
-const STORAGE_KEY_ATTENDANCE = "educogest_censeur_attendance_v1";
-const STORAGE_KEY_DISCIPLINE = "educogest_discipline_incidents_v2";
-const STORAGE_KEY_SANCTIONS = "educogest_surveillant_sanctions_v1";
-const STORAGE_KEY_SLOTS = "educogest_surveillant_slots_v1";
-const STORAGE_KEY_ACTIVITIES = "educogest_surveillant_activities_v1";
-const STORAGE_KEY_MESSAGES = "educogest_surveillant_parent_comms_v1";
-const STORAGE_KEY_EXITS = "educogest_surveillant_exits_v1";
-const STORAGE_KEY_STUDENTS = "educogest_censeur_students_v1";
-const STORAGE_KEY_CLASSES = "educogest_school_classes_v2";
+import { getScopedStorageKey } from "./school-context";
+
+const getAttendanceKey = () => getScopedStorageKey("educogest_censeur_attendance_v2");
+const getDisciplineKey = () => getScopedStorageKey("educogest_discipline_incidents_v3");
+const getSanctionsKey = () => getScopedStorageKey("educogest_surveillant_sanctions_v2");
+const getSlotsKey = () => getScopedStorageKey("educogest_surveillant_slots_v2");
+const getActivitiesKey = () => getScopedStorageKey("educogest_surveillant_activities_v2");
+const getMessagesKey = () => getScopedStorageKey("educogest_surveillant_parent_comms_v2");
+const getExitsKey = () => getScopedStorageKey("educogest_surveillant_exits_v2");
+const getStudentsKey = () => getScopedStorageKey("educogest_censeur_students_v2");
+const getClassesKey = () => getScopedStorageKey("educogest_school_classes_v3");
 
 const STORAGE_EVENT = "educogest_surveillant_storage_update";
 const SHARED_STORAGE_EVENT = "ecogest_shared_data_update";
@@ -128,196 +130,60 @@ function safeSetStorage<T>(key: string, value: T): void {
   }
 }
 
-const INITIAL_SANCTIONS: SanctionRecord[] = [
-  {
-    id: "sanc-01",
-    studentId: "std-03",
-    studentName: "Rodrigue KANHONOU",
-    matricule: "ECO-2026-0018",
-    className: "6ème A",
-    incidentId: "disc-init-01",
-    type: "AVERTISSEMENT",
-    description: "Avertissement pour retards répétitifs sans motif valable.",
-    startDate: "2026-10-17",
-    requiresDirectorApproval: false,
-    directorApprovalStatus: "NON_REQUISE",
-    issuedBy: "Augustin SOSSOU (Surveillant Général)",
-    issuedAt: "2026-10-17 08:30",
-    status: "EN_COURS",
-  },
-  {
-    id: "sanc-02",
-    studentId: "std-07",
-    studentName: "Kévine TCHIBOZO",
-    matricule: "ECO-2026-0042",
-    className: "3ème A",
-    type: "EXCLUSION_TEMPORAIRE",
-    description: "Proposition d'exclusion temporaire de 2 jours pour dégradation d'une table-banc en salle 3A.",
-    startDate: "2026-10-20",
-    endDate: "2026-10-22",
-    duration: "2 jours",
-    requiresDirectorApproval: true,
-    directorApprovalStatus: "EN_ATTENTE",
-    directorNote: "Dossier soumis à validation par M. le Directeur conformément au règlement intérieur.",
-    issuedBy: "Augustin SOSSOU (Surveillant Général)",
-    issuedAt: "2026-10-16 16:00",
-    status: "EN_COURS",
-  },
-];
-
-const INITIAL_SLOTS: SurveillanceSlot[] = [
-  {
-    id: "slot-01",
-    zone: "ENTREE",
-    dayOfWeek: "Lundi",
-    timeSlot: "07:15 - 08:00",
-    surveillantName: "Augustin SOSSOU",
-    notes: "Contrôle des uniformes et de la ponctualité au grand portail",
-    status: "ACTIF",
-  },
-  {
-    id: "slot-02",
-    zone: "RECREATION",
-    dayOfWeek: "Lundi",
-    timeSlot: "10:00 - 10:30",
-    surveillantName: "Patrice KOUDJO (Surveillant adjoint)",
-    notes: "Surveillance de la cour et des abords du réfectoire",
-    status: "ACTIF",
-  },
-  {
-    id: "slot-03",
-    zone: "COULOIRS",
-    dayOfWeek: "Mardi",
-    timeSlot: "14:00 - 17:00",
-    surveillantName: "Augustin SOSSOU",
-    notes: "Maintien de l'ordre pendant les cours des 4e et 3e",
-    status: "ACTIF",
-  },
-  {
-    id: "slot-04",
-    zone: "SORTIE",
-    dayOfWeek: "Vendredi",
-    timeSlot: "17:00 - 17:45",
-    surveillantName: "Augustin SOSSOU",
-    notes: "Évacuation ordonnée des élèves et fermeture des issues",
-    status: "ACTIF",
-  },
-];
-
-const INITIAL_ACTIVITIES: SchoolActivityRecord[] = [
-  {
-    id: "act-01",
-    type: "SORTIE_SCOLAIRE",
-    title: "Visite pédagogique au Musée Historique d'Ouidah",
-    classNames: ["6ème A", "5ème A"],
-    date: "2026-11-14",
-    timeSlot: "08:00 - 16:00",
-    destination: "Ouidah (Fort Portugais)",
-    responsiblePerson: "M. Marcellin DOKPO (Censeur) & Augustin SOSSOU",
-    authorizedStudentCount: 65,
-    parentalAuthorizationRequired: true,
-    status: "PLANIFIEE",
-    notes: "Départ par car scolaire sécurisé depuis la cour.",
-  },
-  {
-    id: "act-02",
-    type: "MANIFESTATION",
-    title: "Journée Nationale du Sport Scolaire",
-    classNames: ["Toutes classes"],
-    date: "2026-10-31",
-    timeSlot: "08:00 - 12:00",
-    destination: "Terrain des sports de l'établissement",
-    responsiblePerson: "Professeurs d'EPS & Surveillant Général",
-    authorizedStudentCount: 150,
-    parentalAuthorizationRequired: false,
-    status: "PLANIFIEE",
-  },
-];
-
-const INITIAL_PARENT_COMMS: ParentDisciplineMessage[] = [
-  {
-    id: "pcomm-01",
-    studentId: "std-03",
-    studentName: "Rodrigue KANHONOU",
-    className: "6ème A",
-    parentName: "M. Bernard KANHONOU",
-    parentPhone: "+229 96 22 33 44",
-    type: "AVIS_RETARD",
-    subject: "Signalement de retard : Rodrigue KANHONOU (6ème A)",
-    message: "Bonjour M. KANHONOU. Votre enfant est arrivé avec 15 minutes de retard au premier cours de ce matin. Merci de veiller à sa ponctualité.",
-    sentAt: "2026-10-17 08:35",
-    sentBy: "Augustin SOSSOU (Surveillant Général)",
-    parentResponse: "Bien reçu M. le surveillant, nous avons eu une panne de moto, désolé.",
-    responseReceivedAt: "2026-10-17 09:10",
-    status: "REPONDU",
-  },
-];
-
-const INITIAL_EXITS: ExceptionalExitRecord[] = [
-  {
-    id: "exit-01",
-    studentId: "std-02",
-    studentName: "Marie-Josée AGBO",
-    className: "6ème A",
-    matricule: "ECO-2026-0015",
-    exitTime: "10:15",
-    expectedReturnTime: "Demain matin",
-    reason: "Malaise fébrile constaté par l'infirmerie",
-    authorizedBy: "Augustin SOSSOU (Surveillant Général)",
-    parentNotified: true,
-    accompanyingPerson: "Mme Clarisse AGBO (Mère)",
-    date: new Date().toISOString().split("T")[0],
-  },
-];
+const INITIAL_SANCTIONS: SanctionRecord[] = [];
+const INITIAL_SLOTS: SurveillanceSlot[] = [];
+const INITIAL_ACTIVITIES: SchoolActivityRecord[] = [];
+const INITIAL_PARENT_COMMS: ParentDisciplineMessage[] = [];
+const INITIAL_EXITS: ExceptionalExitRecord[] = [];
 
 export function useSurveillantStore() {
   const [attendance, setAttendance] = useState<CenseurAttendanceItem[]>(() =>
-    safeGetStorage(STORAGE_KEY_ATTENDANCE, INITIAL_ATTENDANCE_ITEMS)
+    safeGetStorage(getAttendanceKey(), [])
   );
 
   const [incidents, setIncidents] = useState<DisciplineIncident[]>(() =>
-    safeGetStorage(STORAGE_KEY_DISCIPLINE, INITIAL_DISCIPLINE_INCIDENTS)
+    safeGetStorage(getDisciplineKey(), [])
   );
 
   const [sanctions, setSanctions] = useState<SanctionRecord[]>(() =>
-    safeGetStorage(STORAGE_KEY_SANCTIONS, INITIAL_SANCTIONS)
+    safeGetStorage(getSanctionsKey(), INITIAL_SANCTIONS)
   );
 
   const [slots, setSlots] = useState<SurveillanceSlot[]>(() =>
-    safeGetStorage(STORAGE_KEY_SLOTS, INITIAL_SLOTS)
+    safeGetStorage(getSlotsKey(), INITIAL_SLOTS)
   );
 
   const [activities, setActivities] = useState<SchoolActivityRecord[]>(() =>
-    safeGetStorage(STORAGE_KEY_ACTIVITIES, INITIAL_ACTIVITIES)
+    safeGetStorage(getActivitiesKey(), INITIAL_ACTIVITIES)
   );
 
   const [parentComms, setParentComms] = useState<ParentDisciplineMessage[]>(() =>
-    safeGetStorage(STORAGE_KEY_MESSAGES, INITIAL_PARENT_COMMS)
+    safeGetStorage(getMessagesKey(), INITIAL_PARENT_COMMS)
   );
 
   const [exits, setExits] = useState<ExceptionalExitRecord[]>(() =>
-    safeGetStorage(STORAGE_KEY_EXITS, INITIAL_EXITS)
+    safeGetStorage(getExitsKey(), INITIAL_EXITS)
   );
 
   const [students, setStudents] = useState<StudentProfile[]>(() =>
-    safeGetStorage(STORAGE_KEY_STUDENTS, MOCK_BULLETIN_STUDENTS)
+    safeGetStorage(getStudentsKey(), [])
   );
 
   const [classrooms, setClassrooms] = useState<ClassRoom[]>(() =>
-    safeGetStorage(STORAGE_KEY_CLASSES, MOCK_CLASSROOMS)
+    safeGetStorage(getClassesKey(), [])
   );
 
   useEffect(() => {
     const handleSync = () => {
-      setAttendance(safeGetStorage(STORAGE_KEY_ATTENDANCE, INITIAL_ATTENDANCE_ITEMS));
-      setIncidents(safeGetStorage(STORAGE_KEY_DISCIPLINE, INITIAL_DISCIPLINE_INCIDENTS));
-      setSanctions(safeGetStorage(STORAGE_KEY_SANCTIONS, INITIAL_SANCTIONS));
-      setSlots(safeGetStorage(STORAGE_KEY_SLOTS, INITIAL_SLOTS));
-      setActivities(safeGetStorage(STORAGE_KEY_ACTIVITIES, INITIAL_ACTIVITIES));
-      setParentComms(safeGetStorage(STORAGE_KEY_MESSAGES, INITIAL_PARENT_COMMS));
-      setExits(safeGetStorage(STORAGE_KEY_EXITS, INITIAL_EXITS));
-      setStudents(safeGetStorage(STORAGE_KEY_STUDENTS, MOCK_BULLETIN_STUDENTS));
-      setClassrooms(safeGetStorage(STORAGE_KEY_CLASSES, MOCK_CLASSROOMS));
+      setAttendance(safeGetStorage(getAttendanceKey(), []));
+      setIncidents(safeGetStorage(getDisciplineKey(), []));
+      setSanctions(safeGetStorage(getSanctionsKey(), INITIAL_SANCTIONS));
+      setSlots(safeGetStorage(getSlotsKey(), INITIAL_SLOTS));
+      setActivities(safeGetStorage(getActivitiesKey(), INITIAL_ACTIVITIES));
+      setParentComms(safeGetStorage(getMessagesKey(), INITIAL_PARENT_COMMS));
+      setExits(safeGetStorage(getExitsKey(), INITIAL_EXITS));
+      setStudents(safeGetStorage(getStudentsKey(), []));
+      setClassrooms(safeGetStorage(getClassesKey(), []));
     };
 
     window.addEventListener(STORAGE_EVENT, handleSync);
@@ -387,7 +253,7 @@ export function useSurveillantStore() {
           };
           next = [newItem, ...prev];
         }
-        safeSetStorage(STORAGE_KEY_ATTENDANCE, next);
+        safeSetStorage(getAttendanceKey(), next);
         return next;
       });
     },
@@ -440,7 +306,7 @@ export function useSurveillantStore() {
         }));
 
         const next = [...newItems, ...filtered];
-        safeSetStorage(STORAGE_KEY_ATTENDANCE, next);
+        safeSetStorage(getAttendanceKey(), next);
         return next;
       });
     },
@@ -458,7 +324,7 @@ export function useSurveillantStore() {
 
       setIncidents((prev) => {
         const next = [newInc, ...prev];
-        safeSetStorage(STORAGE_KEY_DISCIPLINE, next);
+        safeSetStorage(getDisciplineKey(), next);
         return next;
       });
       return newInc;
@@ -474,7 +340,7 @@ export function useSurveillantStore() {
             ? { ...inc, status, comment: comment !== undefined ? comment : inc.comment }
             : inc
         );
-        safeSetStorage(STORAGE_KEY_DISCIPLINE, next);
+        safeSetStorage(getDisciplineKey(), next);
         return next;
       });
     },
@@ -500,7 +366,7 @@ export function useSurveillantStore() {
 
       setSanctions((prev) => {
         const next = [newSanction, ...prev];
-        safeSetStorage(STORAGE_KEY_SANCTIONS, next);
+        safeSetStorage(getSanctionsKey(), next);
         return next;
       });
       return newSanction;
@@ -525,7 +391,7 @@ export function useSurveillantStore() {
           }
           return s;
         });
-        safeSetStorage(STORAGE_KEY_SANCTIONS, next);
+        safeSetStorage(getSanctionsKey(), next);
         return next;
       });
     },
@@ -543,7 +409,7 @@ export function useSurveillantStore() {
 
       setExits((prev) => {
         const next = [newExit, ...prev];
-        safeSetStorage(STORAGE_KEY_EXITS, next);
+        safeSetStorage(getExitsKey(), next);
         return next;
       });
       return newExit;
@@ -560,7 +426,7 @@ export function useSurveillantStore() {
 
     setSlots((prev) => {
       const next = [newSlot, ...prev];
-      safeSetStorage(STORAGE_KEY_SLOTS, next);
+      safeSetStorage(getSlotsKey(), next);
       return next;
     });
     return newSlot;
@@ -575,7 +441,7 @@ export function useSurveillantStore() {
 
     setActivities((prev) => {
       const next = [newAct, ...prev];
-      safeSetStorage(STORAGE_KEY_ACTIVITIES, next);
+      safeSetStorage(getActivitiesKey(), next);
       return next;
     });
     return newAct;
@@ -593,7 +459,7 @@ export function useSurveillantStore() {
 
       setParentComms((prev) => {
         const next = [newMsg, ...prev];
-        safeSetStorage(STORAGE_KEY_MESSAGES, next);
+        safeSetStorage(getMessagesKey(), next);
         return next;
       });
       return newMsg;

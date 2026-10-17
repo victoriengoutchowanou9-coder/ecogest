@@ -15,10 +15,49 @@ import {
   Lock,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { MOCK_PARENT_PROFILE } from "@/lib/mock-bulletin-db";
+import { useAuthStore } from "@/lib/auth-store";
+import { useCenseurStore } from "@/lib/censeur-store";
 
 export default function ParentProfilePage() {
-  const [profile, setProfile] = useState(MOCK_PARENT_PROFILE);
+  const { user: currentUser } = useAuthStore();
+  const { studentsList, parentAccessRequests } = useCenseurStore();
+
+  const parentPhone = currentUser?.phone || "";
+  const parentEmail = currentUser?.email || "";
+  const parentId = currentUser?.id || "";
+  const parentIdent = currentUser?.identifier || "";
+
+  const myChildren = React.useMemo(() => {
+    const activatedRequests = parentAccessRequests.filter(
+      (r) =>
+        (r.parentPhone === parentPhone ||
+          r.parentEmail === parentEmail ||
+          r.parentId === parentId ||
+          r.parentId === parentIdent) &&
+        r.status === "ACCEPTEE" &&
+        r.isAccessActivated
+    );
+    const activeStudentIds = new Set(activatedRequests.map((r) => r.studentId));
+    return studentsList.filter((s) => activeStudentIds.has(s.id));
+  }, [parentAccessRequests, studentsList, parentPhone, parentEmail, parentId, parentIdent]);
+
+  const [profile, setProfile] = useState(() => ({
+    id: currentUser?.identifier || currentUser?.id || "",
+    fullName: currentUser?.fullName || "",
+    relationship: "Parent",
+    phoneNumber: currentUser?.phone || "",
+    email: currentUser?.email || "",
+    address: "",
+    profession: "",
+    workplace: "",
+    emergencyContact: "",
+    notifications: {
+      notifyOnAbsence: true,
+      notifyOnGrades: true,
+      notifyOnDueTuition: true,
+      whatsappAlerts: true,
+    },
+  }));
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   const handleToggleNotif = (key: keyof typeof profile.notifications) => {
@@ -140,15 +179,15 @@ export default function ParentProfilePage() {
             <h3 className="text-sm font-bold text-slate-900">Enfants rattachés sous votre tutelle</h3>
           </div>
 
-          {profile.children.length === 0 ? (
+          {myChildren.length === 0 ? (
             <p className="text-xs text-slate-400 py-4 text-center">
               Aucun enfant actuellement rattaché à ce compte.
             </p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {profile.children.map((child) => (
+              {myChildren.map((child) => (
                 <div key={child.id} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
-                  <h4 className="font-extrabold text-slate-900">{child.name}</h4>
+                  <h4 className="font-extrabold text-slate-900">{child.lastName} {child.firstName}</h4>
                   <p className="text-slate-600">
                     Classe : <strong className="text-school-primary">{child.className}</strong>
                   </p>
@@ -156,7 +195,7 @@ export default function ParentProfilePage() {
                     Matricule : {child.matricule}
                   </p>
                   <p className="text-slate-500 font-mono">
-                    N° Educ Master : {child.educMaster}
+                    N° Educ Master : {child.educMasterNumber || "-"}
                   </p>
                 </div>
               ))}

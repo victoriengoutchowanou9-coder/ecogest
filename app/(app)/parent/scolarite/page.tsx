@@ -10,15 +10,24 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatFCFA, formatDate } from "@/lib/utils";
 import { MOCK_STUDENTS, MOCK_RECEIPTS, Student, PaymentReceipt } from "@/lib/mock-data";
 import { useCenseurStore } from "@/lib/censeur-store";
-import { MOCK_PARENT_PROFILE } from "@/lib/mock-bulletin-db";
+import { useAuthStore } from "@/lib/auth-store";
 
 export default function ParentScolaritePage() {
+  const { user: currentUser } = useAuthStore();
   const { studentsList, parentAccessRequests } = useCenseurStore();
 
   const myChildren: Student[] = React.useMemo(() => {
+    const parentPhone = currentUser?.phone || "";
+    const parentEmail = currentUser?.email || "";
+    const parentId = currentUser?.id || "";
+    const parentIdent = currentUser?.identifier || "";
+
     const activatedRequests = parentAccessRequests.filter(
       (r) =>
-        (r.parentPhone === MOCK_PARENT_PROFILE.phoneNumber || r.parentId === MOCK_PARENT_PROFILE.id) &&
+        (r.parentPhone === parentPhone ||
+          r.parentEmail === parentEmail ||
+          r.parentId === parentId ||
+          r.parentId === parentIdent) &&
         r.status === "ACCEPTEE" &&
         r.isAccessActivated
     );

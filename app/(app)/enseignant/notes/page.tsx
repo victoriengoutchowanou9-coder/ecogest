@@ -29,7 +29,7 @@ import {
 } from "@/lib/mock-bulletin-db";
 import { CompetencyAcquisitionLevel, CompetencyLevelDefinition } from "@/lib/types/bulletin";
 import { useBulletinStore } from "@/lib/bulletin-store";
-import { MOCK_TEACHER_PROFILE } from "@/lib/mock-teacher-db";
+import { useAuthStore } from "@/lib/auth-store";
 import { roundToTwoDecimals, getAppreciationFromGrade } from "@/lib/bulletin-utils";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +50,10 @@ interface StudentGradeEntry {
 
 export default function EnseignantNotesPage() {
   const { toast } = useToast();
+  const { user: currentUser } = useAuthStore();
   const {
+    classrooms,
+    students,
     subjects,
     grades,
     primaryGrades,
@@ -62,9 +65,16 @@ export default function EnseignantNotesPage() {
   // Selectors
   const [selectedYear, setSelectedYear] = useState<string>("2026-2027");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("T1");
-  const [selectedClassId, setSelectedClassId] = useState<string>("3e-a");
+  const [selectedClassId, setSelectedClassId] = useState<string>(classrooms[0]?.id || "");
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("mat-math");
   const [evalFilter, setEvalFilter] = useState<"ALL" | "INT1" | "INT2" | "INT3" | "DEV1" | "DEV2">("ALL");
+
+  // Synchroniser la classe sélectionnée si les classes sont chargées
+  React.useEffect(() => {
+    if (classrooms.length > 0 && (!selectedClassId || !classrooms.some((c) => c.id === selectedClassId))) {
+      setSelectedClassId(classrooms[0].id);
+    }
+  }, [classrooms, selectedClassId]);
 
   // Primary Competency Selectors
   const [selectedDomainId, setSelectedDomainId] = useState<string>(MOCK_PRIMARY_DOMAINS[0]?.id || "dom-francais");
@@ -82,8 +92,20 @@ export default function EnseignantNotesPage() {
     }
   }, [selectedDomainId, availableCompetencies, selectedCompetencyId]);
 
-  // Selected class info & Cycle Detection
-  const assignedClasses = MOCK_TEACHER_PROFILE.classesAssigned;
+  // Classes réelles de l'établissement
+  const assignedClasses = useMemo(() => {
+    return classrooms.map((c) => ({
+      classId: c.id,
+      className: c.name,
+      subject: "Enseignement Général",
+      coef: 3,
+      cycle: c.cycle,
+      isMain: false,
+      studentsCount: students.filter((s) => s.classId === c.id).length,
+      hoursPerWeek: 4,
+    }));
+  }, [classrooms, students]);
+
   const currentClassAssignment =
     assignedClasses.find((c) => c.classId === selectedClassId) ||
     assignedClasses[0] || {
@@ -114,15 +136,21 @@ export default function EnseignantNotesPage() {
       toast("Le coefficient doit être compris entre 1 et 10.", "error");
       return;
     }
-    updateSubjectCoef(selectedSubjectId, coefInput, MOCK_TEACHER_PROFILE.fullName);
+    updateSubjectCoef(selectedSubjectId, coefInput, currentUser?.fullName || "Professeur");
     toast(`Coefficient de « ${currentSubject.name} » fixé à ${coefInput}.`, "success");
   };
 
   const coef = currentSubject.coef;
 
-  // Initialize secondary grades from reactive store
+  // Élèves réels inscrits dans cette classe (Zéro mock data)
+  const realClassStudents = useMemo(() => {
+    if (!selectedClassId) return [];
+    return students.filter((st) => st.classId === selectedClassId);
+  }, [students, selectedClassId]);
+
+  // Initialize secondary grades from reactive store using real students
   const initialStudentGrades = useMemo(() => {
-    return MOCK_BULLETIN_STUDENTS.map((st) => {
+    return realClassStudents.map((st) => {
       const existingGrade = grades.find(
         (g) => g.studentId === st.id && g.subjectId === selectedSubjectId && g.periodId === selectedPeriod
       );
@@ -154,10 +182,10 @@ export default function EnseignantNotesPage() {
         devoir1: d1,
         devoir2: d2,
         appreciation: avg20 !== null ? getAppreciationFromGrade(avg20) : "…",
-        status: "BROUILLON" as const,
+        status: (existingGrade?.isValidated ? "VERROUILLE" : "BROUILLON") as "VERROUILLE" | "BROUILLON",
       };
     });
-  }, [grades, selectedSubjectId, selectedPeriod]);
+  }, [grades, selectedSubjectId, selectedPeriod, realClassStudents]);
 
   // Primary Competency Entries state
   const [primaryEntries, setPrimaryEntries] = useState<
@@ -170,7 +198,7 @@ export default function EnseignantNotesPage() {
       teacherNote: string;
     }>
   >(() => {
-    return MOCK_PRIMARY_BULLETIN_STUDENTS.map((st) => {
+    return realClassStudents.map((st) => {
       const rec = primaryGrades.find(
         (g) =>
           g.studentId === st.id &&
@@ -191,7 +219,7 @@ export default function EnseignantNotesPage() {
   // Keep primary entries synchronized when competency or period changes
   React.useEffect(() => {
     setPrimaryEntries(
-      MOCK_PRIMARY_BULLETIN_STUDENTS.map((st) => {
+      realClassStudents.map((st) => {
         const rec = primaryGrades.find(
           (g) =>
             g.studentId === st.id &&
@@ -208,7 +236,7 @@ export default function EnseignantNotesPage() {
         };
       })
     );
-  }, [primaryGrades, selectedCompetencyId, selectedPeriod]);
+  }, [primaryGrades, selectedCompetencyId, selectedPeriod, realClassStudents]);
 
   const [studentsGrades, setStudentsGrades] = useState<StudentGradeEntry[]>(initialStudentGrades);
   const [gridStatus, setGridStatus] = useState<"BROUILLON" | "SOUMIS" | "VERROUILLE">("BROUILLON");

@@ -26,6 +26,7 @@ import { PublicFooter } from "@/components/layout/PublicFooter";
 import { useToast } from "@/components/ui/Toast";
 import { useSubscriptionStore, SchoolPlanCode, ParentPlanCode } from "@/lib/subscription-store";
 import { useAuthStore } from "@/lib/auth-store";
+import { validateSchoolCode } from "@/lib/user-registry";
 import {
   SUPPORTED_COUNTRIES,
   getCountryConfig,
@@ -58,6 +59,7 @@ export default function InscriptionPage() {
   const [managerLastName, setManagerLastName] = useState("");
   const [managerFirstName, setManagerFirstName] = useState("");
   const [schoolName, setSchoolName] = useState("");
+  const [schoolCode, setSchoolCode] = useState("");
   const [schoolEmail, setSchoolEmail] = useState("");
   const [country, setCountry] = useState("Bénin");
   const [department, setDepartment] = useState("Littoral");
@@ -82,6 +84,7 @@ export default function InscriptionPage() {
   // Error states for validation
   const [schoolLastNameError, setSchoolLastNameError] = useState("");
   const [schoolFirstNameError, setSchoolFirstNameError] = useState("");
+  const [schoolCodeError, setSchoolCodeError] = useState("");
   const [schoolEmailError, setSchoolEmailError] = useState("");
   const [schoolPasswordError, setSchoolPasswordError] = useState("");
   const [geoError, setGeoError] = useState("");
@@ -185,6 +188,14 @@ export default function InscriptionPage() {
       return;
     }
 
+    // Validation Code établissement à 4 chiffres (Règle 3)
+    const codeCheck = validateSchoolCode(schoolCode);
+    if (!codeCheck.valid) {
+      setSchoolCodeError(codeCheck.error || "Code établissement à 4 chiffres obligatoire.");
+      toast(codeCheck.error || "Le code établissement doit comporter exactement 4 chiffres.", "error");
+      return;
+    }
+
     const finalPhone = geoValidation.formattedPhone || schoolPhone.trim();
     const fullDirectorName = `${managerLastName.trim().toUpperCase()} ${managerFirstName.trim()}`;
 
@@ -197,6 +208,7 @@ export default function InscriptionPage() {
         body: JSON.stringify({
           pathway: "SCHOOL",
           schoolName: schoolName.trim(),
+          schoolCode: schoolCode.trim(),
           directorLastName: managerLastName.trim(),
           directorFirstName: managerFirstName.trim(),
           directorName: fullDirectorName,
@@ -234,11 +246,12 @@ export default function InscriptionPage() {
         schoolRegion: department.trim(),
         schoolCountry: country,
         chosenPlan,
-        schoolCode: data.school?.code,
+        schoolCode: data.school?.code || schoolCode.trim(),
+        password,
       });
 
       toast(
-        `Établissement « ${schoolName} » enregistré avec succès ! Veuillez valider votre formule d'abonnement.`,
+        `Établissement « ${schoolName} » enregistré avec le code ${schoolCode.trim()} ! Veuillez valider votre formule d'abonnement.`,
         "success"
       );
       router.push("/directeur/abonnement?activation=required");
@@ -253,6 +266,8 @@ export default function InscriptionPage() {
         schoolRegion: department.trim(),
         schoolCountry: country,
         chosenPlan,
+        schoolCode: schoolCode.trim(),
+        password,
       });
       toast(`Établissement ${schoolName} enregistré !`, "info");
       router.push("/directeur/abonnement?activation=required");
@@ -517,17 +532,45 @@ export default function InscriptionPage() {
                 </div>
               </div>
 
-              {/* Nom officiel de l'établissement */}
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">Nom officiel de l&apos;établissement *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex : Complexe Scolaire Ste Marie"
-                  value={schoolName}
-                  onChange={(e) => setSchoolName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900"
-                />
+              {/* Nom officiel et Code à 4 chiffres */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="font-bold text-slate-700 block">Nom officiel de l&apos;établissement *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex : Complexe Scolaire Ste Marie"
+                    value={schoolName}
+                    onChange={(e) => setSchoolName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">
+                    Code établissement (4 chiffres) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={4}
+                    placeholder="Ex : 4827"
+                    value={schoolCode}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                      setSchoolCode(val);
+                      if (schoolCodeError) setSchoolCodeError("");
+                    }}
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-mono font-bold tracking-widest text-center text-slate-900 ${
+                      schoolCodeError ? "border-rose-500 bg-rose-50/40" : "border-slate-300"
+                    }`}
+                  />
+                  {schoolCodeError && (
+                    <p className="text-[11px] text-rose-600 font-semibold flex items-center gap-1 mt-1">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{schoolCodeError}</span>
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Email officiel et Téléphone */}

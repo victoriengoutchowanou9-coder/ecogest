@@ -33,6 +33,10 @@ import {
 } from "@/lib/subscription-store";
 import { useAuthStore } from "@/lib/auth-store";
 import { useToast } from "@/components/ui/Toast";
+import {
+  authenticateSystemUser,
+  validateSchoolCode,
+} from "@/lib/user-registry";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -44,6 +48,7 @@ export default function AuthPage() {
     changeParentPlan,
     activeSchool,
     schools,
+    switchActiveSchool,
   } = useSubscriptionStore();
 
   // Mode principal : Connexion ou Inscription
@@ -57,135 +62,50 @@ export default function AuthPage() {
   const [rememberMe, setRememberMe] = useState(true);
 
   // =========================================================================
-  // ÉTATS DE CONNEXION
+  // ÉTATS DE CONNEXION (Règle 1 : Identifiant + Mot de passe OBLIGATOIRE)
   // =========================================================================
-  const [loginRole, setLoginRole] = useState<Role>("directeur");
-  const [loginEmail, setLoginEmail] = useState("directeur@ecole.bj");
-  const [loginPassword, setLoginPassword] = useState("********");
+  const [loginIdentifier, setLoginIdentifier] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
-  const [loginEmailError, setLoginEmailError] = useState("");
+  const [loginError, setLoginError] = useState("");
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-  const handleSelectRole = (r: Role) => {
-    setLoginRole(r);
-    setLoginEmailError("");
-    const emails: Record<Role, string> = {
-      directeur: "directeur@ecole.bj",
-      censeur: "censeur@ecole.bj",
-      secretariat: "secretariat@ecole.bj",
-      surveillant: "surveillant@ecole.bj",
-      enseignant: "professeur@ecole.bj",
-      comptabilite: "comptable@ecole.bj",
-      parent: "parent@famille.bj",
-    };
-    setLoginEmail(emails[r]);
-  };
-
-  const handleQuickLogin = (r: Role) => {
-    handleSelectRole(r);
-    const emails: Record<Role, string> = {
-      directeur: "directeur@ecole.bj",
-      censeur: "censeur@ecole.bj",
-      secretariat: "secretariat@ecole.bj",
-      surveillant: "surveillant@ecole.bj",
-      enseignant: "professeur@ecole.bj",
-      comptabilite: "comptable@ecole.bj",
-      parent: "parent@famille.bj",
-    };
-    const targetPath: Record<Role, string> = {
-      directeur: "/directeur",
-      censeur: "/censeur",
-      secretariat: "/secretariat",
-      surveillant: "/surveillant",
-      enseignant: "/enseignant",
-      comptabilite: "/comptabilite",
-      parent: "/parent",
-    };
-    const roleNames: Record<Role, string> = {
-      directeur: "M. le Directeur",
-      censeur: "M. le Censeur",
-      secretariat: "Secrétariat Pédagogique",
-      surveillant: "Surveillant Général",
-      enseignant: "Professeur Titulaire",
-      comptabilite: "Agent Comptable",
-      parent: "Parent d'Élève",
-    };
-
-    authStore.login({
-      email: emails[r],
-      role: r,
-      fullName: roleNames[r],
-      schoolId: activeSchool?.id || "school-1",
-      schoolName: activeSchool?.name || "Établissement Scolaire",
-    });
-
-    toast(`Connexion réussie : ${roleNames[r]}`, "success");
-    router.push(targetPath[r]);
-  };
-
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoginEmailError("");
+    setLoginError("");
 
-    const cleanEmail = loginEmail.trim();
-    if (!cleanEmail) {
-      setLoginEmailError("L'adresse e-mail est obligatoire.");
-      toast("L'adresse e-mail est obligatoire.", "error");
+    const cleanIdentifier = loginIdentifier.trim();
+    const cleanPassword = loginPassword.trim();
+
+    if (!cleanIdentifier) {
+      setLoginError("Veuillez saisir votre Identifiant (ex: 4827DIR01) ou votre adresse e-mail.");
+      toast("L'identifiant ou l'adresse e-mail est obligatoire.", "error");
       return;
     }
 
-    if (!emailRegex.test(cleanEmail)) {
-      setLoginEmailError("Format d'e-mail invalide (ex: nom@domaine.com).");
-      toast("Veuillez saisir une adresse e-mail valide.", "error");
-      return;
-    }
-
-    if (!loginPassword || loginPassword.length < 4) {
-      toast("Veuillez saisir votre mot de passe.", "error");
+    if (!cleanPassword) {
+      setLoginError("Veuillez saisir votre mot de passe secret.");
+      toast("Le mot de passe est obligatoire.", "error");
       return;
     }
 
     setLoginLoading(true);
 
     try {
-      // Vérifier si le compte existe dans le registre des membres d'administration créés
-      let matchedRole: Role = loginRole;
-      let matchedName = "";
-      let matchedSchoolId = activeSchool?.id || "school-1";
-      let matchedSchoolName = activeSchool?.name || "Établissement Scolaire";
+      const authResult = authenticateSystemUser(cleanIdentifier, cleanPassword);
 
-      if (typeof window !== "undefined") {
-        const storedRegistry = localStorage.getItem("ecogest_school_users_registry");
-        if (storedRegistry) {
-          try {
-            const list = JSON.parse(storedRegistry);
-            const found = list.find((u: any) => u.email?.toLowerCase() === cleanEmail.toLowerCase());
-            if (found) {
-              const roleMapping: Record<string, Role> = {
-                directeur: "directeur",
-                censeur: "censeur",
-                secretariat: "secretariat",
-                secretaire: "secretariat",
-                "secrétariat": "secretariat",
-                "secretariat pedagogique": "secretariat",
-                surveillant: "surveillant",
-                "surveillant général": "surveillant",
-                "surveillant general": "surveillant",
-                enseignant: "enseignant",
-                professeur: "enseignant",
-                comptabilite: "comptabilite",
-                comptable: "comptabilite",
-                parent: "parent",
-                autre: "directeur",
-              };
-              matchedRole = roleMapping[found.role?.toLowerCase()] || loginRole;
-              matchedName = found.fullName || found.full_name || found.name || "";
-            }
-          } catch {
-            // Pas de registre lisible
-          }
-        }
+      if (!authResult.success || !authResult.user) {
+        setLoginError(authResult.error || "Identifiant ou mot de passe incorrect.");
+        toast(authResult.error || "Échec d'authentification.", "error");
+        return;
+      }
+
+      const user = authResult.user;
+
+      // Basculer l'établissement actif pour charger uniquement les données de son école
+      if (user.schoolId) {
+        switchActiveSchool(user.schoolId);
       }
 
       const targetPath: Record<Role, string> = {
@@ -198,35 +118,31 @@ export default function AuthPage() {
         parent: "/parent",
       };
 
-      const roleNames: Record<Role, string> = {
-        directeur: "M. le Directeur",
-        censeur: "M. le Censeur",
-        secretariat: "Secrétariat Pédagogique",
-        surveillant: "Surveillant Général",
-        enseignant: "Professeur Titulaire",
-        comptabilite: "Agent Comptable",
-        parent: "Parent d'Élève",
-      };
-
       authStore.login({
-        email: cleanEmail,
-        role: matchedRole,
-        fullName: matchedName || roleNames[matchedRole],
-        schoolId: matchedSchoolId,
-        schoolName: matchedSchoolName,
+        id: user.id,
+        identifier: user.identifier,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        schoolId: user.schoolId,
+        schoolName: user.schoolName,
+        schoolCode: user.schoolCode,
+        phone: user.phone,
       });
 
-      toast(`Connexion réussie ! Bienvenue dans votre espace ${matchedRole.toUpperCase()}.`, "success");
-      router.push(targetPath[matchedRole]);
+      toast(`Connexion réussie ! Bienvenue ${user.fullName} (${user.identifier}).`, "success");
+      router.push(targetPath[user.role]);
     } finally {
       setLoginLoading(false);
     }
   };
 
   // =========================================================================
-  // ÉTATS D'INSCRIPTION : ÉTABLISSEMENT
+  // ÉTATS D'INSCRIPTION : ÉTABLISSEMENT (Règle 3 : Code à 4 chiffres obligatoire)
   // =========================================================================
   const [schoolName, setSchoolName] = useState("");
+  const [schoolCode, setSchoolCode] = useState("");
+  const [schoolCodeError, setSchoolCodeError] = useState("");
   const [schoolShortName, setSchoolShortName] = useState("");
   const [schoolCountry, setSchoolCountry] = useState("Bénin");
   const [schoolCity, setSchoolCity] = useState("Cotonou");
@@ -238,8 +154,18 @@ export default function AuthPage() {
 
   const handleRegisterSchool = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSchoolCodeError("");
+
     if (!schoolName.trim() || !schoolEmail.trim()) {
       toast("Veuillez remplir tous les champs obligatoires.", "error");
+      return;
+    }
+
+    // Validation du code établissement à 4 chiffres (Règle 3)
+    const codeCheck = validateSchoolCode(schoolCode);
+    if (!codeCheck.valid) {
+      setSchoolCodeError(codeCheck.error || "Le code établissement doit comporter exactement 4 chiffres.");
+      toast(codeCheck.error || "Le code établissement doit comporter exactement 4 chiffres.", "error");
       return;
     }
 
@@ -253,12 +179,15 @@ export default function AuthPage() {
       return;
     }
 
+    const cleanCode = schoolCode.trim();
+
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           schoolName: schoolName.trim(),
+          schoolCode: cleanCode,
           directorName: schoolDirectorName.trim() || "Direction de l'Établissement",
           email: schoolEmail.trim(),
           phone: schoolPhone.trim(),
@@ -280,8 +209,8 @@ export default function AuthPage() {
       // Continue client fallback
     }
 
-    // Créer dans le store d'authentification (statut en attente de paiement)
-    authStore.registerSchool({
+    // Créer dans le store d'authentification avec code 4 chiffres et mot de passe
+    const regResult = authStore.registerSchool({
       schoolName: schoolName.trim(),
       directorName: schoolDirectorName.trim() || "Direction de l'Établissement",
       schoolEmail: schoolEmail.trim(),
@@ -289,6 +218,8 @@ export default function AuthPage() {
       schoolCountry: schoolCountry,
       schoolCity: schoolCity,
       chosenPlan: schoolChosenPlan,
+      schoolCode: cleanCode,
+      password: schoolPassword,
     });
 
     // Appliquer le forfait d'abonnement choisi
@@ -296,7 +227,7 @@ export default function AuthPage() {
 
     // Mettre à jour les informations de l'école
     createSchool({
-      code: `ECO-${Math.floor(1000 + Math.random() * 9000)}`,
+      code: cleanCode,
       name: schoolName.trim(),
       shortName: schoolShortName.trim() || schoolName.trim().slice(0, 15),
       slug: schoolName
@@ -317,14 +248,14 @@ export default function AuthPage() {
     });
 
     toast(
-      `Établissement « ${schoolName} » enregistré. Veuillez valider le paiement de l'abonnement pour finaliser l'activation.`,
+      `Établissement « ${schoolName} » créé avec le code ${cleanCode} ! Votre identifiant Directeur est : ${regResult.identifier}.`,
       "success"
     );
     router.push("/directeur/abonnement?activation=required");
   };
 
   // =========================================================================
-  // ÉTATS D'INSCRIPTION : PARENT
+  // ÉTATS D'INSCRIPTION : PARENT (Règle 4 : Identifiant généré rattaché à l'école)
   // =========================================================================
   const [parentName, setParentName] = useState("");
   const [parentPhone, setParentPhone] = useState("+229 ");
@@ -361,20 +292,23 @@ export default function AuthPage() {
 
     const matchedSchool = schools.find((s) => s.id === selectedSchoolId);
     const chosenSchoolName = matchedSchool ? matchedSchool.name : customSchoolName.trim();
+    const schoolCodeToUse = matchedSchool?.code || "4827";
 
-    authStore.registerParent({
+    const regResult = authStore.registerParent({
       fullName: parentName.trim(),
       email: parentEmail.trim(),
       phone: parentPhone.trim(),
       schoolId: selectedSchoolId || "custom-school",
       schoolName: chosenSchoolName,
+      schoolCode: schoolCodeToUse,
       chosenPlan: parentChosenPlan,
+      password: parentPassword,
     });
 
     changeParentPlan(parentChosenPlan);
 
     toast(
-      `Compte parent créé ! Veuillez valider le paiement de l'abonnement pour activer votre accès.`,
+      `Compte parent créé avec succès ! Votre identifiant de connexion est : ${regResult.identifier}.`,
       "success"
     );
     router.push("/parent/abonnement?activation=required");
@@ -502,80 +436,48 @@ export default function AuthPage() {
                   </p>
                 </div>
 
-                {/* Sélecteur de rôle d'accès */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                    Votre Espace d&apos;accès :
-                  </label>
-                  <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5 p-1 bg-slate-100 rounded-xl">
-                    {(
-                      [
-                        { r: "directeur", label: "Directeur", icon: <Shield className="w-4 h-4" /> },
-                        { r: "censeur", label: "Censeur", icon: <BookOpenCheck className="w-4 h-4" /> },
-                        { r: "secretariat", label: "Secrétariat", icon: <FileText className="w-4 h-4" /> },
-                        { r: "surveillant", label: "Surveillant", icon: <Clock className="w-4 h-4" /> },
-                        { r: "enseignant", label: "Professeur", icon: <GraduationCap className="w-4 h-4" /> },
-                        { r: "comptabilite", label: "Comptable", icon: <CreditCard className="w-4 h-4" /> },
-                        { r: "parent", label: "Parent", icon: <Home className="w-4 h-4" /> },
-                      ] as const
-                    ).map((item) => (
-                      <button
-                        key={item.r}
-                        type="button"
-                        onClick={() => handleSelectRole(item.r)}
-                        className={`p-2 rounded-lg text-center flex flex-col items-center gap-1 transition ${
-                          loginRole === item.r
-                            ? "bg-white text-school-primary shadow-xs font-bold"
-                            : "text-slate-500 hover:text-slate-900"
-                        }`}
-                      >
-                        {item.icon}
-                        <span className="text-[10px] leading-none">{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
                 <form onSubmit={handleLoginSubmit} className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-slate-700">
-                      Email / Identifiant
+                      Identifiant ou Adresse e-mail *
                     </label>
                     <div className="relative">
                       <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
-                        type="email"
+                        type="text"
                         required
-                        value={loginEmail}
+                        value={loginIdentifier}
                         onChange={(e) => {
-                          setLoginEmail(e.target.value);
-                          if (loginEmailError) setLoginEmailError("");
+                          setLoginIdentifier(e.target.value);
+                          if (loginError) setLoginError("");
                         }}
                         className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm focus:ring-2 ${
-                          loginEmailError
+                          loginError
                             ? "border-rose-400 focus:border-rose-500 focus:ring-rose-200"
                             : "border-slate-300 focus:border-school-primary focus:ring-school-primary/20"
                         }`}
-                        placeholder="nom@ecole.bj"
+                        placeholder="Ex: 4827DIR01 ou direction@ecole.bj"
                       />
                     </div>
-                    {loginEmailError && (
-                      <p className="text-[11px] font-medium text-rose-600 animate-in fade-in">
-                        {loginEmailError}
-                      </p>
-                    )}
+                    <p className="text-[11px] text-slate-500">
+                      Saisissez l&apos;identifiant à préfixe de votre école (ex: 4827DIR01, 4827CEN01, 4827PAR01) ou votre e-mail.
+                    </p>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="font-semibold text-slate-700 text-xs">Mot de passe</label>
+                    <label className="font-semibold text-slate-700 text-xs">Mot de passe secret *</label>
                     <div className="relative">
                       <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
                         type={showPassword ? "text" : "password"}
                         required
                         value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
+                        onChange={(e) => {
+                          setLoginPassword(e.target.value);
+                          if (loginError) setLoginError("");
+                        }}
                         className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-school-primary focus:ring-2 focus:ring-school-primary/20"
+                        placeholder="Votre mot de passe personnel"
                       />
                       <button
                         type="button"
@@ -586,6 +488,12 @@ export default function AuthPage() {
                       </button>
                     </div>
                   </div>
+
+                  {loginError && (
+                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium">
+                      {loginError}
+                    </div>
+                  )}
 
                   {/* Se souvenir de moi & Mot de passe oublié */}
                   <div className="flex items-center justify-between text-xs pt-1">
@@ -600,7 +508,7 @@ export default function AuthPage() {
                     </label>
                     <button
                       type="button"
-                      onClick={() => toast("Contactez l'administration pour réinitialiser votre mot de passe.", "info")}
+                      onClick={() => toast("Veuillez contacter le Directeur de votre établissement pour réinitialiser votre mot de passe.", "info")}
                       className="text-school-primary hover:underline text-[11px] font-semibold"
                     >
                       Mot de passe oublié ?
@@ -613,11 +521,11 @@ export default function AuthPage() {
                     className="w-full py-3.5 rounded-xl bg-school-primary hover:bg-school-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 touch-target min-h-[48px]"
                   >
                     {loginLoading ? (
-                      <span>Connexion en cours...</span>
+                      <span>Vérification des identifiants...</span>
                     ) : (
                       <>
                         <LogIn className="w-4 h-4" />
-                        <span>Se connecter ({loginRole.toUpperCase()})</span>
+                        <span>Se connecter à mon espace</span>
                       </>
                     )}
                   </button>
@@ -633,105 +541,6 @@ export default function AuthPage() {
                     </button>
                   </div>
                 </form>
-
-                {/* Accès Démo & Rôles en 1 Clic */}
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="font-bold text-slate-800 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-school-primary" />
-                      <span>Accès instantané Démo (1 Clic) :</span>
-                    </p>
-                    <span className="text-[10px] text-slate-500 font-medium">Mot de passe : demo123</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => handleQuickLogin("secretariat")}
-                      className="p-2.5 rounded-xl border border-blue-200 bg-white hover:bg-blue-50 text-left transition flex items-center justify-between shadow-2xs group"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
-                          <FileText className="w-3.5 h-3.5" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900 text-xs">Secrétariat</p>
-                          <p className="text-[10px] text-slate-500 font-mono">secretariat@ecole.bj</p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-semibold text-blue-700 bg-blue-100/60 px-1.5 py-0.5 rounded">
-                        Entrer →
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleQuickLogin("surveillant")}
-                      className="p-2.5 rounded-xl border border-rose-200 bg-white hover:bg-rose-50 text-left transition flex items-center justify-between shadow-2xs group"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
-                          <Clock className="w-3.5 h-3.5" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900 text-xs">Surveillant</p>
-                          <p className="text-[10px] text-slate-500 font-mono">surveillant@ecole.bj</p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-semibold text-rose-700 bg-rose-100/60 px-1.5 py-0.5 rounded">
-                        Entrer →
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleQuickLogin("directeur")}
-                      className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-left transition flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Shield className="w-3.5 h-3.5 text-school-primary" />
-                        <span className="font-medium text-slate-800 text-xs">Directeur</span>
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-mono">directeur@ecole.bj</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleQuickLogin("censeur")}
-                      className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-left transition flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <BookOpenCheck className="w-3.5 h-3.5 text-amber-600" />
-                        <span className="font-medium text-slate-800 text-xs">Censeur</span>
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-mono">censeur@ecole.bj</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleQuickLogin("enseignant")}
-                      className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-left transition flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <GraduationCap className="w-3.5 h-3.5 text-purple-600" />
-                        <span className="font-medium text-slate-800 text-xs">Professeur</span>
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-mono">professeur@ecole.bj</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleQuickLogin("parent")}
-                      className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-left transition flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Home className="w-3.5 h-3.5 text-emerald-600" />
-                        <span className="font-medium text-slate-800 text-xs">Parent</span>
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-mono">parent@famille.bj</span>
-                    </button>
-                  </div>
-                </div>
               </div>
             )}
 
@@ -802,6 +611,33 @@ export default function AuthPage() {
                           onChange={(e) => setSchoolShortName(e.target.value)}
                           className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
                         />
+                      </div>
+
+                      <div className="space-y-1 sm:col-span-2">
+                        <label className="text-xs font-semibold text-slate-700">
+                          Code établissement (exactement 4 chiffres) *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          maxLength={4}
+                          placeholder="Ex: 4827"
+                          value={schoolCode}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                            setSchoolCode(val);
+                            if (schoolCodeError) setSchoolCodeError("");
+                          }}
+                          className={`w-full px-3 py-2 rounded-xl border text-xs font-mono font-bold tracking-widest text-center text-slate-900 ${
+                            schoolCodeError ? "border-rose-500 bg-rose-50" : "border-slate-300"
+                          }`}
+                        />
+                        {schoolCodeError && (
+                          <p className="text-[11px] text-rose-600 font-semibold">{schoolCodeError}</p>
+                        )}
+                        <p className="text-[10px] text-slate-500">
+                          Règle 3 ECOGEST : Ce code à 4 chiffres devient le préfixe de tous les identifiants de l&apos;établissement (ex: 4827DIR01, 4827CEN01...).
+                        </p>
                       </div>
 
                       <div className="space-y-1">

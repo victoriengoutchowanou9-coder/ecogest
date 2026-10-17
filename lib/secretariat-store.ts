@@ -69,11 +69,14 @@ export interface ParentRecord {
   accessStatus: "ACTIF" | "EN_ATTENTE" | "SUSPENDU";
 }
 
-const STORAGE_KEY_DOCUMENTS = "educogest_secretariat_documents_v1";
-const STORAGE_KEY_EVENTS = "educogest_secretariat_events_v1";
-const STORAGE_KEY_MESSAGES = "educogest_secretariat_messages_v1";
-const STORAGE_KEY_STUDENTS = "educogest_censeur_students_v1";
-const STORAGE_KEY_CLASSES = "educogest_school_classes_v2";
+import { getScopedStorageKey } from "./school-context";
+
+const getDocumentsKey = () => getScopedStorageKey("educogest_secretariat_documents_v2");
+const getEventsKey = () => getScopedStorageKey("educogest_secretariat_events_v2");
+const getMessagesKey = () => getScopedStorageKey("educogest_secretariat_messages_v2");
+const getStudentsKey = () => getScopedStorageKey("educogest_censeur_students_v2");
+const getClassesKey = () => getScopedStorageKey("educogest_school_classes_v3");
+
 const STORAGE_EVENT = "educogest_secretariat_storage_update";
 const SHARED_STORAGE_EVENT = "ecogest_shared_data_update";
 
@@ -99,154 +102,38 @@ function safeSetStorage<T>(key: string, value: T): void {
   }
 }
 
-const INITIAL_DOCUMENTS: SchoolDocumentRecord[] = [
-  {
-    id: "doc-init-01",
-    docType: "CERTIFICAT_SCOLARITE",
-    title: "Certificat de Scolarité",
-    referenceNumber: "CS-2026/0014",
-    studentId: "std-01",
-    studentName: "Jean-Eudes DOSSOU",
-    matricule: "ECO-2026-0012",
-    classId: "6e-a",
-    className: "6ème A",
-    academicYear: "2026 - 2027",
-    issueDate: "2026-10-15",
-    issuedBy: "Solange HOUENOU (Secrétariat)",
-    recipient: "Caisse Nationale de Sécurité Sociale (CNSS)",
-    notes: "Délivré pour dossier d'allocations familiales",
-    status: "VALIDE",
-    createdAt: "2026-10-15T09:30:00Z",
-  },
-  {
-    id: "doc-init-02",
-    docType: "ATTESTATION_FREQUENTATION",
-    title: "Attestation de Fréquentation",
-    referenceNumber: "AF-2026/0008",
-    studentId: "std-02",
-    studentName: "Marie-Josée AGBO",
-    matricule: "ECO-2026-0015",
-    classId: "6e-a",
-    className: "6ème A",
-    academicYear: "2026 - 2027",
-    issueDate: "2026-10-14",
-    issuedBy: "Solange HOUENOU (Secrétariat)",
-    recipient: "Ambassade / Visa d'études",
-    notes: "Demande formulée par le tuteur légal",
-    status: "VALIDE",
-    createdAt: "2026-10-14T11:00:00Z",
-  },
-  {
-    id: "doc-init-03",
-    docType: "CERTIFICAT_RADIATION",
-    title: "Certificat de Radiation",
-    referenceNumber: "CR-2026/0002",
-    studentId: "std-09",
-    studentName: "Gilles KPATINVO",
-    matricule: "ECO-2026-0055",
-    classId: "5e-a",
-    className: "5ème A",
-    academicYear: "2026 - 2027",
-    issueDate: "2026-10-10",
-    issuedBy: "Solange HOUENOU (Secrétariat)",
-    recipient: "CEG 1 Parakou (Établissement d'accueil)",
-    notes: "Mutation professionnelle des parents à Parakou",
-    status: "VALIDE",
-    createdAt: "2026-10-10T14:20:00Z",
-  },
-];
-
-const INITIAL_EVENTS: AdminCalendarEvent[] = [
-  {
-    id: "evt-01",
-    title: "Assemblée Générale de Rentrée avec l'APE",
-    type: "REUNION",
-    date: "2026-10-24",
-    time: "09:00",
-    location: "Salle polyvalente",
-    targetAudience: "PARENTS",
-    description: "Présentation des orientations pédagogiques, du règlement intérieur et validation des cotisations APE.",
-    createdBy: "Direction & Secrétariat",
-    status: "PROGRAMME",
-  },
-  {
-    id: "evt-02",
-    title: "Conseil Pédagogique de Mi-Trimestre",
-    type: "REUNION",
-    date: "2026-11-06",
-    time: "15:00",
-    location: "Salle des professeurs",
-    targetAudience: "ENSEIGNANTS",
-    description: "Évaluation de la progression des programmes et préparation des devoirs surveillés.",
-    createdBy: "Censeur & Secrétariat",
-    status: "PROGRAMME",
-  },
-  {
-    id: "evt-03",
-    title: "Congés de Toussaint / Détente 1er Trimestre",
-    type: "CONGE",
-    date: "2026-10-30",
-    location: "Établissement",
-    targetAudience: "TOUS",
-    description: "Suspension des cours selon le calendrier officiel du Ministère.",
-    createdBy: "Secrétariat Pédagogique",
-    status: "PROGRAMME",
-  },
-];
-
-const INITIAL_MESSAGES: SecretariatMessage[] = [
-  {
-    id: "msg-01",
-    recipientType: "PARENTS",
-    targetName: "Parents de 6ème A & 5ème A",
-    subject: "Rappel : Port de la tenue scolaire réglementaire et ponctualité",
-    content: "Chers parents, nous vous rappelons que les cours débutent précisément à 07h45. Le port de l'uniforme officiel complet est strictement obligatoire.",
-    channel: "SMS",
-    sentAt: "2026-10-16 08:30",
-    sentBy: "Solange HOUENOU (Secrétariat)",
-    status: "ENVOYE",
-  },
-  {
-    id: "msg-02",
-    recipientType: "ENSEIGNANTS",
-    targetName: "Corps Enseignant Secondaire",
-    subject: "Transmission des fiches de progression et des dates d'évaluations",
-    content: "Prière déposer au Secrétariat pédagogique vos fiches de progression mensuelle avant le vendredi 23 octobre.",
-    channel: "NOTIFICATION_APP",
-    sentAt: "2026-10-15 14:00",
-    sentBy: "Secrétariat Pédagogique",
-    status: "ENVOYE",
-  },
-];
+const INITIAL_DOCUMENTS: SchoolDocumentRecord[] = [];
+const INITIAL_EVENTS: AdminCalendarEvent[] = [];
+const INITIAL_MESSAGES: SecretariatMessage[] = [];
 
 export function useSecretariatStore() {
   const [documents, setDocuments] = useState<SchoolDocumentRecord[]>(() =>
-    safeGetStorage(STORAGE_KEY_DOCUMENTS, INITIAL_DOCUMENTS)
+    safeGetStorage(getDocumentsKey(), INITIAL_DOCUMENTS)
   );
 
   const [events, setEvents] = useState<AdminCalendarEvent[]>(() =>
-    safeGetStorage(STORAGE_KEY_EVENTS, INITIAL_EVENTS)
+    safeGetStorage(getEventsKey(), INITIAL_EVENTS)
   );
 
   const [messages, setMessages] = useState<SecretariatMessage[]>(() =>
-    safeGetStorage(STORAGE_KEY_MESSAGES, INITIAL_MESSAGES)
+    safeGetStorage(getMessagesKey(), INITIAL_MESSAGES)
   );
 
   const [students, setStudents] = useState<StudentProfile[]>(() =>
-    safeGetStorage(STORAGE_KEY_STUDENTS, MOCK_BULLETIN_STUDENTS)
+    safeGetStorage(getStudentsKey(), [])
   );
 
   const [classrooms, setClassrooms] = useState<ClassRoom[]>(() =>
-    safeGetStorage(STORAGE_KEY_CLASSES, MOCK_CLASSROOMS)
+    safeGetStorage(getClassesKey(), [])
   );
 
   useEffect(() => {
     const handleSync = () => {
-      setDocuments(safeGetStorage(STORAGE_KEY_DOCUMENTS, INITIAL_DOCUMENTS));
-      setEvents(safeGetStorage(STORAGE_KEY_EVENTS, INITIAL_EVENTS));
-      setMessages(safeGetStorage(STORAGE_KEY_MESSAGES, INITIAL_MESSAGES));
-      setStudents(safeGetStorage(STORAGE_KEY_STUDENTS, MOCK_BULLETIN_STUDENTS));
-      setClassrooms(safeGetStorage(STORAGE_KEY_CLASSES, MOCK_CLASSROOMS));
+      setDocuments(safeGetStorage(getDocumentsKey(), INITIAL_DOCUMENTS));
+      setEvents(safeGetStorage(getEventsKey(), INITIAL_EVENTS));
+      setMessages(safeGetStorage(getMessagesKey(), INITIAL_MESSAGES));
+      setStudents(safeGetStorage(getStudentsKey(), []));
+      setClassrooms(safeGetStorage(getClassesKey(), []));
     };
 
     window.addEventListener(STORAGE_EVENT, handleSync);
@@ -286,7 +173,7 @@ export function useSecretariatStore() {
 
       setStudents((prev) => {
         const next = [newStudent, ...prev];
-        safeSetStorage(STORAGE_KEY_STUDENTS, next);
+        safeSetStorage(getStudentsKey(), next);
         return next;
       });
       return newStudent;
@@ -299,7 +186,7 @@ export function useSecretariatStore() {
     (studentId: string, updates: Partial<StudentProfile>, author: string = "Secrétariat Pédagogique") => {
       setStudents((prev) => {
         const next = prev.map((s) => (s.id === studentId ? { ...s, ...updates } : s));
-        safeSetStorage(STORAGE_KEY_STUDENTS, next);
+        safeSetStorage(getStudentsKey(), next);
         return next;
       });
     },
@@ -313,7 +200,7 @@ export function useSecretariatStore() {
         const next = prev.map((s) =>
           s.id === studentId ? { ...s, classId: newClassId, className: newClassName } : s
         );
-        safeSetStorage(STORAGE_KEY_STUDENTS, next);
+        safeSetStorage(getStudentsKey(), next);
         return next;
       });
     },
@@ -325,7 +212,7 @@ export function useSecretariatStore() {
     (studentId: string, newStatus: StudentProfile["status"], reason?: string, author: string = "Secrétariat Pédagogique") => {
       setStudents((prev) => {
         const next = prev.map((s) => (s.id === studentId ? { ...s, status: newStatus } : s));
-        safeSetStorage(STORAGE_KEY_STUDENTS, next);
+        safeSetStorage(getStudentsKey(), next);
         return next;
       });
     },
@@ -362,7 +249,7 @@ export function useSecretariatStore() {
 
       setDocuments((prev) => {
         const next = [newDoc, ...prev];
-        safeSetStorage(STORAGE_KEY_DOCUMENTS, next);
+        safeSetStorage(getDocumentsKey(), next);
         return next;
       });
       return newDoc;
@@ -381,7 +268,7 @@ export function useSecretariatStore() {
 
       setEvents((prev) => {
         const next = [newEvent, ...prev];
-        safeSetStorage(STORAGE_KEY_EVENTS, next);
+        safeSetStorage(getEventsKey(), next);
         return next;
       });
       return newEvent;
@@ -401,7 +288,7 @@ export function useSecretariatStore() {
 
       setMessages((prev) => {
         const next = [newMsg, ...prev];
-        safeSetStorage(STORAGE_KEY_MESSAGES, next);
+        safeSetStorage(getMessagesKey(), next);
         return next;
       });
       return newMsg;

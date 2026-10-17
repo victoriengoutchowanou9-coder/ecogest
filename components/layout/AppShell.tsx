@@ -30,6 +30,34 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [activeSchoolYear, setActiveSchoolYear] = useState(CURRENT_SCHOOL.activeYear);
 
+  const { isAuthenticated } = useAuthStore();
+
+  React.useEffect(() => {
+    if (!currentUser || !isAuthenticated) {
+      router.push("/connexion");
+    }
+  }, [currentUser, isAuthenticated, router]);
+
+  if (!currentUser || !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 text-center">
+        <div className="w-16 h-16 rounded-3xl bg-school-primary/20 text-school-primary flex items-center justify-center mb-4">
+          <Lock className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-white mb-2">Authentification requise</h2>
+        <p className="text-xs text-slate-400 mb-6 max-w-sm">
+          Vous devez être authentifié avec un identifiant et un mot de passe valides pour accéder aux données de cet établissement.
+        </p>
+        <Link
+          href="/connexion"
+          className="px-6 py-2.5 rounded-xl bg-school-primary text-white text-xs font-bold hover:bg-school-700 shadow-md transition"
+        >
+          Se connecter
+        </Link>
+      </div>
+    );
+  }
+
   const handleRoleChange = (newRole: Role) => {
     router.push(ROLE_NAVIGATIONS[newRole].basePath);
   };
