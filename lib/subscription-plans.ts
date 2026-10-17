@@ -3,7 +3,7 @@
 // Module partagé (Client & Serveur) sans dépendances React
 // =============================================================================
 
-export type SchoolPlanCode = "BASIC" | "STANDARD" | "PREMIUM";
+export type SchoolPlanCode = "STARTER" | "BASIC" | "STANDARD" | "PREMIUM";
 export type ParentPlanCode = "PARENT_1" | "PARENT_2";
 export type SubscriptionStatus = "ACTIVE" | "EXPIRED" | "TRIAL" | "PENDING_PAYMENT";
 
@@ -31,21 +31,42 @@ export interface ParentPlanDefinition {
 }
 
 export const SCHOOL_PLANS: Record<SchoolPlanCode, SchoolPlanDefinition> = {
-  BASIC: {
-    code: "BASIC",
-    name: "Formule Basic",
-    tagline: "Idéal pour petits établissements démarrant la numérisation",
+  STARTER: {
+    code: "STARTER",
+    name: "Formule Starter",
+    tagline: "Essai gratuit 1 mois offert · Fonctionnalités essentielles incluses",
     priceFcfa: 6000,
     period: "mois",
     maxSchools: 1,
-    maxUsers: 5,
+    maxUsers: 10,
     features: [
       "1 seul établissement scolaire",
-      "Jusqu'à 5 utilisateurs actifs (Directeur, Censeur, Comptable, 2 Enseignants)",
+      "1 mois d'utilisation gratuit complet à l'inscription",
+      "Jusqu'à 10 utilisateurs actifs (Directeur, Censeur, Surveillant, Secrétaire, Enseignants)",
       "Gestion administrative des classes et des effectifs",
-      "Saisie et calcul automatique des notes (interros ÷ 3, devoirs ÷ 3)",
+      "Saisie et calcul automatique des notes et moyennes",
       "Génération des bulletins scolaires officiels A4",
-      "Encaissement de scolarité en espèces & reçus imprimables",
+      "Encaissement de scolarité & reçus imprimables",
+      "Accès immédiat sans carte bancaire ni paiement requis",
+    ],
+  },
+  BASIC: {
+    code: "BASIC",
+    name: "Formule Starter",
+    tagline: "Essai gratuit 1 mois offert · Fonctionnalités essentielles incluses",
+    priceFcfa: 6000,
+    period: "mois",
+    maxSchools: 1,
+    maxUsers: 10,
+    features: [
+      "1 seul établissement scolaire",
+      "1 mois d'utilisation gratuit complet à l'inscription",
+      "Jusqu'à 10 utilisateurs actifs (Directeur, Censeur, Surveillant, Secrétaire, Enseignants)",
+      "Gestion administrative des classes et des effectifs",
+      "Saisie et calcul automatique des notes et moyennes",
+      "Génération des bulletins scolaires officiels A4",
+      "Encaissement de scolarité & reçus imprimables",
+      "Accès immédiat sans carte bancaire ni paiement requis",
     ],
   },
   STANDARD: {

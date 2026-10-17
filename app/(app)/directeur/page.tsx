@@ -13,14 +13,25 @@ import {
   Calendar,
   Settings,
   BookOpenCheck,
+  Sparkles,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatFCFA } from "@/lib/utils";
 import { MOCK_FINANCIAL_STATS, MOCK_STUDENTS } from "@/lib/mock-data";
+import { useSubscriptionStore } from "@/lib/subscription-store";
 
 export default function DirecteurDashboardPage() {
+  const {
+    schoolStatus,
+    schoolPlanDef,
+    schoolExpiresAt,
+    isTrialActive,
+    trialDaysRemaining,
+    isExpired,
+  } = useSubscriptionStore();
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -37,6 +48,63 @@ export default function DirecteurDashboardPage() {
           </Link>
         }
       />
+
+      {/* Bannière Période d'essai 1 mois gratuit Starter */}
+      {schoolStatus === "TRIAL" && !isExpired && (
+        <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border border-emerald-200 rounded-2xl p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-extrabold text-slate-900 text-sm">
+                  Formule Starter — 1 Mois d&apos;Essai Gratuit Actif
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  {trialDaysRemaining} jour{trialDaysRemaining > 1 ? "s" : ""} restant{trialDaysRemaining > 1 ? "s" : ""}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Votre établissement bénéficie de l&apos;accès complet aux fonctionnalités essentielles de gestion scolaire jusqu&apos;au <strong>{schoolExpiresAt}</strong>.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/directeur/abonnement"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-300 hover:border-slate-400 text-xs font-bold text-slate-800 shadow-2xs hover:bg-slate-50 transition shrink-0"
+          >
+            <span>Voir les formules &amp; options</span>
+            <ArrowRight className="w-3.5 h-3.5 text-school-primary" />
+          </Link>
+        </div>
+      )}
+
+      {/* Bannière Expiration Période d'essai */}
+      {isExpired && (
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-800 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-rose-600" />
+            </div>
+            <div className="space-y-1">
+              <span className="font-extrabold text-rose-950 text-sm">
+                Période d&apos;essai gratuit Starter expirée
+              </span>
+              <p className="text-xs text-rose-800 leading-relaxed">
+                Votre période d&apos;essai gratuit de 1 mois est arrivée à échéance le <strong>{schoolExpiresAt}</strong>. Veuillez choisir une formule pour continuer à utiliser toutes les fonctionnalités sans interruption.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/directeur/abonnement"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-xs font-bold text-white shadow-sm transition shrink-0"
+          >
+            <span>Choisir une formule payante</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
 
       {/* Top Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

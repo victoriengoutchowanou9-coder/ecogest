@@ -251,10 +251,10 @@ export default function InscriptionPage() {
       });
 
       toast(
-        `Établissement « ${schoolName} » enregistré avec le code ${schoolCode.trim()} ! Veuillez valider votre formule d'abonnement.`,
+        `Bienvenue sur ECOGEST ! Votre établissement « ${schoolName} » bénéficie automatiquement de 1 mois d'essai gratuit avec la Formule Starter.`,
         "success"
       );
-      router.push("/directeur/abonnement?activation=required");
+      router.push("/directeur");
     } catch (err) {
       console.error("[inscription-school] Erreur :", err);
       registerSchool({
@@ -265,12 +265,12 @@ export default function InscriptionPage() {
         schoolCity: city.trim(),
         schoolRegion: department.trim(),
         schoolCountry: country,
-        chosenPlan,
+        chosenPlan: "STARTER",
         schoolCode: schoolCode.trim(),
         password,
       });
-      toast(`Établissement ${schoolName} enregistré !`, "info");
-      router.push("/directeur/abonnement?activation=required");
+      toast(`Bienvenue ! Votre établissement bénéficie de 1 mois d'essai gratuit Starter.`, "success");
+      router.push("/directeur");
     } finally {
       setLoading(false);
     }

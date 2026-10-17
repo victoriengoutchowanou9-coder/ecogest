@@ -24,6 +24,8 @@ import {
   Layers,
   HelpCircle,
   UserPlus,
+  UserCheck,
+  FileText,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -103,6 +105,36 @@ export default function HomePage() {
       color: "border-indigo-200 bg-indigo-50/40",
       btnText: "Tester l'espace Parent",
       href: "/parent",
+    },
+    {
+      title: "Surveillance Générale & Discipline",
+      badge: "Vie Scolaire & Assiduité",
+      desc: "Gestion de l'ordre intérieur et de l'assiduité : pointage quotidien des présences, registre des retards, sanctions disciplinaires et convocation des tuteurs.",
+      features: [
+        "Enregistrement immédiat des absences et retards par créneau",
+        "Gestion des billets d'entrée et justifications d'absences",
+        "Suivi des incidents, retenues et conseils de discipline",
+        "Statistiques de ponctualité et d'assiduité par division",
+      ],
+      icon: <UserCheck className="w-6 h-6 text-cyan-600" />,
+      color: "border-cyan-200 bg-cyan-50/40",
+      btnText: "Tester l'espace Surveillant",
+      href: "/surveillant",
+    },
+    {
+      title: "Secrétariat Pédagogique & Registre Administratif",
+      badge: "Inscriptions & Documents",
+      desc: "Cœur administratif de l'établissement : immatriculation des apprenants, délivrance des attestations et certificats scolaires, et gestion des dossiers d'archives.",
+      features: [
+        "Immatriculation et archivage des dossiers scolaires des élèves",
+        "Génération instantanée de certificats de scolarité normalisés",
+        "Édition des fiches d'admission, transferts et radiation",
+        "Registre des pièces administratives et correspondances officielles",
+      ],
+      icon: <FileText className="w-6 h-6 text-rose-600" />,
+      color: "border-rose-200 bg-rose-50/40",
+      btnText: "Tester l'espace Secrétariat",
+      href: "/secretariat",
     },
   ];
 
@@ -303,7 +335,7 @@ export default function HomePage() {
               Architecture Intégrée
             </span>
             <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900">
-              5 modules métiers parfaitement interconnectés
+              7 modules métiers parfaitement interconnectés
             </h2>
             <p className="text-xs md:text-sm text-slate-500">
               Chaque utilisateur dispose d&apos;une interface adaptée à ses prérogatives pour éliminer les doubles saisies et garantir l&apos;intégrité des informations scolaires.

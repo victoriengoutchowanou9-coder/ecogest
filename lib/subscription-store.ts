@@ -75,11 +75,11 @@ const STORAGE_KEY_SCHOOL = "educogest_school_subscription_v2";
 const STORAGE_KEY_PARENT = "educogest_parent_subscription_v2";
 
 const DEFAULT_SCHOOL_STATE: SchoolSubscriptionState = {
-  currentPlan: "STANDARD",
-  status: "ACTIVE",
+  currentPlan: "STARTER",
+  status: "TRIAL",
   startDate: "2026-10-01",
   expiresAt: "2026-11-01",
-  autoRenew: true,
+  autoRenew: false,
   activeSchoolId: "school-1",
   schools: [INITIAL_SCHOOLS[0]],
   usersCount: 0,
@@ -279,13 +279,57 @@ export const subscriptionStore = {
       ? [created]
       : [...memorySchoolState.schools, created];
 
+    const today = new Date();
+    const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
     memorySchoolState = {
       ...memorySchoolState,
+      currentPlan: "STARTER",
+      status: "TRIAL",
+      startDate: today.toISOString().split("T")[0],
+      expiresAt: expires.toISOString().split("T")[0],
       schools: nextSchools,
       activeSchoolId: created.id,
     };
     saveSchoolState();
     return { success: true, school: created };
+  },
+
+  // Activer le mois d'essai gratuit Starter (30 jours)
+  activateStarterTrial(schoolId?: string) {
+    const today = new Date();
+    const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    memorySchoolState = {
+      ...memorySchoolState,
+      currentPlan: "STARTER",
+      status: "TRIAL",
+      startDate: today.toISOString().split("T")[0],
+      expiresAt: expires.toISOString().split("T")[0],
+      autoRenew: false,
+      ...(schoolId ? { activeSchoolId: schoolId } : {}),
+    };
+    saveSchoolState();
+  },
+
+  isTrialActive(): boolean {
+    if (memorySchoolState.status !== "TRIAL") return false;
+    const expires = new Date(memorySchoolState.expiresAt).getTime();
+    return Date.now() <= expires;
+  },
+
+  getTrialDaysRemaining(): number {
+    const expires = new Date(memorySchoolState.expiresAt).getTime();
+    const diff = expires - Date.now();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  },
+
+  isExpired(): boolean {
+    if (memorySchoolState.status === "EXPIRED") return true;
+    if (memorySchoolState.status === "TRIAL") {
+      const expires = new Date(memorySchoolState.expiresAt).getTime();
+      return Date.now() > expires;
+    }
+    return false;
   },
 
   // Vérifier si le parent peut associer un élève
@@ -424,6 +468,10 @@ export function useSubscriptionStore() {
     schools: schoolState.schools,
     activeSchool,
     usersCount: schoolState.usersCount,
+    isTrialActive: subscriptionStore.isTrialActive(),
+    trialDaysRemaining: subscriptionStore.getTrialDaysRemaining(),
+    isExpired: subscriptionStore.isExpired(),
+    activateStarterTrial: subscriptionStore.activateStarterTrial.bind(subscriptionStore),
     canAddUser: subscriptionStore.canAddUser.bind(subscriptionStore),
     canAddSchool: subscriptionStore.canAddSchool.bind(subscriptionStore),
     switchActiveSchool: subscriptionStore.switchActiveSchool.bind(subscriptionStore),

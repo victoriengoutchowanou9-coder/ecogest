@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { Role, ROLE_NAVIGATIONS, SCHOOL_YEARS } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/context/RoleContext";
-import { useSubscriptionStore } from "@/lib/subscription-store";
+import { useSubscriptionStore, SchoolPlanCode } from "@/lib/subscription-store";
 import { useAuthStore } from "@/lib/auth-store";
 import { cn } from "@/lib/utils";
 
@@ -60,7 +60,8 @@ export const Topbar: React.FC<TopbarProps> = ({
     parent: <Home className="w-4 h-4 text-indigo-600" />,
   };
 
-  const planBadgeColors = {
+  const planBadgeColors: Record<SchoolPlanCode, string> = {
+    STARTER: "bg-emerald-50 text-emerald-800 border-emerald-300 font-bold",
     BASIC: "bg-slate-100 text-slate-800 border-slate-200",
     STANDARD: "bg-blue-50 text-blue-800 border-blue-200",
     PREMIUM: "bg-amber-50 text-amber-800 border-amber-300 font-bold",

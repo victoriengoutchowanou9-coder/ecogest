@@ -192,15 +192,31 @@ export default function ContactPage() {
                   <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 shrink-0 text-school-primary">
                     <Phone className="w-5 h-5" />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <strong className="block text-slate-900 font-bold">Téléphone officiel ECOGEST</strong>
-                    <div className="flex flex-col gap-1 font-mono text-slate-900 font-bold text-sm mt-0.5">
-                      <a href="tel:+2290155445122" className="hover:text-school-primary transition-colors">
-                        +229 0155445122
-                      </a>
-                      <a href="tel:+2290161771334" className="hover:text-school-primary transition-colors">
-                        +2290161771334
-                      </a>
+                    <div className="mt-1 space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <a
+                          href="tel:+2290155445122"
+                          className="font-mono text-sm font-bold text-slate-900 hover:text-school-primary transition-colors tracking-wide"
+                        >
+                          +229 01 55 44 51 22
+                        </a>
+                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                          Ligne principale
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                        <a
+                          href="tel:+2290161771334"
+                          className="font-mono text-sm font-bold text-slate-900 hover:text-school-primary transition-colors tracking-wide"
+                        >
+                          +229 01 61 77 13 34
+                        </a>
+                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                          Ligne support
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -209,27 +225,42 @@ export default function ContactPage() {
                   <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 shrink-0 text-emerald-600">
                     <MessageSquare className="w-5 h-5" />
                   </div>
-                  <div>
-                    <strong className="block text-slate-900 font-bold">WhatsApp officiel ECOGEST</strong>
-                    <div className="flex flex-col gap-1 font-mono text-emerald-700 font-bold text-sm mt-0.5">
-                      <a
-                        href="https://wa.me/22955445122"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="hover:underline"
-                      >
-                        +22955445122
-                      </a>
-                      <a
-                        href="https://wa.me/22961771334"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="hover:underline"
-                      >
-                        +229 61 77 13 34
-                      </a>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <strong className="block text-slate-900 font-bold">WhatsApp officiel ECOGEST</strong>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-300">
+                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                        7j/7 direct
+                      </span>
                     </div>
-                    <span className="text-[11px] text-slate-500 block mt-0.5">Assistance directe 7j/7</span>
+                    <div className="mt-1 space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <a
+                          href="https://wa.me/22955445122"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-mono text-sm font-bold text-emerald-700 hover:underline tracking-wide"
+                        >
+                          +229 55 44 51 22
+                        </a>
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          Échanges directs
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-emerald-100/70">
+                        <a
+                          href="https://wa.me/22961771334"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-mono text-sm font-bold text-emerald-700 hover:underline tracking-wide"
+                        >
+                          +229 61 77 13 34
+                        </a>
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          Support technique
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

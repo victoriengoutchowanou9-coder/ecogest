@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import {
   Sparkles,
@@ -20,10 +20,18 @@ import {
   Globe,
   Share2,
 } from "lucide-react";
+import { ContactModal } from "@/components/school/ContactModal";
 
 export const PublicFooter: React.FC = () => {
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+
   return (
-    <footer className="bg-slate-950 text-slate-300 border-t border-slate-800 text-xs mt-auto">
+    <>
+      <ContactModal
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
+      />
+      <footer className="bg-slate-950 text-slate-300 border-t border-slate-800 text-xs mt-auto">
       {/* Main 4-Column Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
@@ -100,50 +108,31 @@ export const PublicFooter: React.FC = () => {
             </ul>
           </div>
 
-          {/* 3. COORDONNÉES OFFICIELLES ECOGEST */}
+          {/* 3. COORDONNÉES OFFICIELLES ECOGEST — Affichage sur clic uniquement */}
           <div className="space-y-4">
             <h3 className="font-extrabold text-white text-sm uppercase tracking-wider flex items-center gap-2">
               <span className="w-1.5 h-3.5 bg-blue-500 rounded-full inline-block"></span>
               Coordonnées officielles ECOGEST
             </h3>
-            <ul className="space-y-2.5 text-xs text-slate-300">
-              <li className="space-y-1">
-                <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
-                  Téléphone officiel :
-                </span>
-                <div className="flex flex-col gap-1 font-mono text-white font-semibold">
-                  <a href="tel:+2290155445122" className="hover:text-school-300 transition-colors">
-                    +229 0155445122
-                  </a>
-                  <a href="tel:+2290161771334" className="hover:text-school-300 transition-colors">
-                    +2290161771334
-                  </a>
-                </div>
-              </li>
-              <li className="space-y-1 pt-1 border-t border-slate-800/60">
-                <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
-                  WhatsApp officiel :
-                </span>
-                <div className="flex flex-col gap-1 font-mono text-emerald-400 font-semibold">
-                  <a
-                    href="https://wa.me/22955445122"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:underline flex items-center gap-1.5"
-                  >
-                    <span>+22955445122</span>
-                  </a>
-                  <a
-                    href="https://wa.me/22961771334"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:underline flex items-center gap-1.5"
-                  >
-                    <span>+229 61 77 13 34</span>
-                  </a>
-                </div>
-              </li>
-            </ul>
+            <div className="space-y-3 text-xs text-slate-300">
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Besoin d&apos;assistance, d&apos;informations tarifaires ou d&apos;un devis ? Accédez aux coordonnées directes de nos conseillers.
+              </p>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setIsContactModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-school-primary hover:bg-school-600 text-white font-bold text-xs shadow-md transition-all group"
+                >
+                  <Phone className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                  <span>Contacter nous</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-school-200 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500">
+                Lignes téléphoniques, WhatsApp officiel 7j/7 et support direct.
+              </p>
+            </div>
           </div>
 
           {/* 4. SERVICE CONNEXE */}
@@ -283,5 +272,6 @@ export const PublicFooter: React.FC = () => {
 
       </div>
     </footer>
+    </>
   );
 };

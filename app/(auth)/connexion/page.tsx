@@ -248,10 +248,10 @@ export default function AuthPage() {
     });
 
     toast(
-      `Établissement « ${schoolName} » créé avec le code ${cleanCode} ! Votre identifiant Directeur est : ${regResult.identifier}.`,
+      `Établissement « ${schoolName} » créé avec succès ! 1 mois gratuit Starter activé. Votre identifiant Directeur est : ${regResult.identifier}.`,
       "success"
     );
-    router.push("/directeur/abonnement?activation=required");
+    router.push("/directeur");
   };
 
   // =========================================================================

@@ -171,11 +171,7 @@ export const authStore = {
 
     const cleanSchoolCode = params.schoolCode.trim();
 
-    // 1. Définir le statut de souscription sur PENDING_PAYMENT
-    subscriptionStore.changeSchoolPlan(params.chosenPlan);
-    subscriptionStore.setSchoolStatus("PENDING_PAYMENT");
-
-    // 2. Créer ou mettre à jour l'établissement
+    // 1. Créer ou mettre à jour l'établissement
     const schoolId = params.schoolId || `school-${Date.now()}`;
     const createdSchool: SchoolProfile = {
       id: schoolId,
@@ -199,6 +195,9 @@ export const authStore = {
 
     subscriptionStore.createSchool(createdSchool);
 
+    // 2. Activer automatiquement 1 MOIS D'ESSAI GRATUIT avec la formule Starter (Règle 1)
+    subscriptionStore.activateStarterTrial(createdSchool.id);
+
     // 3. Générer l'identifiant unique du Directeur avec le préfixe à 4 chiffres (ex: 4827DIR01)
     const dirIdentifier = generateUserIdentifier(cleanSchoolCode, "directeur");
     const directorPassword = params.password || "Directeur2026!";
@@ -217,7 +216,7 @@ export const authStore = {
       status: "ACTIF",
     });
 
-    // 5. Connecter le directeur avec isSubscriptionPaid = false
+    // 5. Connecter le directeur avec accès immédiat (1 mois gratuit Starter)
     const user: AuthUser = {
       id: systemUser.id,
       identifier: dirIdentifier,
@@ -228,7 +227,7 @@ export const authStore = {
       schoolName: createdSchool.name,
       schoolCode: cleanSchoolCode,
       phone: params.schoolPhone,
-      isSubscriptionPaid: false,
+      isSubscriptionPaid: true,
     };
 
     memoryAuthState = {
