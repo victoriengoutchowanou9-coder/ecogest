@@ -17,6 +17,7 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuthStore } from "@/lib/auth-store";
 import { useCenseurStore } from "@/lib/censeur-store";
+import { ChangePasswordSection } from "@/components/account/ChangePasswordSection";
 
 export default function ParentProfilePage() {
   const { user: currentUser } = useAuthStore();
@@ -264,6 +265,9 @@ export default function ParentProfilePage() {
           </button>
         </div>
       </form>
+
+      {/* Modification autonome du mot de passe */}
+      <ChangePasswordSection />
     </div>
   );
 }

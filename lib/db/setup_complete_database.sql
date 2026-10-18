@@ -380,24 +380,30 @@ ALTER TABLE grade_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE official_bulletins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bulletin_audit_logs ENABLE ROW LEVEL SECURITY;
 
--- Politiques de lecture publique / permissive pour le démarrage
+-- Politiques de sécurité strictes multi-établissements (RLS)
 DROP POLICY IF EXISTS rls_schools_all ON schools;
-CREATE POLICY rls_schools_all ON schools FOR ALL USING (true);
+CREATE POLICY rls_schools_isolation ON schools FOR ALL 
+    USING (owner_user_id = auth.uid() OR auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS rls_classrooms_all ON classrooms;
-CREATE POLICY rls_classrooms_all ON classrooms FOR ALL USING (true);
+CREATE POLICY rls_classrooms_isolation ON classrooms FOR ALL 
+    USING (school_id IN (SELECT id FROM schools WHERE owner_user_id = auth.uid()) OR auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS rls_students_all ON students;
-CREATE POLICY rls_students_all ON students FOR ALL USING (true);
+CREATE POLICY rls_students_isolation ON students FOR ALL 
+    USING (school_id IN (SELECT id FROM schools WHERE owner_user_id = auth.uid()) OR auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS rls_subjects_all ON subjects;
-CREATE POLICY rls_subjects_all ON subjects FOR ALL USING (true);
+CREATE POLICY rls_subjects_isolation ON subjects FOR ALL 
+    USING (school_id IN (SELECT id FROM schools WHERE owner_user_id = auth.uid()) OR auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS rls_grades_all ON grade_records;
-CREATE POLICY rls_grades_all ON grade_records FOR ALL USING (true);
+CREATE POLICY rls_grades_isolation ON grade_records FOR ALL 
+    USING (school_id IN (SELECT id FROM schools WHERE owner_user_id = auth.uid()) OR auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS rls_bulletins_all ON official_bulletins;
-CREATE POLICY rls_bulletins_all ON official_bulletins FOR ALL USING (true);
+CREATE POLICY rls_bulletins_isolation ON official_bulletins FOR ALL 
+    USING (school_id IN (SELECT id FROM schools WHERE owner_user_id = auth.uid()) OR auth.role() = 'service_role');
 
 -- -----------------------------------------------------------------------------
 -- 8. ÉTABLISSEMENTS (Création lors de l'onboarding réel)
@@ -434,7 +440,8 @@ CREATE TABLE IF NOT EXISTS school_users (
 
 ALTER TABLE school_users ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS rls_school_users_all ON school_users;
-CREATE POLICY rls_school_users_all ON school_users FOR ALL USING (true);
+CREATE POLICY rls_school_users_isolation ON school_users FOR ALL 
+    USING (school_id IN (SELECT id FROM schools WHERE owner_user_id = auth.uid()) OR auth.role() = 'service_role');
 GRANT ALL ON school_users TO anon, authenticated;
 
 -- Rafraîchissement immédiat du cache de l'API Supabase

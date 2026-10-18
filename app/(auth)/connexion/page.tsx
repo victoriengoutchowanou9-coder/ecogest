@@ -37,11 +37,13 @@ import {
   authenticateSystemUser,
   validateSchoolCode,
 } from "@/lib/user-registry";
+import { ForgotPasswordModal } from "@/components/account/ForgotPasswordModal";
 
 export default function AuthPage() {
   const router = useRouter();
   const { toast } = useToast();
   const authStore = useAuthStore();
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const {
     changeSchoolPlan,
     createSchool,
@@ -539,7 +541,7 @@ export default function AuthPage() {
                     </label>
                     <button
                       type="button"
-                      onClick={() => toast("Veuillez contacter le Directeur de votre établissement pour réinitialiser votre mot de passe.", "info")}
+                      onClick={() => setIsForgotPasswordOpen(true)}
                       className="text-school-primary hover:underline text-[11px] font-semibold"
                     >
                       Mot de passe oublié ?
@@ -976,6 +978,12 @@ export default function AuthPage() {
         </div>
 
       </div>
+
+      {/* Modal de récupération autonome du mot de passe */}
+      <ForgotPasswordModal
+        isOpen={isForgotPasswordOpen}
+        onClose={() => setIsForgotPasswordOpen(false)}
+      />
     </div>
   );
 }

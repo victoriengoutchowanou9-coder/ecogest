@@ -99,7 +99,7 @@ export default function ChatSupportPage() {
       } else if (lower.includes("examen") || lower.includes("calendrier")) {
         reply = "La programmation des examens s'effectue dans l'espace Censeur > Planification des Examens. Vous pouvez y définir la salle, le surveillant, l'heure et la date d'épreuve.";
       } else if (lower.includes("compte") || lower.includes("mot de passe")) {
-        reply = "Pour réinitialiser un compte ou modifier un mot de passe, le Directeur peut intervenir depuis son menu 'Utilisateurs' ou vous pouvez nous transmettre l'adresse email associée pour déblocage immédiat.";
+        reply = "Pour modifier votre mot de passe, accédez directement à votre Profil ou aux paramètres de votre compte. En cas d'oubli, utilisez le lien 'Mot de passe oublié ?' sur la page de connexion pour réinitialiser votre accès en toute sécurité et sans intervention extérieure.";
       }
 
       setMessages((prev) => [

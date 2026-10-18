@@ -102,6 +102,13 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
         permission: "settings:manage",
       },
       {
+        title: "Mon Profil & Compte",
+        href: "/directeur/profil",
+        iconName: "UserCircle",
+        description: "Informations du compte et modification du mot de passe",
+        permission: "settings:manage",
+      },
+      {
         title: "Abonnement",
         href: "/directeur/abonnement",
         iconName: "CreditCard",
@@ -220,6 +227,13 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
         permission: "finance:read",
       },
       {
+        title: "Mon Profil & Compte",
+        href: "/censeur/profil",
+        iconName: "UserCircle",
+        description: "Informations du compte et modification du mot de passe",
+        permission: "dashboard:read",
+      },
+      {
         title: "Centre de Support",
         href: "/support",
         iconName: "LifeBuoy",
@@ -302,6 +316,13 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
         permission: "reports:read",
       },
       {
+        title: "Mon Profil & Compte",
+        href: "/secretariat/profil",
+        iconName: "UserCircle",
+        description: "Informations du compte et modification du mot de passe",
+        permission: "dashboard:read",
+      },
+      {
         title: "Centre de Support",
         href: "/support",
         iconName: "LifeBuoy",
@@ -374,6 +395,13 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
         iconName: "FileSpreadsheet",
         description: "Rapport quotidien, absences répétées et bilan disciplinaire",
         permission: "reports:read",
+      },
+      {
+        title: "Mon Profil & Compte",
+        href: "/surveillant/profil",
+        iconName: "UserCircle",
+        description: "Informations du compte et modification du mot de passe",
+        permission: "dashboard:read",
       },
       {
         title: "Centre de Support",
@@ -451,7 +479,7 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
         badge: "2",
       },
       {
-        title: "Profil enseignant",
+        title: "Mon Profil & Compte",
         href: "/enseignant/profil",
         iconName: "UserCircle",
         description: "Informations professionnelles et affectations pédagogiques",
@@ -523,6 +551,13 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
         iconName: "Wallet",
         description: "Livre de caisse sans doublon : entrées et sorties réelles",
         permission: "treasury:read",
+      },
+      {
+        title: "Mon Profil & Compte",
+        href: "/comptabilite/profil",
+        iconName: "UserCircle",
+        description: "Informations du compte et modification du mot de passe",
+        permission: "dashboard:read",
       },
       {
         title: "Centre de Support",

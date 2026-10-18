@@ -2,11 +2,16 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { ExamScheduleItem } from "./types/bulletin";
+import { getScopedStorageKey } from "./school-context";
 
 export const INITIAL_EXAMS: ExamScheduleItem[] = [];
 
-const STORAGE_KEY_EXAMS = "educogest_exams_schedule_v1";
+const BASE_STORAGE_KEY_EXAMS = "educogest_exams_schedule_v2";
 const STORAGE_EVENT_EXAMS = "educogest_exams_storage_update";
+
+function getExamsKey(): string {
+  return getScopedStorageKey(BASE_STORAGE_KEY_EXAMS);
+}
 
 function safeGetStorage<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -23,6 +28,7 @@ function safeSetStorage<T>(key: string, value: T): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
     window.dispatchEvent(new Event(STORAGE_EVENT_EXAMS));
+    window.dispatchEvent(new Event("storage"));
   } catch (e) {
     console.error("Storage error:", e);
   }
@@ -30,18 +36,20 @@ function safeSetStorage<T>(key: string, value: T): void {
 
 export function useExamStore() {
   const [exams, setExams] = useState<ExamScheduleItem[]>(() =>
-    safeGetStorage(STORAGE_KEY_EXAMS, INITIAL_EXAMS)
+    safeGetStorage(getExamsKey(), INITIAL_EXAMS)
   );
 
   useEffect(() => {
     const handleUpdate = () => {
-      setExams(safeGetStorage(STORAGE_KEY_EXAMS, INITIAL_EXAMS));
+      setExams(safeGetStorage(getExamsKey(), INITIAL_EXAMS));
     };
 
     window.addEventListener(STORAGE_EVENT_EXAMS, handleUpdate);
+    window.addEventListener("educogest_school_switched", handleUpdate);
     window.addEventListener("storage", handleUpdate);
     return () => {
       window.removeEventListener(STORAGE_EVENT_EXAMS, handleUpdate);
+      window.removeEventListener("educogest_school_switched", handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
   }, []);
@@ -53,7 +61,7 @@ export function useExamStore() {
     };
     setExams((prev) => {
       const next = [newExam, ...prev];
-      safeSetStorage(STORAGE_KEY_EXAMS, next);
+      safeSetStorage(getExamsKey(), next);
       return next;
     });
     return newExam;
@@ -62,7 +70,7 @@ export function useExamStore() {
   const updateExam = useCallback((id: string, updates: Partial<ExamScheduleItem>) => {
     setExams((prev) => {
       const next = prev.map((ex) => (ex.id === id ? { ...ex, ...updates } : ex));
-      safeSetStorage(STORAGE_KEY_EXAMS, next);
+      safeSetStorage(getExamsKey(), next);
       return next;
     });
   }, []);
@@ -70,7 +78,7 @@ export function useExamStore() {
   const deleteExam = useCallback((id: string) => {
     setExams((prev) => {
       const next = prev.filter((ex) => ex.id !== id);
-      safeSetStorage(STORAGE_KEY_EXAMS, next);
+      safeSetStorage(getExamsKey(), next);
       return next;
     });
   }, []);

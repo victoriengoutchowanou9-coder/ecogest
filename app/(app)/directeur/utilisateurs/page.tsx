@@ -31,6 +31,7 @@ import {
   SystemUser,
 } from "@/lib/user-registry";
 import { Role } from "@/lib/permissions";
+import { getScopedStorageKey, getActiveSchoolId } from "@/lib/school-context";
 
 export interface UserAccount {
   id: string;
@@ -49,11 +50,18 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 export default function UtilisateursPage() {
   const { toast } = useToast();
   const { canAddUser, setUsersCount, schoolPlanDef, activeSchool } = useSubscriptionStore();
+  const currentSchoolId = activeSchool?.id || getActiveSchoolId();
+  const currentSchoolName = activeSchool?.name || "Établissement Scolaire";
   const schoolCode = activeSchool?.code || "4827";
 
+  const planName = schoolPlanDef?.name || "Starter";
+  const planPrice = typeof schoolPlanDef?.priceFcfa === "number" ? schoolPlanDef.priceFcfa.toLocaleString() : "6 000";
+  const maxUsers = schoolPlanDef?.maxUsers || 10;
+
   const loadCurrentSchoolUsers = React.useCallback((): UserAccount[] => {
-    if (!activeSchool?.id) return [];
-    const list = getSchoolUsers(activeSchool.id);
+    const sId = activeSchool?.id || getActiveSchoolId();
+    if (!sId) return [];
+    const list = getSchoolUsers(sId);
     return list.map((u): UserAccount => {
       const roleDisplay: Record<Role, UserAccount["role"]> = {
         directeur: "Directeur",
@@ -185,8 +193,8 @@ export default function UtilisateursPage() {
         email: cleanEmail,
         fullName: formName.trim(),
         role: mappedRole,
-        schoolId: activeSchool.id,
-        schoolName: activeSchool.name,
+        schoolId: currentSchoolId,
+        schoolName: currentSchoolName,
         schoolCode: schoolCode,
         password: formPassword,
         phone: formPhone.trim(),
@@ -194,9 +202,29 @@ export default function UtilisateursPage() {
         permissions: selectedPermissions,
       });
 
-      // Synchronisation Censeur si c'est un enseignant
+      // Synchronisation Supabase backend API
+      try {
+        await fetch("/api/auth/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            schoolId: currentSchoolId,
+            name: formName.trim(),
+            email: cleanEmail,
+            phone: formPhone.trim(),
+            role: mappedRole,
+            password: formPassword,
+            permissions: selectedPermissions,
+          }),
+        });
+      } catch (apiErr) {
+        console.warn("Sync Supabase non bloquante :", apiErr);
+      }
+
+      // Synchronisation Censeur si c'est un enseignant avec clé cloisonnée par école
       if (mappedRole === "enseignant") {
-        const rawTeachers = localStorage.getItem("educogest_censeur_teachers_v1");
+        const teacherStorageKey = getScopedStorageKey("educogest_censeur_teachers_v2", currentSchoolId);
+        const rawTeachers = localStorage.getItem(teacherStorageKey);
         const currentTeachers = rawTeachers ? JSON.parse(rawTeachers) : [];
         const existsInCenseur = currentTeachers.some(
           (t: any) => t.email?.toLowerCase() === cleanEmail.toLowerCase()
@@ -218,7 +246,7 @@ export default function UtilisateursPage() {
             createdAt: new Date().toISOString().split("T")[0],
           };
           localStorage.setItem(
-            "educogest_censeur_teachers_v1",
+            teacherStorageKey,
             JSON.stringify([newTeacherEntry, ...currentTeachers])
           );
         }
@@ -630,11 +658,11 @@ export default function UtilisateursPage() {
 
               <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-700 space-y-1">
                 <p className="font-semibold text-slate-900">
-                  Formule actuelle : {schoolPlanDef.name} ({schoolPlanDef.priceFcfa.toLocaleString()} FCFA/mois)
+                  Formule actuelle : {planName} ({planPrice} FCFA/mois)
                 </p>
                 <p className="text-slate-500">
                   Comptes actifs : <strong>{users.length}</strong> /{" "}
-                  <strong>{schoolPlanDef.maxUsers} max</strong>
+                  <strong>{maxUsers} max</strong>
                 </p>
               </div>
 

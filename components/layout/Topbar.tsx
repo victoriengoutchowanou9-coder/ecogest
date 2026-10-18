@@ -242,18 +242,24 @@ export const Topbar: React.FC<TopbarProps> = ({
                 <Link
                   href={
                     currentRole === "directeur"
-                      ? "/directeur/parametres"
+                      ? "/directeur/profil"
+                      : currentRole === "censeur"
+                      ? "/censeur/profil"
+                      : currentRole === "secretariat"
+                      ? "/secretariat/profil"
+                      : currentRole === "surveillant"
+                      ? "/surveillant/profil"
+                      : currentRole === "comptabilite"
+                      ? "/comptabilite/profil"
                       : currentRole === "enseignant"
                       ? "/enseignant/profil"
-                      : currentRole === "parent"
-                      ? "/parent/profil"
-                      : currentNav.basePath
+                      : "/parent/profil"
                   }
                   onClick={() => setUserMenuOpen(false)}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
                 >
                   <User className="w-4 h-4 text-slate-400" />
-                  <span>Mon Profil</span>
+                  <span>Mon Profil &amp; Sécurité</span>
                 </Link>
 
                 {currentRole === "directeur" && (

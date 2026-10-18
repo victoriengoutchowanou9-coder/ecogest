@@ -54,13 +54,15 @@ export const INITIAL_DISCIPLINE_INCIDENTS: DisciplineIncident[] = [
   },
 ];
 
-// Statuts initiaux des élèves
-export const INITIAL_STUDENTS_WITH_STATUS: StudentProfile[] = MOCK_BULLETIN_STUDENTS;
+import { getScopedStorageKey } from "./school-context";
 
-const STORAGE_KEY_MEDICAL = "educogest_medical_records_enc_v2";
-const STORAGE_KEY_DISCIPLINE = "educogest_discipline_incidents_v2";
-const STORAGE_KEY_STUDENTS_EXT = "educogest_censeur_students_v1";
-const STORAGE_KEY_READMISSIONS = "educogest_readmission_logs_v2";
+// Statuts initiaux des élèves (propre, zéro fuite inter-établissements)
+export const INITIAL_STUDENTS_WITH_STATUS: StudentProfile[] = [];
+
+const getMedicalKey = () => getScopedStorageKey("educogest_medical_records_v3");
+const getDisciplineKey = () => getScopedStorageKey("educogest_discipline_incidents_v3");
+const getStudentsKey = () => getScopedStorageKey("educogest_censeur_students_v2");
+const getReadmissionsKey = () => getScopedStorageKey("educogest_readmission_logs_v3");
 
 const STORAGE_EVENT = "educogest_discipline_storage_update";
 const SHARED_STORAGE_EVENT = "ecogest_shared_data_update";
@@ -89,45 +91,27 @@ function safeSetStorage<T>(key: string, value: T): void {
 
 export function useDisciplineStore() {
   const [students, setStudents] = useState<StudentProfile[]>(() =>
-    safeGetStorage(STORAGE_KEY_STUDENTS_EXT, INITIAL_STUDENTS_WITH_STATUS)
+    safeGetStorage(getStudentsKey(), [])
   );
 
   const [disciplineIncidents, setDisciplineIncidents] = useState<DisciplineIncident[]>(() =>
-    safeGetStorage(STORAGE_KEY_DISCIPLINE, INITIAL_DISCIPLINE_INCIDENTS)
+    safeGetStorage(getDisciplineKey(), [])
   );
 
-  const [medicalRecords, setMedicalRecords] = useState<Record<string, MedicalRecord>>(() => {
-    const stored = safeGetStorage<Record<string, MedicalRecord>>(
-      STORAGE_KEY_MEDICAL,
-      INITIAL_MEDICAL_RECORDS
-    );
-    return stored;
-  });
+  const [medicalRecords, setMedicalRecords] = useState<Record<string, MedicalRecord>>(() =>
+    safeGetStorage<Record<string, MedicalRecord>>(getMedicalKey(), {})
+  );
 
   const [readmissionLogs, setReadmissionLogs] = useState<StudentReadmissionLog[]>(() =>
-    safeGetStorage(STORAGE_KEY_READMISSIONS, [
-      {
-        id: "readm-init-01",
-        studentId: "std-07",
-        studentName: "Rodrigue KANHONOU",
-        matricule: "ECO-2026-0245",
-        previousClass: "4ème A (2025)",
-        newClassId: "3e-a",
-        newClassName: "3ème A",
-        academicYear: "2026 - 2027",
-        readmittedAt: "2026-09-10 09:30",
-        readmittedBy: "Censeur des Études",
-        observation: "Réadmission après régularisation du dossier de transfert et apurement du solde.",
-      },
-    ])
+    safeGetStorage(getReadmissionsKey(), [])
   );
 
   useEffect(() => {
     const handleUpdate = () => {
-      setStudents(safeGetStorage(STORAGE_KEY_STUDENTS_EXT, INITIAL_STUDENTS_WITH_STATUS));
-      setDisciplineIncidents(safeGetStorage(STORAGE_KEY_DISCIPLINE, INITIAL_DISCIPLINE_INCIDENTS));
-      setMedicalRecords(safeGetStorage(STORAGE_KEY_MEDICAL, INITIAL_MEDICAL_RECORDS));
-      setReadmissionLogs(safeGetStorage(STORAGE_KEY_READMISSIONS, []));
+      setStudents(safeGetStorage(getStudentsKey(), []));
+      setDisciplineIncidents(safeGetStorage(getDisciplineKey(), []));
+      setMedicalRecords(safeGetStorage(getMedicalKey(), {}));
+      setReadmissionLogs(safeGetStorage(getReadmissionsKey(), []));
     };
 
     window.addEventListener(STORAGE_EVENT, handleUpdate);
@@ -189,7 +173,7 @@ export function useDisciplineStore() {
 
       setMedicalRecords((prev) => {
         const next = { ...prev, [studentId]: encryptedRecord };
-        safeSetStorage(STORAGE_KEY_MEDICAL, next);
+        safeSetStorage(getMedicalKey(), next);
         return next;
       });
 
@@ -222,7 +206,7 @@ export function useDisciplineStore() {
 
       setDisciplineIncidents((prev) => {
         const next = [newIncident, ...prev];
-        safeSetStorage(STORAGE_KEY_DISCIPLINE, next);
+        safeSetStorage(getDisciplineKey(), next);
         return next;
       });
 
@@ -260,7 +244,7 @@ export function useDisciplineStore() {
           }
           return inc;
         });
-        safeSetStorage(STORAGE_KEY_DISCIPLINE, next);
+        safeSetStorage(getDisciplineKey(), next);
         return next;
       });
     },
@@ -284,7 +268,7 @@ export function useDisciplineStore() {
     ) => {
       setStudents((prev) => {
         const next = prev.map((s) => (s.id === studentId ? { ...s, status: newStatus } : s));
-        safeSetStorage(STORAGE_KEY_STUDENTS_EXT, next);
+        safeSetStorage(getStudentsKey(), next);
         return next;
       });
     },
@@ -319,7 +303,7 @@ export function useDisciplineStore() {
           }
           return s;
         });
-        safeSetStorage(STORAGE_KEY_STUDENTS_EXT, next);
+        safeSetStorage(getStudentsKey(), next);
         return next;
       });
 
@@ -339,7 +323,7 @@ export function useDisciplineStore() {
 
       setReadmissionLogs((prev) => {
         const next = [log, ...prev];
-        safeSetStorage(STORAGE_KEY_READMISSIONS, next);
+        safeSetStorage(getReadmissionsKey(), next);
         return next;
       });
 

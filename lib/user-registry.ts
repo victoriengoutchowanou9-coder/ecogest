@@ -268,3 +268,205 @@ export function deleteSystemUser(userId: string): boolean {
 export function getAllSystemUsers(): SystemUser[] {
   return loadUsers();
 }
+
+// -------------------------------------------------------------
+// GESTION DU MOT DE PASSE & RÉCUPÉRATION SÉCURISÉE (SANS DIRECTEUR)
+// -------------------------------------------------------------
+
+interface PasswordResetRequest {
+  identifierOrEmail: string;
+  otp: string;
+  expiresAt: number;
+}
+
+const STORAGE_KEY_RESET_OTP = "ecogest_pwd_reset_otps_v1";
+
+function loadResetOTPs(): PasswordResetRequest[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY_RESET_OTP) || localStorage.getItem(STORAGE_KEY_RESET_OTP);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.warn("Erreur lecture reset OTPs:", e);
+  }
+  return [];
+}
+
+function saveResetOTPs(requests: PasswordResetRequest[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    const clean = requests.filter((r) => r.expiresAt > Date.now());
+    sessionStorage.setItem(STORAGE_KEY_RESET_OTP, JSON.stringify(clean));
+    localStorage.setItem(STORAGE_KEY_RESET_OTP, JSON.stringify(clean));
+  } catch (e) {
+    console.error("Erreur sauvegarde reset OTPs:", e);
+  }
+}
+
+/**
+ * Modifie le mot de passe d'un utilisateur après vérification de l'ancien mot de passe.
+ * Fonctionne de façon autonome pour chaque utilisateur (Direction, Censeur, Enseignant, Parent, etc.).
+ */
+export function changeUserPassword(
+  identifierOrEmail: string,
+  oldPassword: string,
+  newPassword: string
+): { success: boolean; error?: string } {
+  const query = (identifierOrEmail || "").trim();
+  const oldPwd = (oldPassword || "").trim();
+  const newPwd = (newPassword || "").trim();
+
+  if (!query) {
+    return { success: false, error: "Utilisateur non identifié." };
+  }
+  if (!oldPwd) {
+    return { success: false, error: "Veuillez renseigner votre mot de passe actuel." };
+  }
+  if (!newPwd || newPwd.length < 6) {
+    return { success: false, error: "Le nouveau mot de passe doit comporter au moins 6 caractères." };
+  }
+  if (oldPwd === newPwd) {
+    return { success: false, error: "Le nouveau mot de passe doit être différent de l'ancien mot de passe." };
+  }
+
+  const users = loadUsers();
+  const userIndex = users.findIndex(
+    (u) =>
+      u.identifier?.toUpperCase() === query.toUpperCase() ||
+      u.email?.toLowerCase() === query.toLowerCase()
+  );
+
+  if (userIndex === -1) {
+    return { success: false, error: "Compte introuvable dans le système." };
+  }
+
+  if (users[userIndex].password !== oldPwd) {
+    return { success: false, error: "L'ancien mot de passe est incorrect." };
+  }
+
+  users[userIndex].password = newPwd;
+  saveUsers(users);
+
+  return { success: true };
+}
+
+/**
+ * Génère un code OTP sécurisé pour la réinitialisation de mot de passe (procédure « Mot de passe oublié ? »).
+ */
+export function requestPasswordResetOTP(identifierOrEmail: string): {
+  success: boolean;
+  error?: string;
+  otp?: string;
+  emailMasked?: string;
+  userFullName?: string;
+} {
+  const query = (identifierOrEmail || "").trim();
+  if (!query) {
+    return { success: false, error: "Veuillez renseigner votre identifiant ou adresse e-mail." };
+  }
+
+  const users = loadUsers();
+  const user = users.find(
+    (u) =>
+      u.identifier?.toUpperCase() === query.toUpperCase() ||
+      u.email?.toLowerCase() === query.toLowerCase()
+  );
+
+  if (!user) {
+    return {
+      success: false,
+      error: "Aucun compte ne correspond à cet identifiant ou cette adresse e-mail.",
+    };
+  }
+
+  if (user.status === "SUSPENDU") {
+    return {
+      success: false,
+      error: "Ce compte est actuellement suspendu. Veuillez contacter l'administration de votre établissement.",
+    };
+  }
+
+  // Génération d'un OTP à 6 chiffres valide 15 minutes
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = Date.now() + 15 * 60 * 1000;
+
+  const existingRequests = loadResetOTPs().filter(
+    (r) => r.identifierOrEmail.toLowerCase() !== query.toLowerCase()
+  );
+  existingRequests.push({
+    identifierOrEmail: query.toLowerCase(),
+    otp,
+    expiresAt,
+  });
+  saveResetOTPs(existingRequests);
+
+  // Masquage de l'e-mail (ex: j***n@domain.com)
+  const parts = user.email.split("@");
+  const local = parts[0] || "";
+  const domain = parts[1] || "ecogest.bj";
+  const maskedLocal = local.length <= 2 ? local[0] + "***" : `${local[0]}***${local[local.length - 1]}`;
+  const emailMasked = `${maskedLocal}@${domain}`;
+
+  return {
+    success: true,
+    otp,
+    emailMasked,
+    userFullName: user.fullName,
+  };
+}
+
+/**
+ * Réinitialise le mot de passe à l'aide de l'OTP de validation.
+ */
+export function resetUserPasswordWithOTP(
+  identifierOrEmail: string,
+  otp: string,
+  newPassword: string
+): { success: boolean; error?: string } {
+  const query = (identifierOrEmail || "").trim().toLowerCase();
+  const code = (otp || "").trim();
+  const newPwd = (newPassword || "").trim();
+
+  if (!query || !code) {
+    return { success: false, error: "Identifiant et code de sécurité requis." };
+  }
+
+  if (!newPwd || newPwd.length < 6) {
+    return { success: false, error: "Le nouveau mot de passe doit comporter au moins 6 caractères." };
+  }
+
+  const requests = loadResetOTPs();
+  const validRequest = requests.find(
+    (r) =>
+      r.identifierOrEmail === query &&
+      r.otp === code &&
+      r.expiresAt > Date.now()
+  );
+
+  if (!validRequest) {
+    return {
+      success: false,
+      error: "Code de sécurité invalide ou expiré (durée de validité : 15 minutes). Veuillez faire une nouvelle demande.",
+    };
+  }
+
+  const users = loadUsers();
+  const userIndex = users.findIndex(
+    (u) =>
+      u.identifier?.toUpperCase() === query.toUpperCase() ||
+      u.email?.toLowerCase() === query.toLowerCase()
+  );
+
+  if (userIndex === -1) {
+    return { success: false, error: "Utilisateur introuvable dans le système." };
+  }
+
+  users[userIndex].password = newPwd;
+  saveUsers(users);
+
+  // Supprimer l'OTP utilisé
+  saveResetOTPs(requests.filter((r) => r !== validRequest));
+
+  return { success: true };
+}
+

@@ -349,3 +349,6 @@ export function useAuthStore() {
     validatePayment: authStore.validatePayment,
   };
 }
+
+export const useAuth = useAuthStore;
+

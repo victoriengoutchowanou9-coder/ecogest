@@ -85,6 +85,23 @@ export const BottomTabBar: React.FC = () => {
   const { role: currentRole } = useRoleContext();
   const currentNav = ROLE_NAVIGATIONS[currentRole];
   // Sort items by mobileTabPriority (1 = most important), fallback to original order
+  const profileHref =
+    currentRole === "directeur"
+      ? "/directeur/profil"
+      : currentRole === "censeur"
+      ? "/censeur/profil"
+      : currentRole === "secretariat"
+      ? "/secretariat/profil"
+      : currentRole === "surveillant"
+      ? "/surveillant/profil"
+      : currentRole === "comptabilite"
+      ? "/comptabilite/profil"
+      : currentRole === "enseignant"
+      ? "/enseignant/profil"
+      : "/parent/profil";
+
+  const isProfileActive = pathname === profileHref || pathname?.endsWith("/profil");
+
   const quickItems = [...currentNav.items]
     .sort((a, b) => (a.mobileTabPriority ?? 99) - (b.mobileTabPriority ?? 99))
     .slice(0, 4);
@@ -118,6 +135,23 @@ export const BottomTabBar: React.FC = () => {
           </Link>
         );
       })}
+
+      {/* Bouton Profil aligné avec les autres fonctionnalités de navigation */}
+      <Link
+        href={profileHref}
+        className={cn(
+          "flex flex-col items-center justify-center flex-1 py-1.5 touch-target min-h-[48px] text-[11px] font-medium transition-colors",
+          isProfileActive ? "text-school-primary font-bold" : "text-slate-500 hover:text-slate-800"
+        )}
+      >
+        <div className={cn(
+          "p-1 rounded-md",
+          isProfileActive && "bg-school-50 text-school-primary"
+        )}>
+          <UserCircle className="w-5 h-5 shrink-0" />
+        </div>
+        <span className="truncate max-w-[70px] mt-0.5">Profil</span>
+      </Link>
     </nav>
   );
 };

@@ -22,6 +22,7 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useToast } from "@/components/ui/Toast";
 import { MOCK_TEACHER_PROFILE } from "@/lib/mock-teacher-db";
+import { ChangePasswordSection } from "@/components/account/ChangePasswordSection";
 
 export default function EnseignantProfilPage() {
   const { toast } = useToast();
@@ -326,6 +327,9 @@ export default function EnseignantProfilPage() {
           </table>
         </div>
       </div>
+
+      {/* Modification autonome du mot de passe */}
+      <ChangePasswordSection />
     </div>
   );
 }

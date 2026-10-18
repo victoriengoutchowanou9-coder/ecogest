@@ -178,13 +178,15 @@ export const subscriptionStore = {
   },
 
   getActiveSchool(): SchoolProfile {
-    const school = memorySchoolState.schools.find((s) => s.id === memorySchoolState.activeSchoolId);
-    return school || memorySchoolState.schools[0] || INITIAL_SCHOOLS[0];
+    const validSchools = (memorySchoolState.schools || []).filter((s): s is SchoolProfile => Boolean(s && s.id));
+    const school = validSchools.find((s) => s.id === memorySchoolState.activeSchoolId);
+    return school || validSchools[0] || INITIAL_SCHOOLS[0];
   },
 
   // Basculer d'établissement (pour le forfait Premium)
   switchActiveSchool(schoolId: string) {
-    const target = memorySchoolState.schools.find((s) => s.id === schoolId);
+    const validSchools = (memorySchoolState.schools || []).filter((s): s is SchoolProfile => Boolean(s && s.id));
+    const target = validSchools.find((s) => s.id === schoolId);
     if (!target) return false;
     memorySchoolState = { ...memorySchoolState, activeSchoolId: schoolId };
     saveSchoolState();
@@ -195,9 +197,9 @@ export const subscriptionStore = {
   updateSchoolProfile(schoolId: string, updates: Partial<SchoolProfile>) {
     memorySchoolState = {
       ...memorySchoolState,
-      schools: memorySchoolState.schools.map((s) =>
-        s.id === schoolId ? { ...s, ...updates } : s
-      ),
+      schools: (memorySchoolState.schools || [])
+        .filter((s): s is SchoolProfile => Boolean(s && s.id))
+        .map((s) => (s.id === schoolId ? { ...s, ...updates } : s)),
     };
     saveSchoolState();
   },
@@ -210,7 +212,7 @@ export const subscriptionStore = {
     max: number | null;
     plan: SchoolPlanCode;
   } {
-    const plan = SCHOOL_PLANS[memorySchoolState.currentPlan];
+    const plan = SCHOOL_PLANS[memorySchoolState.currentPlan] || SCHOOL_PLANS.STARTER;
     const current = proposedTotal ?? memorySchoolState.usersCount;
     if (plan.maxUsers === null) {
       return { allowed: true, current, max: null, plan: plan.code };
@@ -235,12 +237,13 @@ export const subscriptionStore = {
     max: number;
     plan: SchoolPlanCode;
   } {
-    const plan = SCHOOL_PLANS[memorySchoolState.currentPlan];
+    const plan = SCHOOL_PLANS[memorySchoolState.currentPlan] || SCHOOL_PLANS.STARTER;
+    const validSchools = (memorySchoolState.schools || []).filter((s): s is SchoolProfile => Boolean(s && s.id));
     const isInitialPlaceholderOnly =
-      memorySchoolState.schools.length === 1 &&
-      memorySchoolState.schools[0].id === "school-1" &&
-      memorySchoolState.schools[0].name === "Établissement Scolaire";
-    const current = isInitialPlaceholderOnly ? 0 : memorySchoolState.schools.length;
+      validSchools.length === 1 &&
+      validSchools[0].id === "school-1" &&
+      validSchools[0].name === "Établissement Scolaire";
+    const current = isInitialPlaceholderOnly ? 0 : validSchools.length;
     if (current >= plan.maxSchools) {
       return {
         allowed: false,
@@ -340,7 +343,7 @@ export const subscriptionStore = {
     max: number;
     plan: ParentPlanCode;
   } {
-    const plan = PARENT_PLANS[memoryParentState.currentPlan];
+    const plan = PARENT_PLANS[memoryParentState.currentPlan] || PARENT_PLANS.PARENT_1;
     const current = currentChildrenCount ?? memoryParentState.childrenCount;
     if (current >= plan.maxChildren) {
       return {
@@ -359,16 +362,11 @@ export const subscriptionStore = {
 
   // Changer de forfait établissement
   changeSchoolPlan(newPlan: SchoolPlanCode) {
-    const planDef = SCHOOL_PLANS[newPlan];
     // Calculer la nouvelle date d'expiration (1 mois)
     const nextMonth = new Date();
     nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-    // Si passage à Premium et qu'on a qu'une école, on prépare la 2ème école exemple
-    let nextSchools = [...memorySchoolState.schools];
-    if (newPlan === "PREMIUM" && nextSchools.length === 1) {
-      nextSchools.push(INITIAL_SCHOOLS[1]);
-    }
+    const validSchools = (memorySchoolState.schools || []).filter((s): s is SchoolProfile => Boolean(s && s.id));
 
     memorySchoolState = {
       ...memorySchoolState,
@@ -376,7 +374,7 @@ export const subscriptionStore = {
       status: "ACTIVE",
       startDate: new Date().toISOString().split("T")[0],
       expiresAt: nextMonth.toISOString().split("T")[0],
-      schools: nextSchools,
+      schools: validSchools,
     };
     saveSchoolState();
   },
@@ -458,16 +456,22 @@ export function useSubscriptionStore() {
 
   const activeSchool = subscriptionStore.getActiveSchool();
 
+  const safeSchoolPlan = schoolState?.currentPlan || "STARTER";
+  const safeSchoolPlanDef = SCHOOL_PLANS[safeSchoolPlan] || SCHOOL_PLANS.STARTER;
+
+  const safeParentPlan = parentState?.currentPlan || "PARENT_1";
+  const safeParentPlanDef = PARENT_PLANS[safeParentPlan] || PARENT_PLANS.PARENT_1;
+
   return {
     // Établissement
-    schoolPlan: schoolState.currentPlan,
-    schoolPlanDef: SCHOOL_PLANS[schoolState.currentPlan],
-    schoolStatus: schoolState.status,
-    schoolStartDate: schoolState.startDate,
-    schoolExpiresAt: schoolState.expiresAt,
-    schools: schoolState.schools,
+    schoolPlan: safeSchoolPlan,
+    schoolPlanDef: safeSchoolPlanDef,
+    schoolStatus: schoolState?.status || "TRIAL",
+    schoolStartDate: schoolState?.startDate || "2026-10-01",
+    schoolExpiresAt: schoolState?.expiresAt || "2026-11-01",
+    schools: (schoolState?.schools || []).filter((s): s is SchoolProfile => Boolean(s && s.id)),
     activeSchool,
-    usersCount: schoolState.usersCount,
+    usersCount: schoolState?.usersCount || 0,
     isTrialActive: subscriptionStore.isTrialActive(),
     trialDaysRemaining: subscriptionStore.getTrialDaysRemaining(),
     isExpired: subscriptionStore.isExpired(),
@@ -483,12 +487,12 @@ export function useSubscriptionStore() {
     setUsersCount: subscriptionStore.setUsersCount.bind(subscriptionStore),
 
     // Parent
-    parentPlan: parentState.currentPlan,
-    parentPlanDef: PARENT_PLANS[parentState.currentPlan],
-    parentStatus: parentState.status,
-    parentStartDate: parentState.startDate,
-    parentExpiresAt: parentState.expiresAt,
-    childrenCount: parentState.childrenCount,
+    parentPlan: safeParentPlan,
+    parentPlanDef: safeParentPlanDef,
+    parentStatus: parentState?.status || "ACTIVE",
+    parentStartDate: parentState?.startDate || "2026-10-01",
+    parentExpiresAt: parentState?.expiresAt || "2026-11-01",
+    childrenCount: parentState?.childrenCount || 0,
     canParentAddChild: subscriptionStore.canParentAddChild.bind(subscriptionStore),
     changeParentPlan: subscriptionStore.changeParentPlan.bind(subscriptionStore),
     renewParentSubscription: subscriptionStore.renewParentSubscription.bind(subscriptionStore),

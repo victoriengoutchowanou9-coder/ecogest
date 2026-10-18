@@ -14,12 +14,16 @@ import {
   INITIAL_STAFF,
   INITIAL_PAYROLL,
 } from "./mock-finance-db";
+import { getScopedStorageKey } from "./school-context";
 
-const STORAGE_KEY_STUDENTS = "educogest_finance_students_v1";
-const STORAGE_KEY_RECEIPTS = "educogest_finance_receipts_v1";
-const STORAGE_KEY_EXPENSES = "educogest_finance_expenses_v1";
-const STORAGE_KEY_PAYROLL = "educogest_finance_payroll_v1";
-const STORAGE_KEY_STAFF = "educogest_finance_staff_v1";
+const getStudentsKey = () => getScopedStorageKey("educogest_finance_students_v2");
+const getReceiptsKey = () => getScopedStorageKey("educogest_finance_receipts_v2");
+const getExpensesKey = () => getScopedStorageKey("educogest_finance_expenses_v2");
+const getPayrollKey = () => getScopedStorageKey("educogest_finance_payroll_v2");
+const getStaffKey = () => getScopedStorageKey("educogest_finance_staff_v2");
+
+const FINANCE_STORAGE_EVENT = "educogest_finance_storage_update";
+const SHARED_STORAGE_EVENT = "ecogest_shared_data_update";
 
 function safeGetStorage<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -35,6 +39,8 @@ function safeSetStorage<T>(key: string, value: T): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(key, JSON.stringify(value));
+    window.dispatchEvent(new Event(FINANCE_STORAGE_EVENT));
+    window.dispatchEvent(new Event(SHARED_STORAGE_EVENT));
   } catch (e) {
     console.error("Failed to save to localStorage:", e);
   }
@@ -45,44 +51,65 @@ function safeSetStorage<T>(key: string, value: T): void {
  */
 export function useFinanceStore() {
   const [students, setStudents] = useState<StudentTuitionRecord[]>(() =>
-    safeGetStorage(STORAGE_KEY_STUDENTS, INITIAL_STUDENTS_TUITION)
+    safeGetStorage(getStudentsKey(), [])
   );
 
   const [receipts, setReceipts] = useState<CashReceiptRecord[]>(() =>
-    safeGetStorage(STORAGE_KEY_RECEIPTS, INITIAL_CASH_RECEIPTS)
+    safeGetStorage(getReceiptsKey(), [])
   );
 
   const [expenses, setExpenses] = useState<ExpenseRecord[]>(() =>
-    safeGetStorage(STORAGE_KEY_EXPENSES, INITIAL_EXPENSES)
+    safeGetStorage(getExpensesKey(), [])
   );
 
   const [payroll, setPayroll] = useState<PayrollRecord[]>(() =>
-    safeGetStorage(STORAGE_KEY_PAYROLL, INITIAL_PAYROLL)
+    safeGetStorage(getPayrollKey(), [])
   );
 
   const [staff, setStaff] = useState<StaffMember[]>(() =>
-    safeGetStorage(STORAGE_KEY_STAFF, INITIAL_STAFF)
+    safeGetStorage(getStaffKey(), [])
   );
+
+  // Synchronisation lors d'un basculement d'école ou d'une mise à jour partagée
+  useEffect(() => {
+    const handleSync = () => {
+      setStudents(safeGetStorage(getStudentsKey(), []));
+      setReceipts(safeGetStorage(getReceiptsKey(), []));
+      setExpenses(safeGetStorage(getExpensesKey(), []));
+      setPayroll(safeGetStorage(getPayrollKey(), []));
+      setStaff(safeGetStorage(getStaffKey(), []));
+    };
+
+    window.addEventListener(FINANCE_STORAGE_EVENT, handleSync);
+    window.addEventListener(SHARED_STORAGE_EVENT, handleSync);
+    window.addEventListener("storage", handleSync);
+
+    return () => {
+      window.removeEventListener(FINANCE_STORAGE_EVENT, handleSync);
+      window.removeEventListener(SHARED_STORAGE_EVENT, handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
+  }, []);
 
   // Sync to localStorage
   useEffect(() => {
-    safeSetStorage(STORAGE_KEY_STUDENTS, students);
+    safeSetStorage(getStudentsKey(), students);
   }, [students]);
 
   useEffect(() => {
-    safeSetStorage(STORAGE_KEY_RECEIPTS, receipts);
+    safeSetStorage(getReceiptsKey(), receipts);
   }, [receipts]);
 
   useEffect(() => {
-    safeSetStorage(STORAGE_KEY_EXPENSES, expenses);
+    safeSetStorage(getExpensesKey(), expenses);
   }, [expenses]);
 
   useEffect(() => {
-    safeSetStorage(STORAGE_KEY_PAYROLL, payroll);
+    safeSetStorage(getPayrollKey(), payroll);
   }, [payroll]);
 
   useEffect(() => {
-    safeSetStorage(STORAGE_KEY_STAFF, staff);
+    safeSetStorage(getStaffKey(), staff);
   }, [staff]);
 
   /**
