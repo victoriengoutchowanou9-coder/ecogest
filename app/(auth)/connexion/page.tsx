@@ -90,7 +90,38 @@ export default function AuthPage() {
       return;
     }
 
-    setLoginLoading(true);
+    // Détection d'un accès Développeur / Administrateur Technique
+    if (
+      cleanIdentifier.toLowerCase() === "dev-root-001" ||
+      cleanIdentifier.toLowerCase() === "admin.technique@ecogest.bj"
+    ) {
+      setLoginLoading(true);
+      try {
+        const res = await fetch("/api/dev-admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            identifier: cleanIdentifier,
+            passkey: cleanPassword,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setLoginError(data.error || "Accès refusé. Informations développeur invalides.");
+          toast("Échec d'authentification Développeur.", "error");
+          return;
+        }
+        toast("Session Développeur validée. Accès à la Console Technique...", "success");
+        router.push("/dev-admin");
+        return;
+      } catch {
+        setLoginError("Erreur de connexion au serveur d'authentification développeur.");
+        toast("Erreur de connexion.", "error");
+        return;
+      } finally {
+        setLoginLoading(false);
+      }
+    }
 
     try {
       const authResult = authenticateSystemUser(cleanIdentifier, cleanPassword);
@@ -539,6 +570,16 @@ export default function AuthPage() {
                     >
                       S&apos;inscrire
                     </button>
+                  </div>
+
+                  <div className="text-center pt-1">
+                    <Link
+                      href="/dev-admin/connexion"
+                      className="text-[11px] text-slate-400 hover:text-slate-600 font-mono transition inline-flex items-center gap-1.5"
+                    >
+                      <Shield className="w-3 h-3 text-slate-400" />
+                      <span>Espace Développeur &amp; Supervision Technique &rarr;</span>
+                    </Link>
                   </div>
                 </form>
               </div>

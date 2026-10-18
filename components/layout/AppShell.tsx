@@ -21,8 +21,10 @@ interface AppShellProps {
  * AppShellInner — composant interne qui consomme le RoleContext et AuthStore.
  */
 function AppShellInner({ children }: { children: React.ReactNode }) {
-  const { role: routeRole } = useRoleContext();
   const pathname = usePathname();
+  const isDevAdmin = pathname.startsWith("/dev-admin");
+
+  const { role: routeRole } = useRoleContext();
   const router = useRouter();
   const { user: currentUser } = useAuthStore();
   const { schoolStatus, schoolPlanDef, parentStatus, parentPlanDef } = useSubscriptionStore();
@@ -33,10 +35,15 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
 
   React.useEffect(() => {
+    if (isDevAdmin) return;
     if (!currentUser || !isAuthenticated) {
       router.push("/connexion");
     }
-  }, [currentUser, isAuthenticated, router]);
+  }, [currentUser, isAuthenticated, router, isDevAdmin]);
+
+  if (isDevAdmin) {
+    return <>{children}</>;
+  }
 
   if (!currentUser || !isAuthenticated) {
     return (

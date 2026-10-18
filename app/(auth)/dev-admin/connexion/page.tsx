@@ -162,15 +162,15 @@ export default function DevAdminLoginPage() {
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-300 font-mono flex items-center justify-between">
                 <span>IDENTIFIANT_TECHNIQUE</span>
-                <span className="text-[10px] text-slate-500">EMAIL DEV</span>
+                <span className="text-[10px] text-slate-500">ID DEV OU EMAIL</span>
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
-                  type="email"
+                  type="text"
                   required
                   autoFocus
-                  placeholder="admin.technique@ecogest.bj"
+                  placeholder="DEV-ROOT-001 ou admin.technique@ecogest.bj"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono transition-colors"

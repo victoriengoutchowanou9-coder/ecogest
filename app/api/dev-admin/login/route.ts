@@ -1,50 +1,58 @@
 import { NextResponse } from "next/server";
 import {
-  verifyDeveloperCredentials,
+  verifyDeveloperCredentialsAsync,
   createDeveloperSessionToken,
   recordSystemAuditLog,
   DEV_ADMIN_EMAIL,
+  DEV_ADMIN_IDENTIFIER,
 } from "@/lib/server/dev-auth";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { email, passkey } = body;
+    const identifier = body.identifier || body.email;
+    const passkey = body.passkey || body.password;
 
-    if (!email || !passkey) {
+    if (!identifier || !passkey) {
       return NextResponse.json(
-        { error: "Identifiant et code de sécurité développeur requis." },
+        { error: "Identifiant unique (ex: DEV-ROOT-001) et mot de passe développeur requis." },
         { status: 400 }
       );
     }
 
-    const isValid = verifyDeveloperCredentials(email, passkey);
+    const authCheck = await verifyDeveloperCredentialsAsync(identifier, passkey);
 
-    if (!isValid) {
+    if (!authCheck.valid) {
       await recordSystemAuditLog({
         eventType: "ERREUR_AUTH",
         severity: "WARNING",
         actionTitle: "Tentative d'accès non autorisée à l'Espace Développeur",
-        details: { attempted_email: String(email).slice(0, 50) },
-        userEmail: String(email).slice(0, 50),
+        details: { attempted_identifier: String(identifier).slice(0, 50) },
+        userEmail: String(identifier).slice(0, 50),
         userRole: "INCONNU",
+        schoolName: "Administration Centrale ECOGEST",
       });
 
       return NextResponse.json(
-        { error: "Accès refusé. Informations d'authentification invalides." },
+        { error: "Accès refusé. Identifiant technique ou mot de passe invalide." },
         { status: 401 }
       );
     }
 
     // Authentification réussie
-    const sessionToken = createDeveloperSessionToken(email.trim());
+    const targetEmail = authCheck.email || DEV_ADMIN_EMAIL;
+    const sessionToken = createDeveloperSessionToken(targetEmail);
 
     await recordSystemAuditLog({
       eventType: "CONNEXION",
       severity: "INFO",
       actionTitle: "Connexion autorisée du Développeur / Administrateur Technique",
-      details: { client: "Console Développeur ECOGEST" },
-      userEmail: DEV_ADMIN_EMAIL,
+      details: {
+        identifier: DEV_ADMIN_IDENTIFIER,
+        client: "Console Développeur ECOGEST",
+        mechanism: "POSTGRES_PBKDF2_SECURE",
+      },
+      userEmail: targetEmail,
       userRole: "DEVELOPPEUR",
       schoolName: "Administration Centrale ECOGEST",
     });
@@ -53,8 +61,9 @@ export async function POST(request: Request) {
       success: true,
       message: "Authentification développeur réussie.",
       developer: {
-        email: DEV_ADMIN_EMAIL,
-        role: "DEVELOPPEUR_ADMIN",
+        identifier: DEV_ADMIN_IDENTIFIER,
+        email: targetEmail,
+        role: "DEVELOPPEUR",
       },
     });
 
@@ -69,6 +78,7 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error: any) {
+    console.error("[dev-login] Error:", error);
     return NextResponse.json(
       { error: "Erreur interne lors de l'authentification développeur." },
       { status: 500 }

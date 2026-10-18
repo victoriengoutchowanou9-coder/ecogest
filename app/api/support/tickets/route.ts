@@ -138,6 +138,26 @@ export async function POST(request: Request) {
 
     globalServerTickets = [newTicket, ...globalServerTickets];
 
+    // Enregistrement dans le journal d'audit
+    try {
+      const { recordSystemAuditLog } = await import("@/lib/server/dev-auth");
+      await recordSystemAuditLog({
+        eventType: "CREATION_TICKET_SUPPORT",
+        severity: priority === "URGENTE" ? "WARNING" : "INFO",
+        actionTitle: `Création ticket de support : « ${subject.trim()} » par ${userName || userEmail || "un utilisateur"}`,
+        details: {
+          ticketId: newTicket.id,
+          category,
+          priority,
+          userPhone: userPhone || undefined,
+        },
+        userEmail: userEmail || undefined,
+        userRole: userRole || "Utilisateur",
+        schoolId: schoolId || undefined,
+        schoolName: schoolName || undefined,
+      });
+    } catch {}
+
     return NextResponse.json({
       success: true,
       ticket: newTicket,

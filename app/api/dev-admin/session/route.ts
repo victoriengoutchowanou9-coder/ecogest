@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireDeveloperAuth } from "@/lib/server/dev-auth";
+import { requireDeveloperAuth, DEV_ADMIN_IDENTIFIER } from "@/lib/server/dev-auth";
 
 export async function GET() {
   const auth = await requireDeveloperAuth();
@@ -10,7 +10,8 @@ export async function GET() {
 
   return NextResponse.json({
     authenticated: true,
+    identifier: DEV_ADMIN_IDENTIFIER,
     email: auth.email,
-    role: "DEVELOPPEUR_ADMIN",
+    role: "DEVELOPPEUR",
   });
 }

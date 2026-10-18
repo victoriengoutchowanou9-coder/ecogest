@@ -12,10 +12,12 @@ export async function GET(request: Request) {
   const eventType = searchParams.get("eventType") || "";
   const severity = searchParams.get("severity") || "";
   const role = searchParams.get("role") || "";
+  const school = searchParams.get("school") || "";
+  const user = searchParams.get("user") || "";
   const search = searchParams.get("search") || "";
   const dateFrom = searchParams.get("dateFrom") || "";
   const dateTo = searchParams.get("dateTo") || "";
-  const limit = Math.min(parseInt(searchParams.get("limit") || "50", 10), 200);
+  const limit = Math.min(parseInt(searchParams.get("limit") || "100", 10), 300);
 
   const supabase = getSupabaseAdminClient();
 
@@ -38,6 +40,14 @@ export async function GET(request: Request) {
       query = query.ilike("user_role", `%${role}%`);
     }
 
+    if (school && school !== "ALL") {
+      query = query.ilike("school_name", `%${school}%`);
+    }
+
+    if (user && user.trim()) {
+      query = query.ilike("user_email", `%${user.trim()}%`);
+    }
+
     if (dateFrom) {
       query = query.gte("created_at", `${dateFrom}T00:00:00Z`);
     }
@@ -54,14 +64,16 @@ export async function GET(request: Request) {
 
     let logs = data || [];
 
-    // Filtre textuel optionnel sur utilisateur, école ou titre
+    // Recherche textuelle multi-champs
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       logs = logs.filter(
         (l) =>
           l.action_title?.toLowerCase().includes(q) ||
           l.user_email?.toLowerCase().includes(q) ||
-          l.school_name?.toLowerCase().includes(q)
+          l.school_name?.toLowerCase().includes(q) ||
+          l.event_type?.toLowerCase().includes(q) ||
+          (l.details && JSON.stringify(l.details).toLowerCase().includes(q))
       );
     }
 
@@ -97,10 +109,10 @@ export async function POST(request: Request) {
       details: details || {},
       userEmail: auth.email,
       userRole: "DEVELOPPEUR",
-      schoolName: schoolName || "Administration Centrale",
+      schoolName: schoolName || "Administration Centrale ECOGEST",
     });
 
-    return NextResponse.json({ success: true, message: "Action enregistrée dans le journal technique." });
+    return NextResponse.json({ success: true, message: "Action consignée dans le journal technique." });
   } catch (err: any) {
     return NextResponse.json({ error: "Impossible d'enregistrer l'action." }, { status: 500 });
   }

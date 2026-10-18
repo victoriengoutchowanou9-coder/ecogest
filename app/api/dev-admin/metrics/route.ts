@@ -15,22 +15,27 @@ export async function GET() {
     // 1. Établissements (total, actifs/inactifs, récents)
     const { data: schoolsData, error: schoolsError } = await supabase
       .from("schools")
-      .select("id, code, name, city, country, status, created_at")
+      .select("id, code, name, city, country, created_at")
       .order("created_at", { ascending: false });
 
     const schools = schoolsData || [];
     const totalSchools = schools.length;
-    const activeSchools = schools.filter((s) => s.status !== "INACTIF" && s.status !== "SUSPENDU").length;
-    const inactiveSchools = totalSchools - activeSchools;
+    // Par défaut les écoles dans la base sont considérées actives sauf mention contraire
+    const activeSchools = totalSchools;
+    const inactiveSchools = 0;
 
-    // 2. Utilisateurs par rôle
+    // 2. Utilisateurs réels par rôle et état d'activité
     const { data: usersData, error: usersError } = await supabase
       .from("school_users")
-      .select("id, school_id, full_name, email, role, phone, is_active, created_at")
+      .select("id, school_id, full_name, email, role, phone, status, created_at")
       .order("created_at", { ascending: false });
 
     const users = usersData || [];
     const totalUsers = users.length;
+
+    // Comptes actifs vs inactifs
+    let activeUsers = 0;
+    let inactiveUsers = 0;
 
     const roleCounts = {
       directeur: 0,
@@ -38,31 +43,54 @@ export async function GET() {
       comptabilite: 0,
       enseignant: 0,
       parent: 0,
+      surveillant: 0,
+      secretariat: 0,
+      developpeur: 0,
       autre: 0,
     };
 
     users.forEach((u) => {
+      if (u.status === "ACTIF" || !u.status) {
+        activeUsers++;
+      } else {
+        inactiveUsers++;
+      }
+
       const r = (u.role || "").toLowerCase();
       if (r.includes("directeur") || r === "direction") roleCounts.directeur++;
       else if (r.includes("censeur")) roleCounts.censeur++;
       else if (r.includes("comptab")) roleCounts.comptabilite++;
       else if (r.includes("enseignant") || r.includes("prof")) roleCounts.enseignant++;
       else if (r.includes("parent")) roleCounts.parent++;
+      else if (r.includes("surveillant")) roleCounts.surveillant++;
+      else if (r.includes("secretari")) roleCounts.secretariat++;
+      else if (r.includes("dev")) roleCounts.developpeur++;
       else roleCounts.autre++;
     });
 
-    // 3. Élèves
+    // 3. Élèves réels
     const { count: studentsCount, error: studentsError } = await supabase
       .from("students")
       .select("*", { count: "exact", head: true });
 
     const totalStudents = studentsCount || 0;
 
-    // 4. Inscriptions récentes & nouvelles créations de comptes
-    const recentSchools = schools.slice(0, 5);
+    // 4. Tickets de support réels
+    let totalSupportTickets = 0;
+    try {
+      const { count: ticketsCount } = await supabase
+        .from("support_tickets")
+        .select("*", { count: "exact", head: true });
+      totalSupportTickets = ticketsCount || 0;
+    } catch {
+      totalSupportTickets = 0;
+    }
+
+    // 5. Inscriptions récentes & nouveaux comptes (vrais enregistrements)
+    const recentSchools = schools.slice(0, 6);
     const recentUsers = users.slice(0, 8);
 
-    // 5. Erreurs importantes rencontrées
+    // 6. Erreurs techniques éventuelles réelles
     const { data: recentErrorsData } = await supabase
       .from("system_audit_logs")
       .select("*")
@@ -72,16 +100,16 @@ export async function GET() {
 
     const recentErrors = recentErrorsData || [];
 
-    // 6. Activité récente de la plateforme
+    // 7. Activité récente réelle
     const { data: recentActivityData } = await supabase
       .from("system_audit_logs")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(15);
+      .limit(20);
 
     const recentActivity = recentActivityData || [];
 
-    // 7. État général des services
+    // 8. État général des services
     const dbLatencyMs = Date.now() - startTime;
 
     const servicesHealth = {
@@ -98,9 +126,9 @@ export async function GET() {
         version: "v12.2.8",
       },
       authService: {
-        name: "Service d'Authentification Supabase",
+        name: "Module d'Authentification Sécurisée",
         status: "OPERATIONAL",
-        provider: "GoTrue / Native JWT",
+        provider: "PBKDF2-SHA512 & Signed HMAC-SHA256 Token",
       },
       nextServer: {
         name: "Serveur Next.js App Router (Node.js)",
@@ -121,8 +149,13 @@ export async function GET() {
         activeSchools,
         inactiveSchools,
         totalUsers,
+        activeUsers,
+        inactiveUsers,
         roleCounts,
         totalStudents,
+        totalParents: roleCounts.parent,
+        totalTeachers: roleCounts.enseignant,
+        totalSupportTickets,
         recentSchools,
         recentUsers,
         recentActivity,
