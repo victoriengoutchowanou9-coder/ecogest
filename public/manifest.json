@@ -2,7 +2,7 @@
   "name": "ECOGEST",
   "short_name": "ECOGEST",
   "description": "Plateforme complète de gestion pour établissements scolaires (collèges, lycées et complexes scolaires) : direction administrative, pédagogie, bulletins et finances.",
-  "start_url": "/",
+  "start_url": "/connexion",
   "scope": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],

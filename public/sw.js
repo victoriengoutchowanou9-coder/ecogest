@@ -10,6 +10,7 @@ const SHELL_CACHE_NAME = `ecogest-shell-${CACHE_VERSION}`;
 // Ressources statiques d'application essentielles à mettre en cache
 const PRECACHE_ASSETS = [
   '/',
+  '/connexion',
   '/manifest.json',
   '/favicon.png',
   '/icons/icon.svg',

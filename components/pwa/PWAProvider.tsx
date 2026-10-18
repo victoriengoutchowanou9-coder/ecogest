@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { useRouter, usePathname } from "next/navigation";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -27,6 +28,8 @@ interface PWAContextType {
 const PWAContext = createContext<PWAContextType | null>(null);
 
 export function PWAProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState<boolean>(false);
   const [isIOS, setIsIOS] = useState<boolean>(false);
@@ -47,6 +50,12 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       document.referrer.includes("android-app://");
 
     setIsInstalled(isStandalone);
+
+    // Si l'utilisateur lance l'application installée depuis son appareil (mode standalone)
+    // et arrive sur la racine "/" ou la vitrine publique, le diriger directement vers la page de connexion
+    if (isStandalone && (pathname === "/" || pathname === "")) {
+      router.replace("/connexion");
+    }
 
     const mediaQuery = window.matchMedia("(display-mode: standalone)");
     const handleDisplayModeChange = (e: MediaQueryListEvent) => {
