@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
+import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
 
 interface DevTopbarProps {
   onOpenMobileDrawer: () => void;
@@ -87,6 +88,9 @@ export const DevTopbar: React.FC<DevTopbarProps> = ({
 
       {/* Right Controls */}
       <div className="flex items-center gap-2 md:gap-3 shrink-0">
+        {/* PWA Install Button */}
+        <PWAInstallButton />
+
         {/* Refresh button */}
         {onRefresh && (
           <button

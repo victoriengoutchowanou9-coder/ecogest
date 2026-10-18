@@ -26,6 +26,7 @@ import { useRoleContext } from "@/lib/context/RoleContext";
 import { useSubscriptionStore, SchoolPlanCode } from "@/lib/subscription-store";
 import { useAuthStore } from "@/lib/auth-store";
 import { cn } from "@/lib/utils";
+import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
 
 interface TopbarProps {
   onRoleChange: (newRole: Role) => void;
@@ -158,6 +159,9 @@ export const Topbar: React.FC<TopbarProps> = ({
 
       {/* Right Controls: Subscription Plan Badge + School Year + User Profile Menu */}
       <div className="flex items-center gap-2 md:gap-3 shrink-0">
+        {/* Bouton PWA Installer ECOGEST */}
+        <PWAInstallButton />
+
         {/* Subscription Plan Badge - Uniquement pour le Directeur de l'établissement */}
         {currentRole === "directeur" && (
           <Link
