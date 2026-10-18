@@ -15,6 +15,8 @@ import {
   CheckCircle2,
   Tag,
   Search,
+  Smartphone,
+  Terminal,
 } from "lucide-react";
 import { PublicNavbar } from "@/components/layout/PublicNavbar";
 import { PublicFooter } from "@/components/layout/PublicFooter";
@@ -23,6 +25,37 @@ export default function MisesAJourPage() {
   const [filterCategory, setFilterCategory] = useState<string>("ALL");
 
   const releases = [
+    {
+      version: "ECOGEST 3.3",
+      date: "18 Octobre 2026",
+      badge: "PWA Installable & Espace Développeur Centralisé",
+      badgeColor: "bg-school-primary text-white",
+      summary: "Transformation progressive web app (PWA) installable sur Android, iOS (iPhone/iPad), Windows et macOS avec raccourci dédié, icônes officielles, cache sécurisé sans mise en cache des données privées, et déploiement complet de la console technique de supervision Développeur.",
+      sections: [
+        {
+          type: "Installation PWA Multi-Plateforme",
+          icon: <Smartphone className="w-4 h-4 text-emerald-600" />,
+          items: [
+            "Application installable sur mobile et ordinateur : raccourci sur écran d'accueil/bureau, lancement en mode autonome sans barre d'adresse du navigateur.",
+            "Bouton élégant « Installer ECOGEST » intégré dans toutes les barres de navigation (Administration, Développeur et Site Public) se masquant automatiquement une fois installé.",
+            "Guide pas à pas interactif adapté par système d'exploitation (Safari iOS bouton Partager, Chrome Android, Chrome/Edge Desktop).",
+            "Service Worker v3.3 sécurisé : zéro mise en cache des données scolaires privées (notes, finances, utilisateurs, Supabase direct) et basculement propre hors-ligne.",
+            "Système de détection de nouvelle version avec actualisation en un clic.",
+          ],
+        },
+        {
+          type: "Espace Développeur & Supervision Technique",
+          icon: <Terminal className="w-4 h-4 text-purple-600" />,
+          items: [
+            "Console technique de supervision reprenant la charte ergonomique officielle ECOGEST.",
+            "Tableau de bord de télémétrie en temps réel : établissements actifs, volume d'élèves, enseignants, personnels, santé système et alertes.",
+            "Supervision des établissements, des comptes utilisateurs et des abonnements avec filtres avancés.",
+            "Journal d'audit des activités techniques et suivi centralisé des incidents & erreurs applicatives.",
+            "Gestion autonome du profil développeur et sécurité des sessions.",
+          ],
+        },
+      ],
+    },
     {
       version: "ECOGEST 3.2",
       date: "18 Octobre 2026",
