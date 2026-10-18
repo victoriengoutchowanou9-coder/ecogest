@@ -24,6 +24,41 @@ export default function MisesAJourPage() {
 
   const releases = [
     {
+      version: "ECOGEST 3.2",
+      date: "18 Octobre 2026",
+      badge: "Sécurité, Isolation Multi-Établissements & Autonomie",
+      badgeColor: "bg-school-primary text-white",
+      summary: "Mise à jour majeure de sécurité et d'autonomie : gestion autonome et réinitialisation sécurisée du mot de passe par code OTP (sans intervention du directeur), alignement responsive du bouton Profil dans toute la navigation (Sidebar, Topbar et barre mobile), isolation étanche des données par établissement (client & Supabase RLS) et résolution de l'exception client sur l'enregistrement du personnel.",
+      sections: [
+        {
+          type: "Autonomie & Sécurité du Mot de Passe",
+          icon: <ShieldCheck className="w-4 h-4 text-emerald-600" />,
+          items: [
+            "Modification autonome du mot de passe dans tous les profils (Directeur, Censeur, Secrétariat, Surveillant, Enseignant, Comptabilité, Parent) : ancien mot de passe, nouveau mot de passe et confirmation avec visibilité sécurisée.",
+            "Procédure « Mot de passe oublié ? » sur la page de connexion : récupération autonome par code de sécurité OTP à 6 chiffres valide 15 minutes, sans devoir contacter le directeur.",
+            "Route API /api/auth/password pour synchronisation et hachage en base de données Supabase (school_users).",
+          ],
+        },
+        {
+          type: "Isolation Totale Multi-Établissements",
+          icon: <Layers className="w-4 h-4 text-purple-600" />,
+          items: [
+            "Cloisonnement strict par établissement : aucun établissement ne peut accéder aux élèves, finances, classes, cours ou personnels d'un autre établissement.",
+            "Migration de tous les stores vers des clés partitionnées par identifiant d'établissement (school_id).",
+            "Politiques de sécurité Supabase RLS (Row Level Security) éliminant les accès permissifs et vérifiant systématiquement le rattachement school_id.",
+          ],
+        },
+        {
+          type: "Repositionnement du Profil & Fiabilité",
+          icon: <Layout className="w-4 h-4 text-blue-600" />,
+          items: [
+            "Alignement visuel du Profil : intégration dans la navigation principale de tous les rôles, sur ordinateur et dans la barre d'onglets mobile (BottomTabBar à 5 accès réguliers).",
+            "Correction de l'erreur client lors de l'enregistrement des personnels : sécurisation des valeurs indéfinies et liaison automatique à l'établissement actif.",
+          ],
+        },
+      ],
+    },
+    {
       version: "ECOGEST 3.1",
       date: "Octobre 2026",
       badge: "Documents Responsives & Sécurité des Rôles",
