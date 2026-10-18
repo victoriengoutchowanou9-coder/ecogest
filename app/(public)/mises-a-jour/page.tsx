@@ -37,6 +37,7 @@ export default function MisesAJourPage() {
           icon: <Smartphone className="w-4 h-4 text-emerald-600" />,
           items: [
             "Application installable sur mobile et ordinateur : raccourci sur écran d'accueil/bureau, lancement en mode autonome sans barre d'adresse du navigateur.",
+            "Lancement direct vers la Connexion : l'application installée ouvre automatiquement la page de connexion sécurisée dès son ouverture par l'utilisateur.",
             "Bouton élégant « Installer ECOGEST » intégré dans toutes les barres de navigation (Administration, Développeur et Site Public) se masquant automatiquement une fois installé.",
             "Guide pas à pas interactif adapté par système d'exploitation (Safari iOS bouton Partager, Chrome Android, Chrome/Edge Desktop).",
             "Service Worker v3.3 sécurisé : zéro mise en cache des données scolaires privées (notes, finances, utilisateurs, Supabase direct) et basculement propre hors-ligne.",
