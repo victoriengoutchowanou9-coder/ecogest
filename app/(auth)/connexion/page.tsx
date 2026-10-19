@@ -183,7 +183,7 @@ export default function AuthPage() {
   const [schoolEmail, setSchoolEmail] = useState("");
   const [schoolPhone, setSchoolPhone] = useState("+229 ");
   const [schoolPassword, setSchoolPassword] = useState("");
-  const [schoolChosenPlan, setSchoolChosenPlan] = useState<SchoolPlanCode>("STANDARD");
+  const [schoolChosenPlan, setSchoolChosenPlan] = useState<SchoolPlanCode>("STARTER");
 
   const handleRegisterSchool = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -747,30 +747,32 @@ export default function AuthPage() {
                     {/* Choix de la formule d'abonnement établissement */}
                     <div className="space-y-2 pt-2 border-t border-slate-100">
                       <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
-                        Choisissez votre Formule Mensuelle :
+                        Choisissez votre Formule :
                       </label>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        {(["BASIC", "STANDARD", "PREMIUM"] as SchoolPlanCode[]).map((pCode) => {
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {(["STARTER", "BASIC", "STANDARD", "PREMIUM"] as SchoolPlanCode[]).map((pCode) => {
                           const p = SCHOOL_PLANS[pCode];
                           const isSel = schoolChosenPlan === pCode;
                           return (
                             <div
                               key={pCode}
                               onClick={() => setSchoolChosenPlan(pCode)}
-                              className={`p-3 rounded-2xl border cursor-pointer transition flex flex-col justify-between ${
+                              className={`p-2.5 rounded-2xl border cursor-pointer transition flex flex-col justify-between ${
                                 isSel
                                   ? "border-school-primary bg-school-50/70 ring-1 ring-school-primary shadow-xs"
                                   : "border-slate-200 hover:border-slate-300 bg-white"
                               }`}
                             >
                               <div>
-                                <div className="flex items-center justify-between">
-                                  <span className="font-bold text-xs text-slate-900">{p.name}</span>
-                                  {isSel && <Check className="w-3.5 h-3.5 text-school-primary" />}
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="font-bold text-xs text-slate-900 leading-tight">{p.name}</span>
+                                  {isSel && <Check className="w-3.5 h-3.5 text-school-primary shrink-0" />}
                                 </div>
                                 <p className="text-xs font-black text-school-primary mt-1">
-                                  {p.priceFcfa.toLocaleString()} F
-                                  <span className="text-[10px] font-normal text-slate-500"> /m</span>
+                                  {p.priceFcfa === 0 ? "0 FCFA" : `${p.priceFcfa.toLocaleString()} F`}
+                                  <span className="text-[10px] font-normal text-slate-500">
+                                    {p.priceFcfa === 0 ? " (Offert)" : " /m"}
+                                  </span>
                                 </p>
                               </div>
                               <p className="text-[10px] text-slate-500 mt-2">
@@ -783,9 +785,15 @@ export default function AuthPage() {
                       </div>
                     </div>
 
-                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800">
-                      <strong>Activation requise :</strong> Après création, le règlement de l&apos;abonnement sera demandé pour activer votre espace opérationnel.
-                    </div>
+                    {schoolChosenPlan === "STARTER" ? (
+                      <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800">
+                        <strong>1 mois gratuit offert :</strong> Accès immédiat et complet à toutes les fonctionnalités avec jusqu&apos;à 20 utilisateurs établissement. Aucun paiement requis.
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800">
+                        <strong>Activation requise :</strong> Après création, le règlement de l&apos;abonnement ({SCHOOL_PLANS[schoolChosenPlan].priceFcfa.toLocaleString()} FCFA/mois) sera demandé pour activer votre espace opérationnel.
+                      </div>
+                    )}
 
                     <button
                       type="submit"

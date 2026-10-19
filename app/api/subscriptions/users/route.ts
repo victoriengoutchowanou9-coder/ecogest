@@ -13,10 +13,11 @@ export async function POST(request: Request) {
 
     // Si maxUsers est null, la formule est illimitée (PREMIUM)
     if (plan.maxUsers !== null && current >= plan.maxUsers) {
+      const priceText = plan.priceFcfa === 0 ? "Gratuit 1 mois" : `${plan.priceFcfa.toLocaleString()} FCFA/mois`;
       return NextResponse.json(
         {
           allowed: false,
-          error: `Limite de ${plan.maxUsers} utilisateurs actifs atteinte pour la formule ${plan.name} (${plan.priceFcfa.toLocaleString()} FCFA/mois). Veuillez surclasser votre forfait vers STANDARD ou PREMIUM pour ajouter plus d'utilisateurs.`,
+          error: `Limite de ${plan.maxUsers} utilisateurs établissement atteinte pour la formule ${plan.name} (${priceText}). Les comptes Parents ne sont pas décomptés de cette limite. Veuillez surclasser votre forfait vers STANDARD ou PREMIUM pour ajouter plus d'utilisateurs.`,
           maxAllowed: plan.maxUsers,
           currentCount: current,
         },

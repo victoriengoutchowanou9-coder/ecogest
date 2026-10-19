@@ -218,9 +218,10 @@ export const subscriptionStore = {
       return { allowed: true, current, max: null, plan: plan.code };
     }
     if (current >= plan.maxUsers) {
+      const priceText = plan.priceFcfa === 0 ? "Gratuit 1 mois" : `${plan.priceFcfa.toLocaleString()} FCFA/mois`;
       return {
         allowed: false,
-        reason: `La limite de ${plan.maxUsers} utilisateurs actifs pour le forfait ${plan.name} (${plan.priceFcfa.toLocaleString()} FCFA/mois) est atteinte. Veuillez surclasser votre abonnement.`,
+        reason: `La limite de ${plan.maxUsers} utilisateurs établissement pour le forfait ${plan.name} (${priceText}) est atteinte. Les comptes Parents ne sont pas décomptés de cette limite. Veuillez surclasser votre abonnement.`,
         current,
         max: plan.maxUsers,
         plan: plan.code,

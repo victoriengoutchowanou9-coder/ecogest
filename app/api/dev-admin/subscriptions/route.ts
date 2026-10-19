@@ -239,10 +239,10 @@ export async function POST(request: Request) {
     let maxChildren = 1;
 
     if (entityType === "SCHOOL") {
-      const planDef = (SCHOOL_PLANS as any)[planCode] || { name: planCode, priceFcfa: 6000, maxUsers: 10 };
+      const planDef = (SCHOOL_PLANS as any)[planCode] || { name: planCode, priceFcfa: 6000, maxUsers: 40 };
       planName = planDef.name;
-      amountFcfa = (planDef.priceFcfa || 6000) * Number(durationMonths || 1);
-      maxUsers = planDef.maxUsers || 10;
+      amountFcfa = (planDef.priceFcfa ?? 6000) * Number(durationMonths || 1);
+      maxUsers = planDef.maxUsers ?? 40;
     } else {
       const planDef = (PARENT_PLANS as any)[planCode] || { name: planCode, priceFcfa: 200, maxChildren: 1 };
       planName = planDef.name;

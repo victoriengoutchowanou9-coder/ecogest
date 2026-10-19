@@ -31,13 +31,14 @@ export async function POST(request: Request) {
     const currentCount = Number(existingSchoolsCount) || 1;
 
     if (currentCount >= plan.maxSchools) {
+      const priceText = plan.priceFcfa === 0 ? "Gratuit 1 mois" : `${plan.priceFcfa.toLocaleString()} FCFA/mois`;
       return NextResponse.json(
         {
           allowed: false,
           error:
             planCode === "PREMIUM"
               ? "Limite maximale de 2 établissements atteinte pour la Formule Premium."
-              : `Votre formule actuelle (${plan.name} à ${plan.priceFcfa.toLocaleString()} FCFA/mois) ne permet qu'un seul établissement. Pour créer un 2ème établissement, passez à la Formule PREMIUM (25 000 FCFA/mois).`,
+              : `Votre formule actuelle (${plan.name} - ${priceText}) ne permet qu'un seul établissement. Pour créer un 2ème établissement, passez à la Formule PREMIUM (25 000 FCFA/mois).`,
           maxAllowed: plan.maxSchools,
           currentCount,
         },

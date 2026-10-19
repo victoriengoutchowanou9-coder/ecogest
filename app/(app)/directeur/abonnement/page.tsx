@@ -70,8 +70,12 @@ export default function DirecteurAbonnementPage() {
     changeSchoolPlan(code);
     validatePayment("SCHOOL");
     setConfirmModalPlan(null);
+    const priceText =
+      SCHOOL_PLANS[code].priceFcfa === 0
+        ? "Gratuit 1 mois"
+        : `${SCHOOL_PLANS[code].priceFcfa.toLocaleString()} FCFA/mois`;
     toast(
-      `Félicitations ! Votre établissement est désormais sous la ${SCHOOL_PLANS[code].name} (${SCHOOL_PLANS[code].priceFcfa.toLocaleString()} FCFA/mois).`,
+      `Félicitations ! Votre établissement est désormais sous la ${SCHOOL_PLANS[code].name} (${priceText}).`,
       "success"
     );
   };
@@ -406,9 +410,14 @@ export default function DirecteurAbonnementPage() {
                   <div>
                     <div className="flex items-baseline gap-1">
                       <span className="text-3xl font-black text-slate-900">
-                        {plan.priceFcfa.toLocaleString()}
+                        {plan.priceFcfa === 0 ? "0" : plan.priceFcfa.toLocaleString()}
                       </span>
-                      <span className="text-xs font-semibold text-slate-500">FCFA / mois</span>
+                      <span className="text-xs font-semibold text-slate-500">FCFA / {plan.period}</span>
+                      {plan.priceFcfa === 0 && (
+                        <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                          1 mois offert
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-500 mt-1">{plan.tagline}</p>
                   </div>
@@ -484,7 +493,9 @@ export default function DirecteurAbonnementPage() {
                 <p className="text-xs text-slate-500 mt-1">
                   Nouveau tarif :{" "}
                   <strong className="text-slate-800">
-                    {SCHOOL_PLANS[confirmModalPlan].priceFcfa.toLocaleString()} FCFA / mois
+                    {SCHOOL_PLANS[confirmModalPlan].priceFcfa === 0
+                      ? "Gratuit (1 mois offert)"
+                      : `${SCHOOL_PLANS[confirmModalPlan].priceFcfa.toLocaleString()} FCFA / mois`}
                   </strong>
                   . Vos données, classes et élèves existants sont intégralement conservés et sécurisés.
                 </p>

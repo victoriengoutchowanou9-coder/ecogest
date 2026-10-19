@@ -599,10 +599,10 @@ export default function DevAbonnementsPage() {
                     onChange={(e) => setModalPlanCode(e.target.value)}
                     className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-800 outline-none focus:border-school-primary cursor-pointer"
                   >
-                    <option value="STARTER">Starter (Essai 1 mois gratuit - 0 FCFA)</option>
-                    <option value="BASIC">Basic (6 000 FCFA/mois - 5 utilisateurs)</option>
-                    <option value="STANDARD">Standard (10 000 FCFA/mois - 25 utilisateurs)</option>
-                    <option value="PREMIUM">Premium (25 000 FCFA/mois - Utilisateurs illimités, 2 écoles)</option>
+                    <option value="STARTER">Starter Gratuit (1 mois offert - 0 FCFA - 20 utilisateurs)</option>
+                    <option value="BASIC">Formule Starter (6 000 FCFA/mois - 40 utilisateurs)</option>
+                    <option value="STANDARD">Formule Pro (10 000 FCFA/mois - 70 utilisateurs)</option>
+                    <option value="PREMIUM">Formule Premium (25 000 FCFA/mois - Utilisateurs illimités, 2 écoles)</option>
                   </select>
                 ) : (
                   <select

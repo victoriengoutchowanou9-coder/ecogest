@@ -26,6 +26,36 @@ export default function MisesAJourPage() {
 
   const releases = [
     {
+      version: "ECOGEST 3.3.2",
+      date: "19 Octobre 2026",
+      badge: "Refonte Forfaits & Quotas Établissement",
+      badgeColor: "bg-emerald-600 text-white",
+      summary: "Harmonisation complète des forfaits d'abonnement : Starter Gratuit 1 mois à 0 FCFA avec 20 utilisateurs établissement, Formule Starter payante à 6 000 FCFA/mois portée à 40 utilisateurs, Formule Pro étendue à 70 utilisateurs à 10 000 FCFA/mois, sanctuarisation de l'exclusion des comptes parents des plafonds de quotas, synchronisation intégrale du tunnel d'inscription, du panneau directeur et de la console développeur.",
+      sections: [
+        {
+          type: "Nouvelle Grille Tarifaire & Quotas Établissement",
+          icon: <Sparkles className="w-4 h-4 text-emerald-600" />,
+          items: [
+            "Starter Gratuit (1 mois offert) : 0 FCFA requis à l'inscription, 20 comptes utilisateurs établissement inclus (Directeur, Censeur, Enseignants, Secrétaire, Surveillant).",
+            "Formule Starter (Payante) : 6 000 FCFA/mois, quota augmenté à 40 utilisateurs établissement (sans gratuité associée) pour établissements en phase de croissance.",
+            "Formule Pro : 10 000 FCFA/mois, capacité étendue à 70 utilisateurs établissement pour collèges et lycées avec équipe pédagogique complète.",
+            "Formule Premium : 25 000 FCFA/mois, pilotage de 2 établissements scolaires complets avec nombre d'utilisateurs établissement illimité.",
+            "Sanctuarisation des comptes Parents : les parents d'élèves sont gérés séparément et ne sont plus jamais décomptés du quota d'utilisateurs de l'école.",
+          ],
+        },
+        {
+          type: "Tunnel d'Inscription & Interfaces Directeurs",
+          icon: <Layers className="w-4 h-4 text-school-primary" />,
+          items: [
+            "Inscription école optimisée : sélection immédiate du Starter Gratuit 1 mois à la création de l'établissement sans carte bancaire ni paiement préalable.",
+            "Bannières contextuelles dynamiques : messages d'explication et de confirmation transparents selon le forfait choisi lors de l'enregistrement.",
+            "Espace Directeur & Paramètres : affichage transparent des nouveaux plafonds (20, 40, 70 ou illimités) et boutons de surclassement directs.",
+            "Console Développeur synchronisée : sélection des forfaits avec libellés et quotas actualisés pour les attributions manuelles et le suivi.",
+          ],
+        },
+      ],
+    },
+    {
       version: "ECOGEST 3.3",
       date: "18 Octobre 2026",
       badge: "PWA Installable & Espace Développeur Centralisé",
