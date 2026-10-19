@@ -18,6 +18,41 @@ export async function POST(request: Request) {
 
     const query = (identifierOrEmail || "").trim().toLowerCase();
 
+    const clientIp =
+      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+      request.headers.get("x-real-ip") ||
+      "127.0.0.1";
+
+    const { checkAndIncrementRateLimit, createSecurityAlert } = await import("@/lib/server/rate-limiter");
+    const rateCheck = await checkAndIncrementRateLimit({
+      key: `pwd:${clientIp}`,
+      maxAttempts: 5,
+      windowSeconds: 15 * 60,
+      blockDurationSeconds: 15 * 60,
+    });
+
+    if (!rateCheck.allowed) {
+      await createSecurityAlert({
+        severity: "HIGH",
+        alertType: "SUSPICION_BRUTE_FORCE_PASSWORD",
+        title: "Tentatives excessives de modification ou réinitialisation de mot de passe",
+        description: `Blocage temporaire appliqué sur l'IP ${clientIp} après dépassement du quota autorisable.`,
+        ipAddress: clientIp,
+        metadata: { target: query, retryAfterSeconds: rateCheck.retryAfterSeconds },
+        req: request,
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Trop de requêtes de mot de passe. Veuillez patienter ${Math.ceil(
+            (rateCheck.retryAfterSeconds || 900) / 60
+          )} minutes.`,
+        },
+        { status: 429 }
+      );
+    }
+
     // 1. Changement direct de mot de passe par l'utilisateur connecté
     if (action === "change") {
       if (!query || !oldPassword || !newPassword) {

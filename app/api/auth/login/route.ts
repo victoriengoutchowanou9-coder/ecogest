@@ -29,6 +29,44 @@ export async function POST(request: Request) {
       );
     }
 
+    // Rate Limiting anti-brute force (5 tentatives / 15 min par IP)
+    const clientIp =
+      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+      request.headers.get("x-real-ip") ||
+      "127.0.0.1";
+
+    const { checkAndIncrementRateLimit, createSecurityAlert, resetRateLimit, isOffHoursAccess } =
+      await import("@/lib/server/rate-limiter");
+
+    const rateResult = await checkAndIncrementRateLimit({
+      key: `login:${clientIp}`,
+      maxAttempts: 5,
+      windowSeconds: 15 * 60,
+      blockDurationSeconds: 15 * 60,
+    });
+
+    if (!rateResult.allowed) {
+      await createSecurityAlert({
+        severity: "HIGH",
+        alertType: "BRUTE_FORCE_LOGIN",
+        title: "Tentative répétée de force brute sur l'authentification",
+        description: `Blocage temporaire de 15 minutes déclenché suite à plus de 5 tentatives infructueuses depuis l'IP ${clientIp}.`,
+        ipAddress: clientIp,
+        metadata: { identifier: cleanQuery, retryAfterSeconds: rateResult.retryAfterSeconds },
+        req: request,
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Trop de tentatives de connexion échouées. Votre accès est temporairement bloqué pendant ${Math.ceil(
+            (rateResult.retryAfterSeconds || 900) / 60
+          )} minutes.`,
+        },
+        { status: 429 }
+      );
+    }
+
     let user: any = null;
 
     // 1. Recherche directe par email dans school_users
@@ -202,6 +240,26 @@ export async function POST(request: Request) {
         userAgent,
       });
     } catch {}
+
+    // Réinitialisation du rate limiting après succès
+    resetRateLimit(`login:${clientIp}`);
+
+    // Détection d'accès hors horaires (23h à 5h)
+    if (isOffHoursAccess()) {
+      try {
+        await createSecurityAlert({
+          schoolId: user.school_id,
+          severity: "MEDIUM",
+          alertType: "ACCES_HORS_HORAIRES",
+          title: "Accès au système en dehors des heures scolaires",
+          description: `L'utilisateur ${user.full_name} (${user.role}) s'est connecté en période nocturne (entre 23h et 5h).`,
+          userId: user.id,
+          userEmail: user.email,
+          ipAddress: clientIp,
+          req: request,
+        });
+      } catch {}
+    }
 
     const permissions = Array.isArray(user.permissions) ? user.permissions : [];
     const storedIdentifier = permissions
