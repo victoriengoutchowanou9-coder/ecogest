@@ -391,25 +391,31 @@ export default function ComptabiliteDashboardPage() {
           </div>
 
           <div className="divide-y divide-slate-100 space-y-1">
-            {recentReceipts.map((rec) => (
-              <div key={rec.id} className="py-2.5 flex items-center justify-between gap-2">
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900">{rec.studentName}</h4>
-                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-mono">
-                    <span>{rec.receiptNumber}</span>
-                    <span>&bull;</span>
-                    <span className="text-emerald-700 font-semibold">{rec.paymentMethod}</span>
-                  </div>
-                  <span className="text-[10px] text-slate-400 block">{rec.className}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-bold text-emerald-700 tabular-nums block">
-                    {formatFCFA(rec.amount)}
-                  </span>
-                  <span className="text-[10px] text-slate-400">{formatDate(rec.date)}</span>
-                </div>
+            {recentReceipts.length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-400 italic">
+                Aucun encaissement enregistré pour le moment.
               </div>
-            ))}
+            ) : (
+              recentReceipts.map((rec) => (
+                <div key={rec.id} className="py-2.5 flex items-center justify-between gap-2">
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">{rec.studentName}</h4>
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-mono">
+                      <span>{rec.receiptNumber}</span>
+                      <span>&bull;</span>
+                      <span className="text-emerald-700 font-semibold">{rec.paymentMethod}</span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 block">{rec.className}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-emerald-700 tabular-nums block">
+                      {formatFCFA(rec.amount)}
+                    </span>
+                    <span className="text-[10px] text-slate-400">{formatDate(rec.date)}</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           <div className="pt-2">

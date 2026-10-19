@@ -46,47 +46,95 @@ function safeSetStorage<T>(key: string, value: T): void {
   }
 }
 
+const getSchoolStudentsKey = () => getScopedStorageKey("educogest_censeur_students_v2");
+
+function getMergedFinanceStudents(): StudentTuitionRecord[] {
+  const existingFinance = safeGetStorage<StudentTuitionRecord[]>(
+    getStudentsKey(),
+    INITIAL_STUDENTS_TUITION
+  );
+  const schoolStudents = safeGetStorage<any[]>(getSchoolStudentsKey(), []);
+
+  if (!schoolStudents || schoolStudents.length === 0) {
+    return existingFinance;
+  }
+
+  const existingIds = new Set(existingFinance.map((s) => s.studentId));
+  const newTuitions: StudentTuitionRecord[] = [];
+
+  schoolStudents.forEach((st) => {
+    if (st && st.id && !existingIds.has(st.id)) {
+      existingIds.add(st.id);
+      const isPrimaire =
+        st.cycle === "PRIMAIRE" ||
+        (st.className && /CI|CP|CE1|CE2|CM1|CM2/i.test(st.className));
+      const defaultTuition = isPrimaire ? 90000 : 150000;
+      newTuitions.push({
+        id: `st-${st.id}`,
+        studentId: st.id,
+        matricule: st.matricule || `ECO-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+        firstName: st.firstName || "Élève",
+        lastName: st.lastName || "",
+        gender: st.gender || "M",
+        classId: st.classId || "cls-default",
+        className: st.className || "6ème A",
+        academicYearId: "2026-2027",
+        totalTuition: defaultTuition,
+        paidTuition: 0,
+        remainingTuition: defaultTuition,
+        tuitionStatus: "UNPAID",
+      });
+    }
+  });
+
+  return [...existingFinance, ...newTuitions];
+}
+
 /**
  * Primary React Hook to access and manipulate the unified Financial State
  */
 export function useFinanceStore() {
   const [students, setStudents] = useState<StudentTuitionRecord[]>(() =>
-    safeGetStorage(getStudentsKey(), [])
+    getMergedFinanceStudents()
   );
 
   const [receipts, setReceipts] = useState<CashReceiptRecord[]>(() =>
-    safeGetStorage(getReceiptsKey(), [])
+    safeGetStorage(getReceiptsKey(), INITIAL_CASH_RECEIPTS)
   );
 
   const [expenses, setExpenses] = useState<ExpenseRecord[]>(() =>
-    safeGetStorage(getExpensesKey(), [])
+    safeGetStorage(getExpensesKey(), INITIAL_EXPENSES)
   );
 
   const [payroll, setPayroll] = useState<PayrollRecord[]>(() =>
-    safeGetStorage(getPayrollKey(), [])
+    safeGetStorage(getPayrollKey(), INITIAL_PAYROLL)
   );
 
   const [staff, setStaff] = useState<StaffMember[]>(() =>
-    safeGetStorage(getStaffKey(), [])
+    safeGetStorage(getStaffKey(), INITIAL_STAFF)
   );
 
   // Synchronisation lors d'un basculement d'école ou d'une mise à jour partagée
   useEffect(() => {
     const handleSync = () => {
-      setStudents(safeGetStorage(getStudentsKey(), []));
-      setReceipts(safeGetStorage(getReceiptsKey(), []));
-      setExpenses(safeGetStorage(getExpensesKey(), []));
-      setPayroll(safeGetStorage(getPayrollKey(), []));
-      setStaff(safeGetStorage(getStaffKey(), []));
+      setStudents(getMergedFinanceStudents());
+      setReceipts(safeGetStorage(getReceiptsKey(), INITIAL_CASH_RECEIPTS));
+      setExpenses(safeGetStorage(getExpensesKey(), INITIAL_EXPENSES));
+      setPayroll(safeGetStorage(getPayrollKey(), INITIAL_PAYROLL));
+      setStaff(safeGetStorage(getStaffKey(), INITIAL_STAFF));
     };
 
     window.addEventListener(FINANCE_STORAGE_EVENT, handleSync);
     window.addEventListener(SHARED_STORAGE_EVENT, handleSync);
+    window.addEventListener("educogest_censeur_storage_update", handleSync);
+    window.addEventListener("educogest_secretariat_storage_update", handleSync);
     window.addEventListener("storage", handleSync);
 
     return () => {
       window.removeEventListener(FINANCE_STORAGE_EVENT, handleSync);
       window.removeEventListener(SHARED_STORAGE_EVENT, handleSync);
+      window.removeEventListener("educogest_censeur_storage_update", handleSync);
+      window.removeEventListener("educogest_secretariat_storage_update", handleSync);
       window.removeEventListener("storage", handleSync);
     };
   }, []);
@@ -243,6 +291,52 @@ export function useFinanceStore() {
   const cancelExpense = (expenseId: string) => {
     setExpenses((prev) =>
       prev.map((e) => (e.id === expenseId ? { ...e, status: "ANNULEE" } : e))
+    );
+  };
+
+  const deleteExpense = (expenseId: string) => {
+    setExpenses((prev) => prev.filter((e) => e.id !== expenseId));
+  };
+
+  /**
+   * Annulation d'un reçu d'encaissement :
+   * - Passe le reçu à CANCELLED
+   * - Rétablit le montant dû sur le dossier de l'élève
+   * - Met à jour le Grand Livre de trésorerie sans supprimer l'historique
+   */
+  const cancelReceipt = (receiptId: string, reason?: string) => {
+    const target = receipts.find((r) => r.id === receiptId);
+    if (!target) throw new Error("Reçu introuvable.");
+    if (target.status === "CANCELLED") return;
+
+    setReceipts((prev) =>
+      prev.map((r) =>
+        r.id === receiptId
+          ? {
+              ...r,
+              status: "CANCELLED",
+              notes: reason ? `${r.notes ? r.notes + " | " : ""}Annulé : ${reason}` : r.notes,
+            }
+          : r
+      )
+    );
+
+    // Ajuste le statut de scolarité de l'élève
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (s.studentId !== target.studentId) return s;
+        const newPaid = Math.max(0, s.paidTuition - target.amount);
+        const newRemaining = Math.max(0, s.totalTuition - newPaid);
+        let newStatus: "PAID" | "PARTIAL" | "LATE" | "UNPAID" = "UNPAID";
+        if (newRemaining === 0) newStatus = "PAID";
+        else if (newPaid > 0) newStatus = "PARTIAL";
+        return {
+          ...s,
+          paidTuition: newPaid,
+          remainingTuition: newRemaining,
+          tuitionStatus: newStatus,
+        };
+      })
     );
   };
 
@@ -506,6 +600,64 @@ export function useFinanceStore() {
     };
   };
 
+  /**
+   * 5. GESTION DU PERSONNEL & RÉMUNÉRATIONS
+   */
+  const addStaffMember = (data: Omit<StaffMember, "id" | "netSalary">): StaffMember => {
+    const netSalary = data.baseSalary + data.primes + data.indemnities - data.deductions;
+    const newStaff: StaffMember = {
+      ...data,
+      id: `stf-${Date.now()}`,
+      netSalary,
+    };
+    setStaff((prev) => [newStaff, ...prev]);
+    return newStaff;
+  };
+
+  const updateStaffMember = (id: string, updates: Partial<StaffMember>) => {
+    setStaff((prev) =>
+      prev.map((st) => {
+        if (st.id !== id) return st;
+        const merged = { ...st, ...updates };
+        merged.netSalary = merged.baseSalary + merged.primes + merged.indemnities - merged.deductions;
+        return merged;
+      })
+    );
+  };
+
+  const deleteStaffMember = (id: string) => {
+    setStaff((prev) => prev.filter((st) => st.id !== id));
+  };
+
+  /**
+   * 6. GESTION DU DOSSIER FINANCIER ÉLÈVE
+   */
+  const addStudentTuition = (data: Omit<StudentTuitionRecord, "id">): StudentTuitionRecord => {
+    const newRecord: StudentTuitionRecord = {
+      ...data,
+      id: `st-${Date.now()}`,
+    };
+    setStudents((prev) => [newRecord, ...prev]);
+    return newRecord;
+  };
+
+  const updateStudentTuition = (studentId: string, updates: Partial<StudentTuitionRecord>) => {
+    setStudents((prev) =>
+      prev.map((st) => {
+        if (st.studentId !== studentId && st.id !== studentId) return st;
+        const merged = { ...st, ...updates };
+        merged.remainingTuition = Math.max(0, merged.totalTuition - merged.paidTuition);
+        if (merged.remainingTuition === 0) merged.tuitionStatus = "PAID";
+        else if (merged.paidTuition > 0) merged.tuitionStatus = "PARTIAL";
+        return merged;
+      })
+    );
+  };
+
+  const deleteStudentTuition = (studentId: string) => {
+    setStudents((prev) => prev.filter((st) => st.studentId !== studentId && st.id !== studentId));
+  };
+
   return {
     students,
     receipts,
@@ -513,13 +665,21 @@ export function useFinanceStore() {
     payroll,
     staff,
     recordCashPayment,
+    cancelReceipt,
     addExpense,
     validateExpense,
     payExpense,
     cancelExpense,
+    deleteExpense,
     createPayrollRecord,
     updatePayrollStatus,
     paySalaryRecord,
+    addStaffMember,
+    updateStaffMember,
+    deleteStaffMember,
+    addStudentTuition,
+    updateStudentTuition,
+    deleteStudentTuition,
     getTreasuryLedger,
     getFinancialStats,
   };

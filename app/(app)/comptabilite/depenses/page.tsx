@@ -16,7 +16,8 @@ import {
   Wallet,
   ShieldCheck,
   Check,
-  X,
+  Trash2,
+  Ban,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable, Column } from "@/components/ui/DataTable";
@@ -44,7 +45,14 @@ const CATEGORIES: ExpenseCategory[] = [
 
 export default function ComptabiliteDepensesPage() {
   const { toast } = useToast();
-  const { expenses, addExpense, validateExpense, payExpense, cancelExpense } = useFinanceStore();
+  const {
+    expenses,
+    addExpense,
+    validateExpense,
+    payExpense,
+    cancelExpense,
+    deleteExpense,
+  } = useFinanceStore();
 
   const [selectedYear, setSelectedYear] = useState<string>("2026-2027");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
@@ -54,13 +62,15 @@ export default function ComptabiliteDepensesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expenseToValidate, setExpenseToValidate] = useState<ExpenseRecord | null>(null);
   const [expenseToPay, setExpenseToPay] = useState<ExpenseRecord | null>(null);
+  const [expenseToCancel, setExpenseToCancel] = useState<ExpenseRecord | null>(null);
+  const [expenseToDelete, setExpenseToDelete] = useState<ExpenseRecord | null>(null);
 
   // Form state
   const [formLabel, setFormLabel] = useState("");
   const [formCategory, setFormCategory] = useState<ExpenseCategory>("Fournitures");
   const [formDescription, setFormDescription] = useState("");
   const [formAmount, setFormAmount] = useState<number>(25000);
-  const [formDate, setFormDate] = useState("2026-10-14");
+  const [formDate, setFormDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [formBeneficiary, setFormBeneficiary] = useState("");
   const [formAttachment, setFormAttachment] = useState("");
 
@@ -159,6 +169,20 @@ export default function ComptabiliteDepensesPage() {
     setExpenseToPay(null);
   };
 
+  const handleConfirmCancel = () => {
+    if (!expenseToCancel) return;
+    cancelExpense(expenseToCancel.id);
+    toast(`Dépense « ${expenseToCancel.label} » annulée.`, "info");
+    setExpenseToCancel(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!expenseToDelete) return;
+    deleteExpense(expenseToDelete.id);
+    toast(`Dépense « ${expenseToDelete.label} » définitivement supprimée.`, "success");
+    setExpenseToDelete(null);
+  };
+
   const columns: Column<ExpenseRecord>[] = [
     {
       key: "label",
@@ -240,24 +264,63 @@ export default function ComptabiliteDepensesPage() {
       render: (item) => (
         <div className="flex items-center justify-end gap-1.5">
           {item.status === "EN_ATTENTE" && (
-            <button
-              type="button"
-              onClick={() => setExpenseToValidate(item)}
-              className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold"
-              title="Valider la dépense"
-            >
-              Valider
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setExpenseToValidate(item)}
+                className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold"
+                title="Valider la dépense"
+              >
+                Valider
+              </button>
+              <button
+                type="button"
+                onClick={() => setExpenseToCancel(item)}
+                className="p-1 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100"
+                title="Annuler la dépense"
+              >
+                <Ban className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setExpenseToDelete(item)}
+                className="p-1 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100"
+                title="Supprimer la dépense"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </>
           )}
 
           {item.status === "VALIDEE" && (
+            <>
+              <button
+                type="button"
+                onClick={() => setExpenseToPay(item)}
+                className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold shadow-xs"
+                title="Payer en espèces"
+              >
+                Payer espèces
+              </button>
+              <button
+                type="button"
+                onClick={() => setExpenseToCancel(item)}
+                className="p-1 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100"
+                title="Annuler l'autorisation"
+              >
+                <Ban className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
+
+          {item.status === "ANNULEE" && (
             <button
               type="button"
-              onClick={() => setExpenseToPay(item)}
-              className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold shadow-xs"
-              title="Payer en espèces"
+              onClick={() => setExpenseToDelete(item)}
+              className="p-1 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100"
+              title="Supprimer la dépense annulée"
             >
-              Payer espèces
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           )}
 
@@ -558,6 +621,28 @@ export default function ComptabiliteDepensesPage() {
         cancelLabel="Annuler"
         onConfirm={handleConfirmPay}
         onCancel={() => setExpenseToPay(null)}
+      />
+
+      {/* Cancel Dialog */}
+      <ConfirmDialog
+        isOpen={!!expenseToCancel}
+        title="Annulation de la dépense"
+        description={`Confirmez-vous l'annulation de la dépense « ${expenseToCancel?.label} » ? Elle ne pourra plus faire l'objet d'un décaissement en caisse.`}
+        confirmLabel="Confirmer l'annulation"
+        cancelLabel="Garder active"
+        onConfirm={handleConfirmCancel}
+        onCancel={() => setExpenseToCancel(null)}
+      />
+
+      {/* Delete Dialog */}
+      <ConfirmDialog
+        isOpen={!!expenseToDelete}
+        title="Suppression définitive de la dépense"
+        description={`Êtes-vous sûr de vouloir supprimer définitivement la dépense « ${expenseToDelete?.label} » (${formatFCFA(expenseToDelete?.amount)}) ? Cette action est irréversible.`}
+        confirmLabel="Supprimer définitivement"
+        cancelLabel="Conserver"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setExpenseToDelete(null)}
       />
     </div>
   );

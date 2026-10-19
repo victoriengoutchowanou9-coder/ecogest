@@ -18,6 +18,7 @@ import {
   Users,
   Check,
   Send,
+  Trash2,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable, Column } from "@/components/ui/DataTable";
@@ -32,8 +33,15 @@ import { cn } from "@/lib/utils";
 export default function ComptabiliteSalairesPage() {
   const { toast } = useToast();
   const { activeSchool } = useSubscriptionStore();
-  const { staff, payroll, updatePayrollStatus, paySalaryRecord, createPayrollRecord } =
-    useFinanceStore();
+  const {
+    staff,
+    payroll,
+    updatePayrollStatus,
+    paySalaryRecord,
+    createPayrollRecord,
+    addStaffMember,
+    deleteStaffMember,
+  } = useFinanceStore();
 
   const [activeTab, setActiveTab] = useState<"PAIE" | "PERSONNEL">("PAIE");
   const [selectedYear, setSelectedYear] = useState<string>("2026-2027");
@@ -44,6 +52,21 @@ export default function ComptabiliteSalairesPage() {
   const [selectedSlip, setSelectedSlip] = useState<PayrollRecord | null>(null);
   const [payrollToValidate, setPayrollToValidate] = useState<PayrollRecord | null>(null);
   const [payrollToPay, setPayrollToPay] = useState<PayrollRecord | null>(null);
+
+  // Staff management state
+  const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
+  const [staffToDelete, setStaffToDelete] = useState<StaffMember | null>(null);
+  const [staffFirstName, setStaffFirstName] = useState("");
+  const [staffLastName, setStaffLastName] = useState("");
+  const [staffMatricule, setStaffMatricule] = useState("");
+  const [staffRole, setStaffRole] = useState("Professeur de Mathématiques");
+  const [staffContract, setStaffContract] = useState<"CDI" | "CDD" | "Vacataire">("CDI");
+  const [staffPhone, setStaffPhone] = useState("+229 ");
+  const [staffEmail, setStaffEmail] = useState("");
+  const [staffBaseSalary, setStaffBaseSalary] = useState(180000);
+  const [staffPrimes, setStaffPrimes] = useState(15000);
+  const [staffIndemnities, setStaffIndemnities] = useState(10000);
+  const [staffDeductions, setStaffDeductions] = useState(5000);
 
   // Month list
   const months = ["Septembre 2026", "Octobre 2026", "Novembre 2026", "Décembre 2026"];
@@ -118,6 +141,45 @@ export default function ComptabiliteSalairesPage() {
       "success"
     );
     setPayrollToPay(null);
+  };
+
+  const handleSaveStaff = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!staffFirstName.trim() || !staffLastName.trim() || !staffMatricule.trim()) {
+      toast("Veuillez renseigner au moins le nom, prénom et matricule.", "error");
+      return;
+    }
+
+    addStaffMember({
+      firstName: staffFirstName.trim(),
+      lastName: staffLastName.trim(),
+      matricule: staffMatricule.trim(),
+      roleTitle: staffRole.trim(),
+      contractType: staffContract,
+      phone: staffPhone.trim(),
+      email: staffEmail.trim() || `${staffFirstName.toLowerCase()}.${staffLastName.toLowerCase()}@ecogest.bj`,
+      baseSalary: Number(staffBaseSalary) || 0,
+      primes: Number(staffPrimes) || 0,
+      indemnities: Number(staffIndemnities) || 0,
+      deductions: Number(staffDeductions) || 0,
+    });
+
+    setIsAddStaffModalOpen(false);
+    toast(`Membre du personnel ${staffFirstName} ${staffLastName} ajouté avec succès.`, "success");
+
+    // Reset
+    setStaffFirstName("");
+    setStaffLastName("");
+    setStaffMatricule("");
+    setStaffPhone("+229 ");
+    setStaffEmail("");
+  };
+
+  const handleConfirmDeleteStaff = () => {
+    if (!staffToDelete) return;
+    deleteStaffMember(staffToDelete.id);
+    toast(`Membre du personnel ${staffToDelete.firstName} ${staffToDelete.lastName} retiré.`, "info");
+    setStaffToDelete(null);
   };
 
   const handlePrintSlip = () => {
@@ -431,16 +493,30 @@ export default function ComptabiliteSalairesPage() {
       ) : (
         /* Staff Directory Tab */
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+          <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="font-bold text-slate-900 text-sm">Fiches du Personnel Enseignant &amp; Administratif</h3>
               <p className="text-xs text-slate-500">
                 Rémunération contractuelle de base, primes et indemnités statutaires
               </p>
             </div>
-            <span className="text-xs font-bold px-3 py-1 rounded-xl bg-blue-100 text-blue-900">
-              {staff.length} employés
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold px-3 py-1 rounded-xl bg-blue-100 text-blue-900">
+                {staff.length} employés
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const nextNum = String(staff.length + 1).padStart(2, "0");
+                  setStaffMatricule(`PERS-2026-${nextNum}`);
+                  setIsAddStaffModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-school-primary hover:bg-school-700 text-white text-xs font-bold shadow-xs touch-target transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Ajouter un employé</span>
+              </button>
+            </div>
           </div>
 
           <div className="divide-y divide-slate-100">
@@ -487,6 +563,15 @@ export default function ComptabiliteSalairesPage() {
                       {formatFCFA(st.netSalary)}
                     </span>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setStaffToDelete(st)}
+                    className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors ml-1"
+                    title="Supprimer ce membre du personnel"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))}
@@ -651,6 +736,203 @@ export default function ComptabiliteSalairesPage() {
         onConfirm={handleConfirmPay}
         onCancel={() => setPayrollToPay(null)}
       />
+
+      {/* Delete Staff Dialog */}
+      <ConfirmDialog
+        isOpen={!!staffToDelete}
+        title="Retirer un membre du personnel"
+        description={`Confirmez-vous le retrait de ${staffToDelete?.firstName} ${staffToDelete?.lastName} (${staffToDelete?.roleTitle}) du fichier du personnel ?`}
+        confirmLabel="Retirer l'employé"
+        cancelLabel="Annuler"
+        onConfirm={handleConfirmDeleteStaff}
+        onCancel={() => setStaffToDelete(null)}
+      />
+
+      {/* Add Staff Modal */}
+      {isAddStaffModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-slate-900 text-base">Ajouter un membre du personnel</h3>
+              <button
+                type="button"
+                onClick={() => setIsAddStaffModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 text-lg font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveStaff} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Prénom *</label>
+                  <input
+                    type="text"
+                    value={staffFirstName}
+                    onChange={(e) => setStaffFirstName(e.target.value)}
+                    placeholder="Ex : Bio, Chantal..."
+                    className="w-full rounded-xl border border-slate-300 py-2 px-3 font-semibold"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Nom *</label>
+                  <input
+                    type="text"
+                    value={staffLastName}
+                    onChange={(e) => setStaffLastName(e.target.value)}
+                    placeholder="Ex : KANHONOU, DOSSOU..."
+                    className="w-full rounded-xl border border-slate-300 py-2 px-3 font-semibold"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Matricule interne *</label>
+                  <input
+                    type="text"
+                    value={staffMatricule}
+                    onChange={(e) => setStaffMatricule(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 py-2 px-3 font-mono"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Type de contrat *</label>
+                  <select
+                    value={staffContract}
+                    onChange={(e) => setStaffContract(e.target.value as any)}
+                    className="w-full rounded-xl border border-slate-300 py-2 px-3 font-semibold"
+                  >
+                    <option value="CDI">CDI (Contrat Durée Indéterminée)</option>
+                    <option value="CDD">CDD (Contrat Durée Déterminée)</option>
+                    <option value="Vacataire">Vacataire / Prestataire</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Poste / Fonction *</label>
+                <input
+                  type="text"
+                  value={staffRole}
+                  onChange={(e) => setStaffRole(e.target.value)}
+                  placeholder="Ex : Professeur de Mathématiques, Surveillant, Secrétaire..."
+                  className="w-full rounded-xl border border-slate-300 py-2 px-3 font-semibold"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Téléphone</label>
+                  <input
+                    type="text"
+                    value={staffPhone}
+                    onChange={(e) => setStaffPhone(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 py-2 px-3"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={staffEmail}
+                    onChange={(e) => setStaffEmail(e.target.value)}
+                    placeholder="nom@ecogest.bj"
+                    className="w-full rounded-xl border border-slate-300 py-2 px-3"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <span className="text-[11px] font-bold text-slate-700 block">Rémunération Mensuelle (FCFA)</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div>
+                    <label className="text-[10px] text-slate-500 block mb-0.5">Salaire de base *</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="5000"
+                      value={staffBaseSalary}
+                      onChange={(e) => setStaffBaseSalary(Number(e.target.value))}
+                      className="w-full rounded-lg border border-slate-300 p-1.5 font-bold tabular-nums"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-500 block mb-0.5">Primes</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1000"
+                      value={staffPrimes}
+                      onChange={(e) => setStaffPrimes(Number(e.target.value))}
+                      className="w-full rounded-lg border border-slate-300 p-1.5 tabular-nums"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-500 block mb-0.5">Indemnités</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1000"
+                      value={staffIndemnities}
+                      onChange={(e) => setStaffIndemnities(Number(e.target.value))}
+                      className="w-full rounded-lg border border-slate-300 p-1.5 tabular-nums"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-500 block mb-0.5">Retenues</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1000"
+                      value={staffDeductions}
+                      onChange={(e) => setStaffDeductions(Number(e.target.value))}
+                      className="w-full rounded-lg border border-slate-300 p-1.5 tabular-nums"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+                  <span className="font-semibold text-slate-600">Net calculé estimé :</span>
+                  <strong className="text-sm font-black text-indigo-900 tabular-nums">
+                    {formatFCFA(
+                      Math.max(
+                        0,
+                        Number(staffBaseSalary) +
+                          Number(staffPrimes) +
+                          Number(staffIndemnities) -
+                          Number(staffDeductions)
+                      )
+                    )}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAddStaffModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-semibold"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-school-primary text-white font-semibold hover:bg-school-700 shadow-sm"
+                >
+                  Enregistrer l&apos;employé
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -28,7 +28,7 @@ import { CashReceiptRecord } from "@/lib/mock-finance-db";
 
 export default function ComptabiliteRecusPage() {
   const { toast } = useToast();
-  const { receipts } = useFinanceStore();
+  const { receipts, cancelReceipt } = useFinanceStore();
 
   // Filters
   const [selectedYear, setSelectedYear] = useState<string>("2026-2027");
@@ -71,7 +71,8 @@ export default function ComptabiliteRecusPage() {
 
   const handleCancelReceipt = () => {
     if (!receiptToCancel) return;
-    toast(`Fonction d'annulation soumise à visa du Censeur et de la Direction.`, "info");
+    cancelReceipt(receiptToCancel.id, "Annulation effectuée par la comptabilité");
+    toast(`Reçu n° ${receiptToCancel.receiptNumber} annulé. Le solde de l'élève a été réajusté.`, "success");
     setReceiptToCancel(null);
   };
 
@@ -168,6 +169,16 @@ export default function ComptabiliteRecusPage() {
           >
             <Eye className="w-4 h-4" />
           </button>
+          {item.status === "VALIDATED" && (
+            <button
+              type="button"
+              onClick={() => setReceiptToCancel(item)}
+              className="p-1.5 text-rose-500 hover:text-rose-700 rounded-lg hover:bg-rose-50 touch-target"
+              title="Annuler ce reçu de caisse"
+            >
+              <Ban className="w-4 h-4" />
+            </button>
+          )}
         </div>
       ),
     },

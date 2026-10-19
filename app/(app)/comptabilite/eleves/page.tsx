@@ -26,7 +26,7 @@ export default function ComptabiliteElevesPage() {
   const { students } = useFinanceStore();
 
   const [selectedYear, setSelectedYear] = useState<string>("2026-2027");
-  const [selectedClass, setSelectedClass] = useState<string>("3ème A");
+  const [selectedClass, setSelectedClass] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [search, setSearch] = useState<string>("");
 
