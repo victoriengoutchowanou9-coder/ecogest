@@ -169,11 +169,13 @@ export const subscriptionStore = {
   },
 
   setSchoolStatus(status: SubscriptionStatus) {
+    if (memorySchoolState.status === status) return;
     memorySchoolState = { ...memorySchoolState, status };
     saveSchoolState();
   },
 
   setParentStatus(status: SubscriptionStatus) {
+    if (memoryParentState.status === status) return;
     memoryParentState = { ...memoryParentState, status };
     saveParentState();
   },
@@ -219,17 +221,39 @@ export const subscriptionStore = {
 
     let updatedSchools: SchoolProfile[];
     if (existingIndex >= 0) {
+      const existing = validSchools[existingIndex];
+      const targetCode = cleanCode || (existing.code !== "ECO-001" ? existing.code : "");
+      const targetShortName = params.shortName || existing.shortName || cleanName.slice(0, 15);
+      const targetCity = params.city || existing.city || "";
+      const targetCountry = params.country || existing.country || "Bénin";
+      const targetPhone = params.phone || existing.phone || "";
+      const targetEmail = params.email || existing.email || "";
+
+      // Si l'école est déjà active et que rien n'a changé, ne pas déclencher de boucle de mise à jour
+      if (
+        memorySchoolState.activeSchoolId === existing.id &&
+        existing.name === cleanName &&
+        existing.code === targetCode &&
+        existing.shortName === targetShortName &&
+        existing.city === targetCity &&
+        existing.country === targetCountry &&
+        existing.phone === targetPhone &&
+        existing.email === targetEmail
+      ) {
+        return;
+      }
+
       updatedSchools = [...validSchools];
       updatedSchools[existingIndex] = {
-        ...updatedSchools[existingIndex],
+        ...existing,
         id: cleanId,
         name: cleanName,
-        code: cleanCode || (updatedSchools[existingIndex].code !== "ECO-001" ? updatedSchools[existingIndex].code : ""),
-        shortName: params.shortName || updatedSchools[existingIndex].shortName || cleanName.slice(0, 15),
-        city: params.city || updatedSchools[existingIndex].city || "",
-        country: params.country || updatedSchools[existingIndex].country || "Bénin",
-        phone: params.phone || updatedSchools[existingIndex].phone || "",
-        email: params.email || updatedSchools[existingIndex].email || "",
+        code: targetCode,
+        shortName: targetShortName,
+        city: targetCity,
+        country: targetCountry,
+        phone: targetPhone,
+        email: targetEmail,
       };
     } else {
       const newSchoolProfile: SchoolProfile = {
@@ -508,12 +532,14 @@ export const subscriptionStore = {
 
   // Mettre à jour le nombre d'utilisateurs
   setUsersCount(count: number) {
+    if (memorySchoolState.usersCount === count) return;
     memorySchoolState = { ...memorySchoolState, usersCount: count };
     saveSchoolState();
   },
 
   // Mettre à jour le nombre d'enfants parent
   setChildrenCount(count: number) {
+    if (memoryParentState.childrenCount === count) return;
     memoryParentState = { ...memoryParentState, childrenCount: count };
     saveParentState();
   },
@@ -529,6 +555,26 @@ export const subscriptionStore = {
 // =============================================================================
 // REACT HOOKS
 // =============================================================================
+
+// Actions stables (références constantes hors du hook pour éviter les re-renders infinis dans useEffect)
+const STABLE_ACTIONS = {
+  activateStarterTrial: subscriptionStore.activateStarterTrial.bind(subscriptionStore),
+  canAddUser: subscriptionStore.canAddUser.bind(subscriptionStore),
+  canAddSchool: subscriptionStore.canAddSchool.bind(subscriptionStore),
+  switchActiveSchool: subscriptionStore.switchActiveSchool.bind(subscriptionStore),
+  syncSchoolWithUser: subscriptionStore.syncSchoolWithUser.bind(subscriptionStore),
+  updateSchoolProfile: subscriptionStore.updateSchoolProfile.bind(subscriptionStore),
+  createSchool: subscriptionStore.createSchool.bind(subscriptionStore),
+  changeSchoolPlan: subscriptionStore.changeSchoolPlan.bind(subscriptionStore),
+  renewSchoolSubscription: subscriptionStore.renewSchoolSubscription.bind(subscriptionStore),
+  setSchoolStatus: subscriptionStore.setSchoolStatus.bind(subscriptionStore),
+  setUsersCount: subscriptionStore.setUsersCount.bind(subscriptionStore),
+  canParentAddChild: subscriptionStore.canParentAddChild.bind(subscriptionStore),
+  changeParentPlan: subscriptionStore.changeParentPlan.bind(subscriptionStore),
+  renewParentSubscription: subscriptionStore.renewParentSubscription.bind(subscriptionStore),
+  setParentStatus: subscriptionStore.setParentStatus.bind(subscriptionStore),
+  setChildrenCount: subscriptionStore.setChildrenCount.bind(subscriptionStore),
+};
 
 export function useSubscriptionStore() {
   const schoolState = useSyncExternalStore(
@@ -564,17 +610,7 @@ export function useSubscriptionStore() {
     isTrialActive: subscriptionStore.isTrialActive(),
     trialDaysRemaining: subscriptionStore.getTrialDaysRemaining(),
     isExpired: subscriptionStore.isExpired(),
-    activateStarterTrial: subscriptionStore.activateStarterTrial.bind(subscriptionStore),
-    canAddUser: subscriptionStore.canAddUser.bind(subscriptionStore),
-    canAddSchool: subscriptionStore.canAddSchool.bind(subscriptionStore),
-    switchActiveSchool: subscriptionStore.switchActiveSchool.bind(subscriptionStore),
-    syncSchoolWithUser: subscriptionStore.syncSchoolWithUser.bind(subscriptionStore),
-    updateSchoolProfile: subscriptionStore.updateSchoolProfile.bind(subscriptionStore),
-    createSchool: subscriptionStore.createSchool.bind(subscriptionStore),
-    changeSchoolPlan: subscriptionStore.changeSchoolPlan.bind(subscriptionStore),
-    renewSchoolSubscription: subscriptionStore.renewSchoolSubscription.bind(subscriptionStore),
-    setSchoolStatus: subscriptionStore.setSchoolStatus.bind(subscriptionStore),
-    setUsersCount: subscriptionStore.setUsersCount.bind(subscriptionStore),
+    ...STABLE_ACTIONS,
 
     // Parent
     parentPlan: safeParentPlan,
@@ -583,10 +619,5 @@ export function useSubscriptionStore() {
     parentStartDate: parentState?.startDate || "2026-10-01",
     parentExpiresAt: parentState?.expiresAt || "2026-11-01",
     childrenCount: parentState?.childrenCount || 0,
-    canParentAddChild: subscriptionStore.canParentAddChild.bind(subscriptionStore),
-    changeParentPlan: subscriptionStore.changeParentPlan.bind(subscriptionStore),
-    renewParentSubscription: subscriptionStore.renewParentSubscription.bind(subscriptionStore),
-    setParentStatus: subscriptionStore.setParentStatus.bind(subscriptionStore),
-    setChildrenCount: subscriptionStore.setChildrenCount.bind(subscriptionStore),
   };
 }

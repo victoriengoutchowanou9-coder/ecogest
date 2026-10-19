@@ -46,7 +46,17 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         phone: currentUser.phone,
       });
     }
-  }, [currentUser, isAuthenticated, router, isDevAdmin, syncSchoolWithUser]);
+  }, [
+    currentUser?.id,
+    currentUser?.schoolId,
+    currentUser?.schoolName,
+    currentUser?.schoolCode,
+    currentUser?.phone,
+    isAuthenticated,
+    router,
+    isDevAdmin,
+    syncSchoolWithUser,
+  ]);
 
   if (isDevAdmin) {
     return <>{children}</>;
