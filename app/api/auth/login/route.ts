@@ -104,6 +104,12 @@ export async function POST(request: Request) {
       }
     }
 
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "127.0.0.1";
+    const userAgent = request.headers.get("user-agent") || "Inconnu";
+
     if (!user) {
       return NextResponse.json(
         { success: false, notFound: true, error: "Identifiant ou adresse e-mail introuvable." },
@@ -111,12 +117,29 @@ export async function POST(request: Request) {
       );
     }
 
-    if (user.status === "SUSPENDU") {
+    const rawStatus = (user.status || "ACTIF").toUpperCase();
+    if (rawStatus === "SUSPENDU" || rawStatus === "BANNI" || rawStatus === "BANNED") {
+      try {
+        const { logAuthEvent } = await import("@/lib/server/audit-logger");
+        await logAuthEvent({
+          schoolId: user.school_id,
+          userId: user.id,
+          role: user.role,
+          email: user.email,
+          action: "LOGIN_FAILED",
+          failureReason: `Compte ${rawStatus.toLowerCase()}`,
+          ip,
+          userAgent,
+        });
+      } catch {}
+
       return NextResponse.json(
         {
           success: false,
           error:
-            "Ce compte utilisateur est actuellement suspendu. Veuillez contacter la Direction de votre établissement.",
+            rawStatus === "BANNI" || rawStatus === "BANNED"
+              ? "Ce compte a été définitivement banni de la plateforme."
+              : "Ce compte utilisateur est actuellement suspendu. Veuillez contacter la Direction de votre établissement.",
         },
         { status: 403 }
       );
@@ -134,6 +157,20 @@ export async function POST(request: Request) {
     }
 
     if (!isPasswordValid) {
+      try {
+        const { logAuthEvent } = await import("@/lib/server/audit-logger");
+        await logAuthEvent({
+          schoolId: user.school_id,
+          userId: user.id,
+          role: user.role,
+          email: user.email,
+          action: "LOGIN_FAILED",
+          failureReason: "Mot de passe incorrect",
+          ip,
+          userAgent,
+        });
+      } catch {}
+
       return NextResponse.json(
         { success: false, error: "Mot de passe incorrect." },
         { status: 401 }
@@ -152,23 +189,17 @@ export async function POST(request: Request) {
       school = schoolData;
     }
 
-    // Journal d'audit de connexion
+    // Journal d'audit de connexion dans audit_logs
     try {
-      const { recordSystemAuditLog } = await import("@/lib/server/dev-auth");
-      await recordSystemAuditLog({
-        eventType: "CONNEXION",
-        severity: "INFO",
-        actionTitle: `Connexion réussie de ${user.full_name} (${user.role}) - ${school?.name || "Établissement"}`,
-        details: {
-          email: user.email,
-          role: user.role,
-          schoolId: user.school_id,
-          schoolCode: school?.code || "",
-        },
-        userEmail: user.email,
-        userRole: user.role,
-        schoolName: school?.name || "",
+      const { logAuthEvent } = await import("@/lib/server/audit-logger");
+      await logAuthEvent({
         schoolId: user.school_id,
+        userId: user.id,
+        role: user.role,
+        email: user.email,
+        action: "LOGIN",
+        ip,
+        userAgent,
       });
     } catch {}
 

@@ -50,6 +50,19 @@ export async function POST(request: Request) {
               updated_at: new Date().toISOString(),
             })
             .eq("id", user.id);
+
+          try {
+            const { logAuthEvent } = await import("@/lib/server/audit-logger");
+            if (user.school_id) {
+              await logAuthEvent({
+                schoolId: user.school_id,
+                userId: user.id,
+                role: user.role,
+                email: user.email,
+                action: "PASSWORD_CHANGE",
+              });
+            }
+          } catch {}
         }
       } catch (dbErr) {
         console.warn("[api/auth/password] Note DB non bloquante :", dbErr);
