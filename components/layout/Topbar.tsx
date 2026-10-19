@@ -1,11 +1,9 @@
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Menu,
   School,
   Calendar,
-  User,
   ChevronDown,
   ExternalLink,
   Shield,
@@ -16,7 +14,6 @@ import {
   Building2,
   Sparkles,
   Check,
-  LogOut,
   Settings,
   FileText,
   Clock,
@@ -24,7 +21,6 @@ import {
 import { Role, ROLE_NAVIGATIONS, SCHOOL_YEARS } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/context/RoleContext";
 import { useSubscriptionStore, SchoolPlanCode } from "@/lib/subscription-store";
-import { useAuthStore } from "@/lib/auth-store";
 import { cn } from "@/lib/utils";
 import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
 
@@ -41,10 +37,7 @@ export const Topbar: React.FC<TopbarProps> = ({
   activeSchoolYear,
   onSchoolYearChange,
 }) => {
-  const router = useRouter();
   const { role: currentRole } = useRoleContext();
-  const { user: currentUser, logout } = useAuthStore();
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [schoolMenuOpen, setSchoolMenuOpen] = useState(false);
   const currentNav = ROLE_NAVIGATIONS[currentRole];
 
@@ -195,116 +188,6 @@ export const Topbar: React.FC<TopbarProps> = ({
               </option>
             ))}
           </select>
-        </div>
-
-        {/* User Profile Menu (Rôle Cloisonné & Déconnexion) */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 touch-target transition-all"
-            aria-expanded={userMenuOpen}
-            aria-label="Menu du compte utilisateur"
-          >
-            <div className="w-8 h-8 rounded-full bg-school-primary text-white flex items-center justify-center font-bold text-xs uppercase shadow-xs">
-              {currentUser?.fullName?.charAt(0) || "U"}
-            </div>
-            <div className="text-left hidden sm:block min-w-0 max-w-[130px]">
-              <p className="text-xs font-bold text-slate-900 truncate">
-                {currentUser?.fullName || "Utilisateur"}
-              </p>
-              <p className="text-[10px] font-semibold text-school-primary truncate capitalize">
-                {currentNav.roleLabel.split("/")[0].trim()}
-              </p>
-            </div>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-          </button>
-
-          {userMenuOpen && (
-            <div
-              className="absolute right-0 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl z-50 animate-in fade-in"
-              role="menu"
-            >
-              <div className="px-3 py-2.5 border-b border-slate-100">
-                <p className="text-xs font-bold text-slate-900 truncate">
-                  {currentUser?.fullName || "Utilisateur"}
-                </p>
-                <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                  {currentUser?.email || activeSchool.email || "Compte actif"}
-                </p>
-                <div className="mt-2 flex items-center gap-1.5">
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-school-50 text-school-primary border border-school-200">
-                    {currentNav.roleLabel.split("/")[0].trim()}
-                  </span>
-                  <span className="text-[10px] text-slate-500 truncate">
-                    {currentUser?.schoolName || activeSchool.name}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-1 py-1.5 text-xs">
-                <Link
-                  href={
-                    currentRole === "directeur"
-                      ? "/directeur/profil"
-                      : currentRole === "censeur"
-                      ? "/censeur/profil"
-                      : currentRole === "secretariat"
-                      ? "/secretariat/profil"
-                      : currentRole === "surveillant"
-                      ? "/surveillant/profil"
-                      : currentRole === "comptabilite"
-                      ? "/comptabilite/profil"
-                      : currentRole === "enseignant"
-                      ? "/enseignant/profil"
-                      : "/parent/profil"
-                  }
-                  onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
-                >
-                  <User className="w-4 h-4 text-slate-400" />
-                  <span>Mon Profil &amp; Sécurité</span>
-                </Link>
-
-                {currentRole === "directeur" && (
-                  <Link
-                    href="/directeur/abonnement"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
-                  >
-                    <Sparkles className="w-4 h-4 text-amber-500" />
-                    <span>Abonnement Établissement</span>
-                  </Link>
-                )}
-
-                {currentRole === "parent" && (
-                  <Link
-                    href="/parent/abonnement"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
-                  >
-                    <Sparkles className="w-4 h-4 text-amber-500" />
-                    <span>Mon Abonnement Parent</span>
-                  </Link>
-                )}
-              </div>
-
-              <div className="pt-1.5 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUserMenuOpen(false);
-                    logout();
-                    router.push("/connexion");
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-rose-600 hover:bg-rose-50 font-semibold text-xs transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Déconnexion</span>
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </header>
