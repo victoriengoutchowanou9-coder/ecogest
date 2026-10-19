@@ -251,6 +251,18 @@ export async function POST(request: Request) {
       maxAge: SESSION_MAX_AGE_SECONDS,
     });
 
+    if (user.school_id) {
+      try {
+        const { registerSessionInDatabase } = await import("@/lib/server/session");
+        await registerSessionInDatabase({
+          schoolId: user.school_id,
+          userId: user.id,
+          sessionToken,
+          req: request,
+        });
+      } catch {}
+    }
+
     return response;
   } catch (err: any) {
     console.error("[api/auth/login] Erreur inattendue Supabase :", err);

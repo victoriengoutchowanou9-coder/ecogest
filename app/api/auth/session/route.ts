@@ -73,6 +73,17 @@ export async function GET(request: Request) {
       return response;
     }
 
+    const { isSessionRevokedInDatabase } = await import("@/lib/server/session");
+    const isRevoked = await isSessionRevokedInDatabase(token);
+    if (isRevoked) {
+      const response = NextResponse.json(
+        { valid: false, error: "Cette session a été déconnectée à distance par l'administrateur ou a expiré." },
+        { status: 401 }
+      );
+      response.cookies.delete(SESSION_COOKIE_NAME);
+      return response;
+    }
+
     // Requête directe auprès de la base Supabase (source unique de vérité)
     const { data: user, error } = await supabase
       .from("school_users")
