@@ -38,12 +38,24 @@ import {
   validateSchoolCode,
 } from "@/lib/user-registry";
 import { ForgotPasswordModal } from "@/components/account/ForgotPasswordModal";
+import { AccountVerificationModal } from "@/components/auth/AccountVerificationModal";
 
 export default function AuthPage() {
   const router = useRouter();
   const { toast } = useToast();
   const authStore = useAuthStore();
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+
+  // Modale de vérification par E-mail ou SMS (OTP)
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [pendingRegistration, setPendingRegistration] = useState<{
+    pathway: "SCHOOL" | "PARENT";
+    email: string;
+    phone: string;
+    fullName: string;
+    payload: any;
+  } | null>(null);
+
   const subscriptionStore = useSubscriptionStore();
   const {
     changeSchoolPlan,
@@ -231,7 +243,94 @@ export default function AuthPage() {
   const [schoolPassword, setSchoolPassword] = useState("");
   const [schoolChosenPlan, setSchoolChosenPlan] = useState<SchoolPlanCode>("STARTER");
 
-  const handleRegisterSchool = async (e: React.FormEvent) => {
+  // Finalisation et enregistrement du compte après vérification OTP (E-mail ou SMS)
+  const handleFinalizeVerifiedRegistration = async (verificationToken: string) => {
+    if (!pendingRegistration) return;
+
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...pendingRegistration.payload,
+          verificationToken,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setIsVerificationModalOpen(false);
+        toast(data.error || "Une erreur est survenue lors de l'inscription.", "error");
+        return;
+      }
+
+      setIsVerificationModalOpen(false);
+
+      if (pendingRegistration.pathway === "SCHOOL") {
+        const createdSchoolData = data.school;
+        const effectiveSchoolId = createdSchoolData?.id || `school-${Date.now()}`;
+        const effectiveSchoolName = createdSchoolData?.name || pendingRegistration.payload.schoolName;
+        const effectiveSchoolCode = createdSchoolData?.code || pendingRegistration.payload.schoolCode;
+
+        const regResult = authStore.registerSchool({
+          schoolId: effectiveSchoolId,
+          schoolName: effectiveSchoolName,
+          directorName: pendingRegistration.fullName,
+          schoolEmail: pendingRegistration.email,
+          schoolPhone: pendingRegistration.phone,
+          schoolCountry: pendingRegistration.payload.country,
+          schoolCity: pendingRegistration.payload.city,
+          chosenPlan: pendingRegistration.payload.plan,
+          schoolCode: effectiveSchoolCode,
+          password: pendingRegistration.payload.password,
+        });
+
+        subscriptionStore.syncSchoolWithUser({
+          id: effectiveSchoolId,
+          name: effectiveSchoolName,
+          code: effectiveSchoolCode,
+          shortName: effectiveSchoolName.slice(0, 15),
+          city: pendingRegistration.payload.city,
+          country: pendingRegistration.payload.country,
+          phone: pendingRegistration.phone,
+          email: pendingRegistration.email,
+        });
+
+        changeSchoolPlan(pendingRegistration.payload.plan);
+
+        toast(
+          `Compte vérifié ! Établissement « ${effectiveSchoolName} » créé avec succès ! Votre identifiant Directeur est : ${regResult.identifier}.`,
+          "success"
+        );
+        router.push("/directeur");
+      } else {
+        const regResult = authStore.registerParent({
+          fullName: pendingRegistration.fullName,
+          email: pendingRegistration.email,
+          phone: pendingRegistration.phone,
+          schoolId: pendingRegistration.payload.schoolId,
+          schoolName: pendingRegistration.payload.schoolName,
+          schoolCode: pendingRegistration.payload.schoolCode,
+          chosenPlan: pendingRegistration.payload.chosenPlan,
+          password: pendingRegistration.payload.password,
+        });
+
+        changeParentPlan(pendingRegistration.payload.chosenPlan);
+
+        toast(
+          `Compte parent vérifié avec succès ! Votre identifiant de connexion est : ${regResult.identifier}.`,
+          "success"
+        );
+        router.push("/parent/abonnement?activation=required");
+      }
+    } catch (err) {
+      console.error("[connexion-register] Erreur requête :", err);
+      toast("Une erreur est survenue lors de l'enregistrement.", "error");
+    }
+  };
+
+  const handleRegisterSchool = (e: React.FormEvent) => {
     e.preventDefault();
     setSchoolCodeError("");
 
@@ -260,76 +359,28 @@ export default function AuthPage() {
 
     const cleanCode = schoolCode.trim();
     const cleanSchoolName = schoolName.trim();
-    let createdSchoolData: any = null;
+    const cleanDirector = schoolDirectorName.trim() || "Direction de l'Établissement";
 
-    try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pathway: "SCHOOL",
-          schoolName: cleanSchoolName,
-          schoolCode: cleanCode,
-          directorName: schoolDirectorName.trim() || "Direction de l'Établissement",
-          email: schoolEmail.trim(),
-          phone: schoolPhone.trim(),
-          password: schoolPassword,
-          plan: schoolChosenPlan,
-          country: schoolCountry,
-          city: schoolCity,
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        toast(data.error || "Une erreur est survenue lors de l'inscription.", "error");
-        return;
-      }
-
-      createdSchoolData = data.school;
-    } catch (err) {
-      console.error("[connexion-register] Erreur requête :", err);
-    }
-
-    const effectiveSchoolId = createdSchoolData?.id || `school-${Date.now()}`;
-    const effectiveSchoolName = createdSchoolData?.name || cleanSchoolName;
-    const effectiveSchoolCode = createdSchoolData?.code || cleanCode;
-
-    // Enregistrement dans le store d'authentification avec les vraies données
-    const regResult = authStore.registerSchool({
-      schoolId: effectiveSchoolId,
-      schoolName: effectiveSchoolName,
-      directorName: schoolDirectorName.trim() || "Direction de l'Établissement",
-      schoolEmail: schoolEmail.trim(),
-      schoolPhone: schoolPhone.trim(),
-      schoolCountry: schoolCountry,
-      schoolCity: schoolCity,
-      chosenPlan: schoolChosenPlan,
-      schoolCode: effectiveSchoolCode,
-      password: schoolPassword,
+    // Ouvrir la modale de choix de vérification (E-mail ou SMS)
+    setPendingRegistration({
+      pathway: "SCHOOL",
+      email: schoolEmail.trim(),
+      phone: schoolPhone.trim(),
+      fullName: cleanDirector,
+      payload: {
+        pathway: "SCHOOL",
+        schoolName: cleanSchoolName,
+        schoolCode: cleanCode,
+        directorName: cleanDirector,
+        email: schoolEmail.trim(),
+        phone: schoolPhone.trim(),
+        password: schoolPassword,
+        plan: schoolChosenPlan,
+        country: schoolCountry,
+        city: schoolCity,
+      },
     });
-
-    // Mettre à jour l'école active immédiatement
-    subscriptionStore.syncSchoolWithUser({
-      id: effectiveSchoolId,
-      name: effectiveSchoolName,
-      code: effectiveSchoolCode,
-      shortName: schoolShortName.trim() || effectiveSchoolName.slice(0, 15),
-      city: schoolCity,
-      country: schoolCountry,
-      phone: schoolPhone,
-      email: schoolEmail,
-    });
-
-    // Appliquer le forfait d'abonnement choisi
-    changeSchoolPlan(schoolChosenPlan);
-
-    toast(
-      `Établissement « ${effectiveSchoolName} » créé avec succès ! 1 mois gratuit Starter activé. Votre identifiant Directeur est : ${regResult.identifier}.`,
-      "success"
-    );
-    router.push("/directeur");
+    setIsVerificationModalOpen(true);
   };
 
   // =========================================================================
@@ -372,24 +423,27 @@ export default function AuthPage() {
     const chosenSchoolName = matchedSchool ? matchedSchool.name : customSchoolName.trim();
     const schoolCodeToUse = matchedSchool?.code || "4827";
 
-    const regResult = authStore.registerParent({
-      fullName: parentName.trim(),
+    // Ouvrir la modale de choix de vérification (E-mail ou SMS)
+    setPendingRegistration({
+      pathway: "PARENT",
       email: parentEmail.trim(),
       phone: parentPhone.trim(),
-      schoolId: selectedSchoolId || "custom-school",
-      schoolName: chosenSchoolName,
-      schoolCode: schoolCodeToUse,
-      chosenPlan: parentChosenPlan,
-      password: parentPassword,
+      fullName: parentName.trim(),
+      payload: {
+        pathway: "PARENT",
+        fullName: parentName.trim(),
+        email: parentEmail.trim(),
+        phone: parentPhone.trim(),
+        schoolId: selectedSchoolId || "custom-school",
+        schoolName: chosenSchoolName,
+        schoolCode: schoolCodeToUse,
+        chosenPlan: parentChosenPlan,
+        password: parentPassword,
+        childMatricule: childMatricule.trim(),
+        childClass: childClass.trim(),
+      },
     });
-
-    changeParentPlan(parentChosenPlan);
-
-    toast(
-      `Compte parent créé avec succès ! Votre identifiant de connexion est : ${regResult.identifier}.`,
-      "success"
-    );
-    router.push("/parent/abonnement?activation=required");
+    setIsVerificationModalOpen(true);
   };
 
   return (
@@ -1027,6 +1081,19 @@ export default function AuthPage() {
         isOpen={isForgotPasswordOpen}
         onClose={() => setIsForgotPasswordOpen(false)}
       />
+
+      {/* Modale de vérification par E-mail ou SMS (OTP) */}
+      {isVerificationModalOpen && pendingRegistration && (
+        <AccountVerificationModal
+          isOpen={isVerificationModalOpen}
+          onClose={() => setIsVerificationModalOpen(false)}
+          email={pendingRegistration.email}
+          phone={pendingRegistration.phone}
+          fullName={pendingRegistration.fullName}
+          purpose="REGISTRATION"
+          onVerified={handleFinalizeVerifiedRegistration}
+        />
+      )}
     </div>
   );
 }

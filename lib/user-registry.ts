@@ -409,7 +409,6 @@ export function requestPasswordResetOTP(identifierOrEmail: string): {
 
   return {
     success: true,
-    otp,
     emailMasked,
     userFullName: user.fullName,
   };

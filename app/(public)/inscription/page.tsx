@@ -27,6 +27,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useSubscriptionStore, SchoolPlanCode, ParentPlanCode } from "@/lib/subscription-store";
 import { useAuthStore } from "@/lib/auth-store";
 import { validateSchoolCode } from "@/lib/user-registry";
+import { AccountVerificationModal } from "@/components/auth/AccountVerificationModal";
 import {
   SUPPORTED_COUNTRIES,
   getCountryConfig,
@@ -51,6 +52,16 @@ export default function InscriptionPage() {
   const [pathway, setPathway] = useState<"SCHOOL" | "PARENT">("SCHOOL");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Modale de vérification par E-mail ou SMS (OTP)
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [pendingRegistration, setPendingRegistration] = useState<{
+    pathway: "SCHOOL" | "PARENT";
+    email: string;
+    phone: string;
+    fullName: string;
+    payload: any;
+  } | null>(null);
 
   // Liste des établissements issus de la base de données Supabase
   const [dbSchools, setDbSchools] = useState<DbSchool[]>([]);
@@ -200,6 +211,34 @@ export default function InscriptionPage() {
     const finalPhone = geoValidation.formattedPhone || schoolPhone.trim();
     const fullDirectorName = `${managerLastName.trim().toUpperCase()} ${managerFirstName.trim()}`;
 
+    // Ouvrir la modale de vérification sécurisée (choix E-mail ou SMS)
+    setPendingRegistration({
+      pathway: "SCHOOL",
+      email: cleanEmail,
+      phone: finalPhone,
+      fullName: fullDirectorName,
+      payload: {
+        pathway: "SCHOOL",
+        schoolName: schoolName.trim(),
+        schoolCode: schoolCode.trim(),
+        directorLastName: managerLastName.trim(),
+        directorFirstName: managerFirstName.trim(),
+        directorName: fullDirectorName,
+        email: cleanEmail,
+        phone: finalPhone,
+        password,
+        country,
+        department,
+        city,
+        chosenPlan,
+      },
+    });
+    setIsVerificationModalOpen(true);
+  };
+
+  // Finalisation et enregistrement du compte après validation du code OTP
+  const handleFinalizeVerifiedRegistration = async (verificationToken: string) => {
+    if (!pendingRegistration) return;
     setLoading(true);
 
     try {
@@ -207,86 +246,84 @@ export default function InscriptionPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          pathway: "SCHOOL",
-          schoolName: schoolName.trim(),
-          schoolCode: schoolCode.trim(),
-          directorLastName: managerLastName.trim(),
-          directorFirstName: managerFirstName.trim(),
-          directorName: fullDirectorName,
-          email: cleanEmail,
-          phone: finalPhone,
-          password,
-          country,
-          department,
-          city,
-          chosenPlan,
+          ...pendingRegistration.payload,
+          verificationToken,
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setLoading(false);
+        setIsVerificationModalOpen(false);
         if (res.status === 409) {
-          setSchoolEmailError(data.error || "Cette adresse e-mail est déjà utilisée par un autre compte.");
-        } else {
-          setGeoError(data.error || "Une erreur est survenue lors de l'enregistrement.");
+          if (pendingRegistration.pathway === "SCHOOL") {
+            setSchoolEmailError(data.error || "Cette adresse e-mail est déjà utilisée.");
+          } else {
+            setParentEmailError(data.error || "Cette adresse e-mail est déjà utilisée.");
+          }
         }
-        toast(data.error || "Une erreur est survenue lors de l'inscription.", "error");
+        toast(data.error || "Une erreur est survenue lors de l'enregistrement.", "error");
+        setLoading(false);
         return;
       }
 
-      const effectiveSchoolId = data.school?.id;
-      const effectiveSchoolName = data.school?.name || schoolName.trim();
-      const effectiveSchoolCode = data.school?.code || schoolCode.trim();
+      setIsVerificationModalOpen(false);
 
-      // Enregistrement dans le store d'authentification
-      registerSchool({
-        schoolId: effectiveSchoolId,
-        directorName: fullDirectorName,
-        schoolName: effectiveSchoolName,
-        schoolEmail: cleanEmail,
-        schoolPhone: finalPhone,
-        schoolCity: city.trim(),
-        schoolRegion: department.trim(),
-        schoolCountry: country,
-        chosenPlan,
-        schoolCode: effectiveSchoolCode,
-        password,
-      });
+      if (pendingRegistration.pathway === "SCHOOL") {
+        const effectiveSchoolId = data.school?.id;
+        const effectiveSchoolName = data.school?.name || pendingRegistration.payload.schoolName;
+        const effectiveSchoolCode = data.school?.code || pendingRegistration.payload.schoolCode;
 
-      // Synchronisation immédiate de l'établissement actif pour tout le système
-      subscriptionStore.syncSchoolWithUser({
-        id: effectiveSchoolId,
-        name: effectiveSchoolName,
-        code: effectiveSchoolCode,
-        city: city.trim(),
-        country: country,
-        phone: finalPhone,
-        email: cleanEmail,
-      });
+        registerSchool({
+          schoolId: effectiveSchoolId,
+          directorName: pendingRegistration.fullName,
+          schoolName: effectiveSchoolName,
+          schoolEmail: pendingRegistration.email,
+          schoolPhone: pendingRegistration.phone,
+          schoolCity: pendingRegistration.payload.city,
+          schoolRegion: pendingRegistration.payload.department,
+          schoolCountry: pendingRegistration.payload.country,
+          chosenPlan: pendingRegistration.payload.chosenPlan,
+          schoolCode: effectiveSchoolCode,
+          password: pendingRegistration.payload.password,
+        });
 
-      toast(
-        `Bienvenue sur ECOGEST ! Votre établissement « ${effectiveSchoolName} » bénéficie automatiquement de 1 mois d'essai gratuit avec la Formule Starter.`,
-        "success"
-      );
-      router.push("/directeur");
-    } catch (err) {
-      console.error("[inscription-school] Erreur :", err);
-      registerSchool({
-        directorName: fullDirectorName,
-        schoolName: schoolName.trim(),
-        schoolEmail: cleanEmail,
-        schoolPhone: finalPhone,
-        schoolCity: city.trim(),
-        schoolRegion: department.trim(),
-        schoolCountry: country,
-        chosenPlan: "STARTER",
-        schoolCode: schoolCode.trim(),
-        password,
-      });
-      toast(`Bienvenue ! Votre établissement bénéficie de 1 mois d'essai gratuit Starter.`, "success");
-      router.push("/directeur");
+        subscriptionStore.syncSchoolWithUser({
+          id: effectiveSchoolId,
+          name: effectiveSchoolName,
+          code: effectiveSchoolCode,
+          city: pendingRegistration.payload.city,
+          country: pendingRegistration.payload.country,
+          phone: pendingRegistration.phone,
+          email: pendingRegistration.email,
+        });
+
+        toast(
+          `Compte vérifié avec succès ! Bienvenue sur ECOGEST. Formule Starter activée pour « ${effectiveSchoolName} ».`,
+          "success"
+        );
+        router.push("/directeur");
+      } else {
+        registerParent({
+          userId: data.user?.id,
+          fullName: pendingRegistration.fullName,
+          email: pendingRegistration.email,
+          phone: pendingRegistration.phone,
+          schoolId: pendingRegistration.payload.schoolId,
+          schoolName: pendingRegistration.payload.schoolName,
+          chosenPlan: pendingRegistration.payload.chosenPlan,
+          relationship: pendingRegistration.payload.relationship,
+        });
+
+        toast(
+          `Compte Parent vérifié avec succès ! Bienvenue ${pendingRegistration.fullName}.`,
+          "success"
+        );
+        router.push("/parent/abonnement?activation=required");
+      }
+    } catch (err: any) {
+      console.error("[finalize-registration] Erreur :", err);
+      toast("Une erreur est survenue lors de la création du compte.", "error");
     } finally {
       setLoading(false);
     }
@@ -352,74 +389,31 @@ export default function InscriptionPage() {
     }
 
     const fullParentName = `${parentLastName.trim().toUpperCase()} ${parentFirstName.trim()}`;
+    const cleanParentPhone = parentPhone.trim();
 
-    setLoading(true);
-
-    try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pathway: "PARENT",
-          lastName: parentLastName.trim(),
-          firstName: parentFirstName.trim(),
-          fullName: fullParentName,
-          relationship: parentRelationship.trim(),
-          email: cleanEmail,
-          phone: parentPhone.trim(),
-          password: parentPassword,
-          schoolId: matchedSchool.id,
-          schoolName: matchedSchool.name,
-          chosenPlan: parentPlan,
-          childMatricule: childMatricule.trim(),
-          childClass: childClass.trim(),
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setLoading(false);
-        if (res.status === 409) {
-          setParentEmailError(data.error || "Cette adresse e-mail est déjà utilisée par un autre compte.");
-        } else {
-          toast(data.error || "Une erreur est survenue lors de l'inscription.", "error");
-        }
-        return;
-      }
-
-      registerParent({
-        userId: data.user?.id,
+    // Déclencher la modale de vérification (E-mail ou SMS)
+    setPendingRegistration({
+      pathway: "PARENT",
+      email: cleanEmail,
+      phone: cleanParentPhone,
+      fullName: fullParentName,
+      payload: {
+        pathway: "PARENT",
+        lastName: parentLastName.trim(),
+        firstName: parentFirstName.trim(),
         fullName: fullParentName,
+        relationship: parentRelationship.trim(),
         email: cleanEmail,
-        phone: parentPhone.trim(),
+        phone: cleanParentPhone,
+        password: parentPassword,
         schoolId: matchedSchool.id,
         schoolName: matchedSchool.name,
         chosenPlan: parentPlan,
-        relationship: parentRelationship.trim(),
-      });
-
-      toast(
-        `Compte Parent créé pour l'établissement « ${matchedSchool.name} » ! Veuillez valider votre forfait.`,
-        "success"
-      );
-      router.push("/parent/abonnement?activation=required");
-    } catch (err) {
-      console.error("[inscription-parent] Erreur :", err);
-      registerParent({
-        fullName: fullParentName,
-        email: cleanEmail,
-        phone: parentPhone.trim(),
-        schoolId: matchedSchool.id,
-        schoolName: matchedSchool.name,
-        chosenPlan: parentPlan,
-        relationship: parentRelationship.trim(),
-      });
-      toast(`Compte Parent créé !`, "info");
-      router.push("/parent/abonnement?activation=required");
-    } finally {
-      setLoading(false);
-    }
+        childMatricule: childMatricule.trim(),
+        childClass: childClass.trim(),
+      },
+    });
+    setIsVerificationModalOpen(true);
   };
 
   const currentCountryConfig = getCountryConfig(country);
@@ -1100,6 +1094,19 @@ export default function InscriptionPage() {
           </Link>
         </div>
       </main>
+
+      {/* Modale de vérification par E-mail ou SMS (OTP) */}
+      {isVerificationModalOpen && pendingRegistration && (
+        <AccountVerificationModal
+          isOpen={isVerificationModalOpen}
+          onClose={() => setIsVerificationModalOpen(false)}
+          email={pendingRegistration.email}
+          phone={pendingRegistration.phone}
+          fullName={pendingRegistration.fullName}
+          purpose="REGISTRATION"
+          onVerified={handleFinalizeVerifiedRegistration}
+        />
+      )}
 
       <PublicFooter />
     </div>

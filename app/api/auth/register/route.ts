@@ -359,16 +359,28 @@ export async function POST(request: Request) {
 
       const finalParentName = `${finalParentLastName.toUpperCase()} ${finalParentFirstName}`;
 
+      let parentPasswordHash = `hash_${Date.now()}`;
+      try {
+        const { hashPasswordPbkdf2 } = await import("@/lib/server/dev-auth");
+        parentPasswordHash = hashPasswordPbkdf2(password);
+      } catch (hashErr) {
+        console.warn("[register] Note hash parent fallback :", hashErr);
+      }
+
+      // Normalisation du téléphone parent avec indicatif international (+229...)
+      const { normalizePhoneE164 } = await import("@/lib/server/sms");
+      const formattedParentPhone = normalizePhoneE164(phone || "", "+229");
+
       // Insertion du parent dans school_users
       const { data: userRow, error: userInsertError } = await supabase
         .from("school_users")
         .insert({
           school_id: matchedSchool.id,
           email: normalizedEmail,
-          password_hash: `hash_${Date.now()}`,
+          password_hash: parentPasswordHash,
           full_name: finalParentName,
           role: "parent",
-          phone: (phone || "").trim(),
+          phone: formattedParentPhone || (phone || "").trim(),
           status: "ACTIF",
           permissions: {
             roles: ["VIEW_CHILD_RECORDS"],
