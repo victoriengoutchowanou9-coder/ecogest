@@ -87,7 +87,12 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   };
 
   // Détection du rôle requis pour la route courante
-  const requiredRole: Role = pathname.startsWith("/parent")
+  const isSupportRoute = pathname.startsWith("/support");
+  const userRole = (currentUser?.role || "").toLowerCase() as Role;
+
+  const requiredRole: Role | "shared" = isSupportRoute
+    ? "shared"
+    : pathname.startsWith("/parent")
     ? "parent"
     : pathname.startsWith("/censeur")
     ? "censeur"
@@ -102,16 +107,23 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     : "directeur";
 
   // 1. Contrôle de cloisonnement strict des profils
-  const isRoleMismatch = currentUser && currentUser.role !== requiredRole;
+  // - Les routes partagées (/support) sont accessibles par tous les profils
+  // - Le Directeur ("directeur") supervise l'ensemble des modules de l'établissement
+  // - Pour chaque rôle, l'accès à son espace dédié est garanti
+  const isRoleMismatch =
+    currentUser &&
+    requiredRole !== "shared" &&
+    userRole !== requiredRole &&
+    userRole !== "directeur";
 
   // 2. Contrôle du statut d'abonnement
   const isSchoolPending =
-    currentUser?.role === "directeur" &&
+    userRole === "directeur" &&
     schoolStatus === "PENDING_PAYMENT" &&
     pathname !== "/directeur/abonnement";
 
   const isParentPending =
-    currentUser?.role === "parent" &&
+    userRole === "parent" &&
     parentStatus === "PENDING_PAYMENT" &&
     pathname !== "/parent/abonnement";
 
@@ -162,12 +174,12 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
                 </div>
                 <div className="pt-2">
                   <Link
-                    href={ROLE_NAVIGATIONS[currentUser.role].basePath}
+                    href={ROLE_NAVIGATIONS[userRole]?.basePath || "/censeur"}
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-school-primary text-white text-xs font-bold hover:bg-school-700 shadow-xs transition"
                   >
                     <span>
                       Retourner à mon espace{" "}
-                      {ROLE_NAVIGATIONS[currentUser.role].roleLabel.split("/")[0].trim()}
+                      {ROLE_NAVIGATIONS[userRole]?.roleLabel?.split("/")[0]?.trim() || "dédié"}
                     </span>
                     <ArrowRight className="w-4 h-4" />
                   </Link>

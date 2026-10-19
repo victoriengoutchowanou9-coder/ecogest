@@ -22,6 +22,8 @@ import {
   BookOpen,
   MapPin,
   Sparkles,
+  FileSpreadsheet,
+  UserCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -113,8 +115,8 @@ export default function CenseurDashboardPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* CARTE 1 : ENCADREMENT DU JOUR */}
-          <a
-            href="#encadrement-du-jour"
+          <Link
+            href="/censeur/activites"
             className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition-all duration-200 active:scale-[0.98] flex flex-col justify-between"
           >
             <div className="space-y-2">
@@ -137,7 +139,7 @@ export default function CenseurDashboardPage() {
               <span className="font-bold text-slate-900">{todaySchedules.length} séances prévues</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
-          </a>
+          </Link>
 
           {/* CARTE 2 : POINTAGE À VALIDER */}
           <Link
@@ -255,18 +257,19 @@ export default function CenseurDashboardPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {todaySchedules.map((sch) => (
-            <div
+            <Link
               key={sch.id}
-              className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 hover:border-slate-300 transition-all space-y-2 text-xs"
+              href="/censeur/enseignants"
+              className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 hover:border-school-300 hover:bg-school-50/20 transition-all space-y-2 text-xs group block"
             >
               <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">
+                <span className="font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200 group-hover:border-school-300">
                   {sch.className}
                 </span>
                 <span className="font-mono text-[11px] font-semibold text-slate-600">{sch.timeSlot}</span>
               </div>
               <div>
-                <h4 className="font-bold text-school-primary">{sch.subjectName}</h4>
+                <h4 className="font-bold text-school-primary group-hover:underline">{sch.subjectName}</h4>
                 <p className="text-slate-600 text-[11px] mt-0.5">{sch.teacherName}</p>
               </div>
               <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[11px] text-slate-500">
@@ -274,9 +277,12 @@ export default function CenseurDashboardPage() {
                   <MapPin className="w-3 h-3 text-slate-400" />
                   {sch.room}
                 </span>
-                <span className="text-emerald-700 font-semibold">En cours</span>
+                <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                  <span>En cours</span>
+                  <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
@@ -286,8 +292,8 @@ export default function CenseurDashboardPage() {
         <h3 className="text-sm font-bold text-slate-900">
           Modules de Direction Pédagogique
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Matières & Coefficients */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {/* 1. Matières & Coefficients */}
           <Link
             href="/censeur/matieres"
             className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
@@ -309,7 +315,7 @@ export default function CenseurDashboardPage() {
             </div>
           </Link>
 
-          {/* Enseignants & Horaires */}
+          {/* 2. Enseignants & Horaires */}
           <Link
             href="/censeur/enseignants"
             className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
@@ -322,7 +328,7 @@ export default function CenseurDashboardPage() {
                 Enseignants & Horaires
               </h4>
               <p className="text-[11px] text-slate-500 leading-snug">
-                Création des comptes enseignants, affectations et emplois du temps.
+                Création des comptes enseignants, affectations et emplois du temps hebdomadaires.
               </p>
             </div>
             <div className="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
@@ -331,7 +337,29 @@ export default function CenseurDashboardPage() {
             </div>
           </Link>
 
-          {/* Demandes d'accès parents */}
+          {/* 3. Élèves & Affectations */}
+          <Link
+            href="/censeur/eleves"
+            className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <GraduationCap className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-school-primary transition-colors">
+                Élèves & Affectations
+              </h4>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Dossiers scolaires, réaffectation de classe avec traçabilité et historique.
+              </p>
+            </div>
+            <div className="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
+              <span>{studentsList.length} élèves inscrits</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* 4. Demandes d'accès parents */}
           <Link
             href="/censeur/demandes-parents"
             className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
@@ -355,29 +383,7 @@ export default function CenseurDashboardPage() {
             </div>
           </Link>
 
-          {/* Élèves & Affectations */}
-          <Link
-            href="/censeur/eleves"
-            className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
-          >
-            <div className="space-y-2">
-              <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <GraduationCap className="w-5 h-5" />
-              </div>
-              <h4 className="text-xs font-bold text-slate-900 group-hover:text-school-primary transition-colors">
-                Élèves & Affectations
-              </h4>
-              <p className="text-[11px] text-slate-500 leading-snug">
-                Dossiers scolaires, réaffectation de classe avec traçabilité et historique.
-              </p>
-            </div>
-            <div className="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
-              <span>{studentsList.length} élèves inscrits</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </Link>
-
-          {/* Notes & Délibérations */}
+          {/* 5. Notes & Délibérations */}
           <Link
             href="/censeur/notes"
             className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
@@ -399,7 +405,143 @@ export default function CenseurDashboardPage() {
             </div>
           </Link>
 
-          {/* Suivi des contributions */}
+          {/* 6. Examens & Calendrier */}
+          <Link
+            href="/censeur/examens"
+            className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <CalendarDays className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-school-primary transition-colors">
+                Examens & Calendrier
+              </h4>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Planification des épreuves officielles, sessions d&apos;examens et calendrier.
+              </p>
+            </div>
+            <div className="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
+              <span>Planifier & Publier</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* 7. Registre de classe officiel */}
+          <Link
+            href="/censeur/registre"
+            className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <FileSpreadsheet className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-school-primary transition-colors">
+                Registre de classe
+              </h4>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Registre officiel d&apos;appel et d&apos;identification téléchargeable en PDF A4.
+              </p>
+            </div>
+            <div className="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
+              <span>Générer en PDF</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* 8. Discipline & Incidents */}
+          <Link
+            href="/censeur/discipline"
+            className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-school-primary transition-colors">
+                Discipline & Incidents
+              </h4>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Enregistrement des manquements disciplinaires, sanctions et historique.
+              </p>
+            </div>
+            <div className="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
+              <span>Suivi disciplinaire</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* 9. Cours, Devoirs & TD */}
+          <Link
+            href="/censeur/activites"
+            className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Clock className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-school-primary transition-colors">
+                Cours, Devoirs & TD
+              </h4>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Programmation des devoirs surveillés (DS), TD, salles et directives.
+              </p>
+            </div>
+            <div className="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
+              <span>{upcomingHomeworkCount} sessions prévues</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* 10. Pointage & Présences */}
+          <Link
+            href="/censeur/presences"
+            className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <CheckSquare className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-school-primary transition-colors">
+                Pointage & Présences
+              </h4>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Contrôle des présences élèves, régularisation et audit de pointage quotidien.
+              </p>
+            </div>
+            <div className="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
+              <span className={pendingAttendanceCount > 0 ? "text-amber-700 font-bold" : ""}>
+                {pendingAttendanceCount > 0 ? `${pendingAttendanceCount} à valider` : "Tout validé"}
+              </span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* 11. Messages des Parents */}
+          <Link
+            href="/censeur/messages"
+            className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <MessageSquare className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-school-primary transition-colors">
+                Messages des Parents
+              </h4>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Consultation des messages parents, demandes d&apos;absence et réponses directes.
+              </p>
+            </div>
+            <div className="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
+              <span className={unreadMessagesCount > 0 ? "text-rose-600 font-bold" : ""}>
+                {unreadMessagesCount > 0 ? `${unreadMessagesCount} non lus` : "À jour"}
+              </span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* 12. Suivi des contributions */}
           <Link
             href="/censeur/contributions"
             className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
@@ -421,7 +563,7 @@ export default function CenseurDashboardPage() {
             </div>
           </Link>
 
-          {/* Émargement Enseignants */}
+          {/* 13. Émargement Enseignants */}
           <Link
             href="/censeur/emargement"
             className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
@@ -439,6 +581,50 @@ export default function CenseurDashboardPage() {
             </div>
             <div className="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
               <span>Consulter</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* 14. Alertes Pédagogiques */}
+          <Link
+            href="/censeur/alertes"
+            className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <BadgeAlert className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-school-primary transition-colors">
+                Alertes Pédagogiques
+              </h4>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Notes manquantes, retards de saisie et relance automatique des professeurs.
+              </p>
+            </div>
+            <div className="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
+              <span>Voir les alertes</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* 15. Mon Profil & Compte */}
+          <Link
+            href="/censeur/profil"
+            className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <UserCircle className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-school-primary transition-colors">
+                Mon Profil & Compte
+              </h4>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Coordonnées professionnelles, sécurité du compte et mot de passe.
+              </p>
+            </div>
+            <div className="pt-3 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
+              <span>Gérer mon compte</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
           </Link>
