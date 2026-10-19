@@ -26,6 +26,32 @@ export default function MisesAJourPage() {
 
   const releases = [
     {
+      version: "ECOGEST 3.3.4",
+      date: "19 Octobre 2026",
+      badge: "Épuration Interface & Clarté Visuelle",
+      badgeColor: "bg-slate-800 text-white",
+      summary: "Épuration ciblée de la barre de navigation logicielle : suppression du bouton profil utilisateur et de son menu déroulant en haut à droite pour offrir un espace de travail visuellement plus propre et aéré, tout en préservant l'accès direct aux fonctions de déconnexion et de profil.",
+      sections: [
+        {
+          type: "Épuration de la Barre Supérieure (Topbar)",
+          icon: <Layout className="w-4 h-4 text-slate-700" />,
+          items: [
+            "Suppression du bouton menu profil utilisateur (avatar circulaire, nom, rôle et chevron) situé en haut à droite de l'écran.",
+            "Suppression du menu contextuel flottant redondant au profit d'une interface plus légère et sans encombrement.",
+            "Conservation intacte des contrôles essentiels : sélecteur de l'année scolaire active, raccourci de forfait pour la direction et bouton PWA.",
+          ],
+        },
+        {
+          type: "Ergonomie & Continuité des Accès",
+          icon: <CheckCircle2 className="w-4 h-4 text-emerald-600" />,
+          items: [
+            "Accès fluide et sécurisé à la déconnexion directement depuis la barre latérale gauche (Sidebar) et le tiroir mobile.",
+            "Préservation complète de toutes les fonctionnalités métier et des profils selon chaque rôle utilisateur.",
+          ],
+        },
+      ],
+    },
+    {
       version: "ECOGEST 3.3.3",
       date: "19 Octobre 2026",
       badge: "Sécurité & Authentification Développeur Furtive",
