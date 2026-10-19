@@ -69,35 +69,50 @@ export function verifyDeveloperCredentials(identifierOrEmail: string, passkey: s
 export async function verifyDeveloperCredentialsAsync(
   identifierOrEmail: string,
   passkey: string
-): Promise<{ valid: boolean; email: string; user?: any }> {
+): Promise<{ valid: boolean; isDevAccount: boolean; email: string; user?: any }> {
   const clean = (identifierOrEmail || "").trim().toLowerCase();
-  const isIdentifier = timingSafeCheck(clean, DEV_ADMIN_IDENTIFIER.toLowerCase());
-  const isEmail = timingSafeCheck(clean, DEV_ADMIN_EMAIL.toLowerCase());
-
-  if (!isIdentifier && !isEmail) {
-    return { valid: false, email: clean };
-  }
+  const cleanPhone = clean.replace(/\s+/g, "");
+  const isDefaultIdentifier = timingSafeCheck(clean, DEV_ADMIN_IDENTIFIER.toLowerCase());
+  const isDefaultEmail = timingSafeCheck(clean, DEV_ADMIN_EMAIL.toLowerCase());
 
   const supabase = getSupabaseAdminClient();
 
   try {
-    // 1. Recherche du compte développeur dans la base de données PostgreSQL
-    const { data: devUser, error } = await supabase
+    // 1. Recherche d'un utilisateur avec le rôle DEVELOPPEUR dans PostgreSQL
+    const { data: devUsers } = await supabase
       .from("school_users")
       .select("*")
-      .eq("role", "DEVELOPPEUR")
-      .maybeSingle();
+      .eq("role", "DEVELOPPEUR");
+
+    const matchedUser = (devUsers || []).find((u) => {
+      const uEmail = (u.email || "").trim().toLowerCase();
+      const uIdent = (u.identifier || "").trim().toLowerCase();
+      const uPhone = (u.phone || "").trim().replace(/\s+/g, "");
+      return (
+        (uEmail && uEmail === clean) ||
+        (uIdent && uIdent === clean) ||
+        (uPhone && uPhone === cleanPhone)
+      );
+    });
+
+    const isDevAccount = Boolean(matchedUser || isDefaultIdentifier || isDefaultEmail);
+
+    if (!isDevAccount) {
+      return { valid: false, isDevAccount: false, email: clean };
+    }
+
+    const devUser = matchedUser || (devUsers && devUsers.length > 0 ? devUsers[0] : null);
 
     if (devUser && devUser.password_hash) {
       // Vérification sécurisée avec PBKDF2
       if (verifyPasswordPbkdf2(passkey, devUser.password_hash)) {
-        return { valid: true, email: devUser.email || DEV_ADMIN_EMAIL, user: devUser };
+        return { valid: true, isDevAccount: true, email: devUser.email || DEV_ADMIN_EMAIL, user: devUser };
       }
       // Tolérance pour mot de passe par défaut si non encore changé
       if (timingSafeCheck(passkey, DEV_ADMIN_PASSKEY)) {
-        return { valid: true, email: devUser.email || DEV_ADMIN_EMAIL, user: devUser };
+        return { valid: true, isDevAccount: true, email: devUser.email || DEV_ADMIN_EMAIL, user: devUser };
       }
-      return { valid: false, email: DEV_ADMIN_EMAIL };
+      return { valid: false, isDevAccount: true, email: devUser.email || DEV_ADMIN_EMAIL };
     }
 
     // 2. Si le compte n'est pas encore initialisé en base, vérification via passkey de sécurité
@@ -120,19 +135,19 @@ export async function verifyDeveloperCredentialsAsync(
           .select()
           .maybeSingle();
 
-        return { valid: true, email: DEV_ADMIN_EMAIL, user: inserted };
+        return { valid: true, isDevAccount: true, email: DEV_ADMIN_EMAIL, user: inserted };
       } catch (insertErr) {
         console.warn("[dev-auth] Auto-insertion developer user warning:", insertErr);
-        return { valid: true, email: DEV_ADMIN_EMAIL };
+        return { valid: true, isDevAccount: true, email: DEV_ADMIN_EMAIL };
       }
     }
 
-    return { valid: false, email: DEV_ADMIN_EMAIL };
+    return { valid: false, isDevAccount: true, email: DEV_ADMIN_EMAIL };
   } catch (err) {
     console.error("[dev-auth] Erreur lors de la vérification développeur:", err);
-    // Secours sécurisé en mémoire
-    const valid = timingSafeCheck(passkey, DEV_ADMIN_PASSKEY);
-    return { valid, email: DEV_ADMIN_EMAIL };
+    const isDev = isDefaultIdentifier || isDefaultEmail;
+    const valid = isDev && timingSafeCheck(passkey, DEV_ADMIN_PASSKEY);
+    return { valid, isDevAccount: isDev, email: DEV_ADMIN_EMAIL };
   }
 }
 

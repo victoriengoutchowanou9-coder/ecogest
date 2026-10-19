@@ -92,14 +92,12 @@ export default function AuthPage() {
       return;
     }
 
-    // Détection d'un accès Développeur / Administrateur Technique
-    if (
-      cleanIdentifier.toLowerCase() === "dev-root-001" ||
-      cleanIdentifier.toLowerCase() === "admin.technique@ecogest.bj"
-    ) {
-      setLoginLoading(true);
+    setLoginLoading(true);
+
+    try {
+      // 1. Détection et validation automatique côté serveur du rôle Développeur / Superviseur
       try {
-        const res = await fetch("/api/dev-admin/login", {
+        const devRes = await fetch("/api/dev-admin/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -107,25 +105,25 @@ export default function AuthPage() {
             passkey: cleanPassword,
           }),
         });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setLoginError(data.error || "Accès refusé. Informations développeur invalides.");
-          toast("Échec d'authentification Développeur.", "error");
+        const devData = await devRes.json().catch(() => ({}));
+
+        if (devRes.ok && devData.success) {
+          toast("Connexion réussie ! Accès à la console technique...", "success");
+          router.push("/dev-admin");
           return;
         }
-        toast("Session Développeur validée. Accès à la Console Technique...", "success");
-        router.push("/dev-admin");
-        return;
-      } catch {
-        setLoginError("Erreur de connexion au serveur d'authentification développeur.");
-        toast("Erreur de connexion.", "error");
-        return;
-      } finally {
-        setLoginLoading(false);
-      }
-    }
 
-    try {
+        // Si le compte développeur est identifié mais le mot de passe est faux
+        if (devData.notDeveloper === false) {
+          setLoginError("Identifiant ou mot de passe incorrect.");
+          toast("Identifiant ou mot de passe incorrect.", "error");
+          return;
+        }
+      } catch {
+        // En cas d'erreur de communication réseau, basculer sur le flux standard
+      }
+
+      // 2. Authentification des utilisateurs scolaires et parents
       const authResult = authenticateSystemUser(cleanIdentifier, cleanPassword);
 
       if (!authResult.success || !authResult.user) {
@@ -572,16 +570,6 @@ export default function AuthPage() {
                     >
                       S&apos;inscrire
                     </button>
-                  </div>
-
-                  <div className="text-center pt-1">
-                    <Link
-                      href="/dev-admin/connexion"
-                      className="text-[11px] text-slate-400 hover:text-slate-600 font-mono transition inline-flex items-center gap-1.5"
-                    >
-                      <Shield className="w-3 h-3 text-slate-400" />
-                      <span>Espace Développeur &amp; Supervision Technique &rarr;</span>
-                    </Link>
                   </div>
                 </form>
               </div>

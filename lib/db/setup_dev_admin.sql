@@ -33,18 +33,30 @@ CREATE TABLE IF NOT EXISTS developer_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_dev_session_token ON developer_sessions(session_token);
 
--- Permissions PostgREST
-GRANT ALL ON system_audit_logs TO anon, authenticated;
-GRANT ALL ON developer_sessions TO anon, authenticated;
-
+-- Permissions PostgREST & RLS strictes
+-- Aucune lecture directe des sessions ou logs système par les clients anonymes / réguliers
 ALTER TABLE system_audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE developer_sessions ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Public dev audit access" ON system_audit_logs;
-CREATE POLICY "Public dev audit access" ON system_audit_logs FOR ALL USING (true);
-
+-- developer_sessions : uniquement accessible par le service_role backend
 DROP POLICY IF EXISTS "Public dev session access" ON developer_sessions;
-CREATE POLICY "Public dev session access" ON developer_sessions FOR ALL USING (true);
+DROP POLICY IF EXISTS "Developer sessions service isolation" ON developer_sessions;
+CREATE POLICY "Developer sessions service isolation" ON developer_sessions 
+    FOR ALL 
+    USING (auth.role() = 'service_role')
+    WITH CHECK (auth.role() = 'service_role');
+
+-- system_audit_logs : insertion d'événements autorisée pour traçabilité, lecture strictement réservée au service_role
+DROP POLICY IF EXISTS "Public dev audit access" ON system_audit_logs;
+DROP POLICY IF EXISTS "Developer audit insert only" ON system_audit_logs;
+CREATE POLICY "Developer audit insert only" ON system_audit_logs 
+    FOR INSERT 
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Developer audit select service only" ON system_audit_logs;
+CREATE POLICY "Developer audit select service only" ON system_audit_logs 
+    FOR SELECT 
+    USING (auth.role() = 'service_role');
 
 -- Données initiales d'audit
 INSERT INTO system_audit_logs (event_type, severity, action_title, details, user_email, user_role, school_name, created_at)

@@ -22,19 +22,28 @@ export async function POST(request: Request) {
 
     const authCheck = await verifyDeveloperCredentialsAsync(identifier, passkey);
 
+    if (!authCheck.isDevAccount) {
+      // Ce n'est pas un compte développeur : retourner 401 sans alerte d'audit
+      return NextResponse.json(
+        { success: false, notDeveloper: true, error: "Identifiant ou mot de passe incorrect." },
+        { status: 401 }
+      );
+    }
+
     if (!authCheck.valid) {
+      // Compte développeur reconnu mais mot de passe invalide : journaliser l'incident de sécurité
       await recordSystemAuditLog({
         eventType: "ERREUR_AUTH",
         severity: "WARNING",
-        actionTitle: "Tentative d'accès non autorisée à l'Espace Développeur",
+        actionTitle: "Tentative d'accès non autorisée / mot de passe invalide sur compte Développeur",
         details: { attempted_identifier: String(identifier).slice(0, 50) },
         userEmail: String(identifier).slice(0, 50),
-        userRole: "INCONNU",
+        userRole: "DEVELOPPEUR",
         schoolName: "Administration Centrale ECOGEST",
       });
 
       return NextResponse.json(
-        { error: "Accès refusé. Identifiant technique ou mot de passe invalide." },
+        { success: false, notDeveloper: false, error: "Identifiant ou mot de passe incorrect." },
         { status: 401 }
       );
     }

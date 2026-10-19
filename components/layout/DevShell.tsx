@@ -27,19 +27,19 @@ export const DevShell: React.FC<DevShellProps> = ({ children }) => {
       try {
         const res = await fetch("/api/dev-admin/session");
         if (!res.ok) {
-          router.push("/dev-admin/connexion");
+          router.push("/connexion");
           return;
         }
         const data = await res.json();
         if (!data.authenticated) {
-          router.push("/dev-admin/connexion");
+          router.push("/connexion");
           return;
         }
         setDeveloperEmail(data.email || "admin.technique@ecogest.bj");
         setDeveloperIdentifier(data.identifier || "DEV-ROOT-001");
         setIsLoadingAuth(false);
       } catch {
-        router.push("/dev-admin/connexion");
+        router.push("/connexion");
       }
     }
     checkDevSession();

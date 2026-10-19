@@ -44,7 +44,7 @@ export const DevMobileDrawer: React.FC<DevMobileDrawerProps> = ({
       await fetch("/api/dev-admin/logout", { method: "POST" });
     } catch {}
     toast("Déconnexion réussie.", "info");
-    router.push("/dev-admin/connexion");
+    router.push("/connexion");
   };
 
   const navItems = [

@@ -42,7 +42,7 @@ export const DevTopbar: React.FC<DevTopbarProps> = ({
       await fetch("/api/dev-admin/logout", { method: "POST" });
     } catch {}
     toast("Déconnexion réussie.", "info");
-    router.push("/dev-admin/connexion");
+    router.push("/connexion");
   };
 
   return (
