@@ -26,6 +26,7 @@ export interface AuditEventPayload {
   ip?: string;
   userAgent?: string;
   requestId?: string;
+  req?: Request;
 }
 
 /**
@@ -39,6 +40,22 @@ export async function recordAuditEvent(payload: AuditEventPayload): Promise<void
       return;
     }
 
+    let ip = payload.ip;
+    let userAgent = payload.userAgent;
+
+    if (payload.req) {
+      if (!ip) {
+        ip =
+          payload.req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+          payload.req.headers.get("x-real-ip") ||
+          payload.req.headers.get("cf-connecting-ip") ||
+          undefined;
+      }
+      if (!userAgent) {
+        userAgent = payload.req.headers.get("user-agent") || undefined;
+      }
+    }
+
     const supabase = getServerSupabaseAdmin();
     const { error } = await supabase.from("audit_logs").insert({
       school_id: payload.schoolId,
@@ -49,8 +66,8 @@ export async function recordAuditEvent(payload: AuditEventPayload): Promise<void
       resource_id: payload.resourceId || null,
       old_data: payload.oldData || null,
       new_data: payload.newData || null,
-      ip: payload.ip || null,
-      user_agent: payload.userAgent || null,
+      ip: ip || null,
+      user_agent: userAgent || null,
       request_id: payload.requestId || null,
       created_at: new Date().toISOString(),
     });

@@ -89,9 +89,16 @@ export async function GET(request: Request) {
       return response;
     }
 
-    if (user.status === "SUSPENDU") {
+    const rawStatus = (user.status || "active").toLowerCase();
+    if (rawStatus === "suspendu" || rawStatus === "suspended" || rawStatus === "banni" || rawStatus === "banned") {
       const response = NextResponse.json(
-        { valid: false, error: "Ce compte utilisateur est actuellement suspendu." },
+        {
+          valid: false,
+          error:
+            rawStatus.includes("bann")
+              ? "Ce compte a été définitivement banni de la plateforme."
+              : "Ce compte utilisateur est actuellement suspendu. Veuillez contacter votre administration.",
+        },
         { status: 403 }
       );
       response.cookies.delete(SESSION_COOKIE_NAME);
@@ -170,9 +177,16 @@ export async function POST(request: Request) {
       return response;
     }
 
-    if (user.status === "SUSPENDU") {
+    const rawStatus = (user.status || "active").toLowerCase();
+    if (rawStatus === "suspendu" || rawStatus === "suspended" || rawStatus === "banni" || rawStatus === "banned") {
       const response = NextResponse.json(
-        { valid: false, error: "Ce compte utilisateur est actuellement suspendu." },
+        {
+          valid: false,
+          error:
+            rawStatus.includes("bann")
+              ? "Ce compte a été définitivement banni de la plateforme."
+              : "Ce compte utilisateur est actuellement suspendu. Veuillez contacter votre administration.",
+        },
         { status: 403 }
       );
       response.cookies.delete(SESSION_COOKIE_NAME);
