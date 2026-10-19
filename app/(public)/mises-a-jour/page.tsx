@@ -26,6 +26,41 @@ export default function MisesAJourPage() {
 
   const releases = [
     {
+      version: "ECOGEST 3.3.6",
+      date: "19 Octobre 2026",
+      badge: "Persistance Session Supabase & Maintien Connexion",
+      badgeColor: "bg-school-primary text-white",
+      summary: "Correction critique du comportement de déconnexion automatique lors de l'actualisation de la page. Intégration complète de la persistance de session Supabase (Supabase Auth & PostgreSQL), écran de chargement de vérification asynchrone, élimination de tout fallback local non sécurisé et clôture propre des sessions lors de la déconnexion.",
+      sections: [
+        {
+          type: "Persistance & Restauration de Session Supabase",
+          icon: <ShieldCheck className="w-4 h-4 text-emerald-600" />,
+          items: [
+            "Supabase maintenu comme unique source de vérité : vérification systématique de l'authenticité de la session via getSession(), getUser() et l'API serveur sécurisée /api/auth/session.",
+            "Suppression définitive de tout stockage de session non vérifié dans localStorage ou sessionStorage.",
+            "Conservation ininterrompue de l'utilisateur connecté, de son rôle, de son établissement et de ses permissions lors du rechargement de page (F5) et de la réouverture d'onglet.",
+          ],
+        },
+        {
+          type: "Protection des Routes & Expérience Utilisateur",
+          icon: <Layout className="w-4 h-4 text-slate-700" />,
+          items: [
+            "Introduction d'un état d'attente de chargement (isLoading / isInitialized) dans AppShell pour empêcher toute redirection prématurée vers la page de connexion.",
+            "Affichage d'un écran de chargement fluide et sécurisé (« Vérification de la session en cours... Connexion sécurisée avec Supabase ») pendant la validation de la session.",
+            "Redirection vers /connexion exécutée uniquement si Supabase a formellement conclu à l'absence de session valide ou à un compte suspendu.",
+          ],
+        },
+        {
+          type: "Déconnexion Sécurisée & Session Serveur",
+          icon: <CheckCircle2 className="w-4 h-4 text-blue-600" />,
+          items: [
+            "Mise à jour du bouton de déconnexion dans la barre latérale pour invoquer supabase.auth.signOut(), révoquer le cookie de session sécurisé et purger l'état mémoire.",
+            "Gestion de la tolérance réseau : les micro-coupures de connexion temporaires ne déclenchent plus de déconnexion brutale de l'utilisateur.",
+          ],
+        },
+      ],
+    },
+    {
       version: "ECOGEST 3.3.5",
       date: "19 Octobre 2026",
       badge: "Synchronisation Supervision Développeur & Base Supabase",

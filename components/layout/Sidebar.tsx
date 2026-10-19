@@ -2,7 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { authStore } from "@/lib/auth-store";
 import {
   LayoutDashboard,
   Users,
@@ -90,8 +91,15 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, className }) => {
   const pathname = usePathname();
+  const router = useRouter();
   const { role: currentRole } = useRoleContext();
   const currentNav = ROLE_NAVIGATIONS[currentRole];
+
+  const handleLogout = async () => {
+    if (onNavigate) onNavigate();
+    await authStore.logout();
+    router.push("/connexion");
+  };
 
   return (
     <aside
@@ -169,13 +177,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, className }) => {
 
       {/* Footer / Logout */}
       <div className="pt-4 border-t border-slate-100">
-        <Link
-          href="/connexion"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-colors touch-target"
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-colors touch-target text-left"
         >
           <LogOut className="w-5 h-5 shrink-0" />
           <span>Déconnexion</span>
-        </Link>
+        </button>
       </div>
     </aside>
   );

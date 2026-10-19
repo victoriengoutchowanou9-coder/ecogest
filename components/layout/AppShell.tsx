@@ -26,16 +26,20 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
   const { role: routeRole } = useRoleContext();
   const router = useRouter();
-  const { user: currentUser } = useAuthStore();
+  const { user: currentUser, isAuthenticated, isLoading, isInitialized } = useAuthStore();
   const { schoolStatus, schoolPlanDef, parentStatus, parentPlanDef, syncSchoolWithUser } = useSubscriptionStore();
 
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [activeSchoolYear, setActiveSchoolYear] = useState(CURRENT_SCHOOL.activeYear);
 
-  const { isAuthenticated } = useAuthStore();
-
   React.useEffect(() => {
     if (isDevAdmin) return;
+
+    // ATTENDRE IMPÉRATIVEMENT QUE SUPABASE TERMINE LA VÉRIFICATION INITIALE
+    // Ne jamais rediriger pendant isLoading || !isInitialized
+    if (isLoading || !isInitialized) return;
+
+    // Seulement si Supabase a formellement conclu qu'aucune session valide n'existe
     if (!currentUser || !isAuthenticated) {
       router.push("/connexion");
       return;
@@ -49,38 +53,11 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         phone: currentUser.phone,
       });
     }
-
-    // Vérification d'authenticité de la session directement auprès de Supabase
-    let isCancelled = false;
-    const verifySupabaseSession = async () => {
-      try {
-        const res = await fetch("/api/auth/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: currentUser.id, email: currentUser.email }),
-        });
-        if (!isCancelled && (res.status === 401 || res.status === 403)) {
-          authStore.logout();
-          router.push("/connexion");
-        }
-      } catch {
-        // Erreur réseau transitoire
-      }
-    };
-
-    verifySupabaseSession();
-
-    return () => {
-      isCancelled = true;
-    };
   }, [
-    currentUser?.id,
-    currentUser?.schoolId,
-    currentUser?.schoolName,
-    currentUser?.schoolCode,
-    currentUser?.phone,
-    currentUser?.email,
+    currentUser,
     isAuthenticated,
+    isLoading,
+    isInitialized,
     router,
     isDevAdmin,
     syncSchoolWithUser,
@@ -90,6 +67,20 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  // ÉCRAN DE CHARGEMENT : Affiché pendant la vérification Supabase au chargement initial
+  if (isLoading || !isInitialized) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-school-primary/20 text-school-primary flex items-center justify-center mb-4">
+          <div className="w-7 h-7 rounded-full border-2 border-school-primary border-t-transparent animate-spin" />
+        </div>
+        <h2 className="text-sm font-bold text-white tracking-wide">Vérification de la session en cours...</h2>
+        <p className="text-[11px] text-slate-400 mt-1">Connexion sécurisée avec Supabase</p>
+      </div>
+    );
+  }
+
+  // Écran d'authentification requise si après vérification Supabase l'utilisateur n'est pas connecté
   if (!currentUser || !isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 text-center">

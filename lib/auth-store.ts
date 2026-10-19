@@ -3,7 +3,8 @@
 import { useSyncExternalStore } from "react";
 import { Role } from "@/lib/permissions";
 import { subscriptionStore, SchoolProfile, SchoolPlanCode, ParentPlanCode } from "./subscription-store";
-import { registerSystemUser, generateUserIdentifier, validateSchoolCode, SystemUser } from "./user-registry";
+import { generateUserIdentifier, validateSchoolCode } from "./user-registry";
+import { supabase } from "./supabase";
 
 export interface AuthUser {
   id: string;
@@ -17,19 +18,22 @@ export interface AuthUser {
   phone?: string;
   isSubscriptionPaid: boolean;
   avatar?: string;
+  permissions?: string[];
 }
 
 export interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
+  isInitialized: boolean;
 }
 
-const STORAGE_KEY = "ecogest_auth_session_v2";
-
-// État initial par défaut : STRICTEMENT NON CONNECTÉ
+// État initial par défaut : EN COURS DE VÉRIFICATION AVEC SUPABASE
 const DEFAULT_AUTH_STATE: AuthState = {
   user: null,
   isAuthenticated: false,
+  isLoading: true,
+  isInitialized: false,
 };
 
 let memoryAuthState: AuthState = DEFAULT_AUTH_STATE;
@@ -39,51 +43,95 @@ function notify() {
   listeners.forEach((l) => l());
 }
 
-function loadStateFromStorage() {
-  if (typeof window === "undefined") return;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && parsed.user && parsed.isAuthenticated) {
-        if (parsed.user.schoolCode === "ECO-001") {
-          parsed.user.schoolCode = "";
-        }
-        memoryAuthState = parsed;
-        if (parsed.user.schoolName) {
-          subscriptionStore.syncSchoolWithUser({
-            id: parsed.user.schoolId,
-            name: parsed.user.schoolName,
-            code: parsed.user.schoolCode,
-            phone: parsed.user.phone,
+let checkSessionPromise: Promise<boolean> | null = null;
+
+/**
+ * Vérification rigoureuse et exclusive de la session avec Supabase.
+ * SUPABASE EST L'UNIQUE SOURCE DE VÉRITÉ.
+ */
+export async function checkSupabaseSession(): Promise<boolean> {
+  if (checkSessionPromise) return checkSessionPromise;
+
+  checkSessionPromise = (async () => {
+    try {
+      // 1. Vérifier si une session Supabase Auth (GoTrue) existe côté client
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (!sessionError && session?.user) {
+          const email = session.user.email;
+          const res = await fetch("/api/auth/session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: session.user.id, email }),
           });
+          if (res.ok) {
+            const json = await res.json();
+            if (json.valid && json.user) {
+              authStore.setAuthenticated(json.user, json.school);
+              return true;
+            }
+          }
         }
-        return;
+      } catch (e) {
+        console.warn("[auth-store] Supabase Auth getSession :", e);
       }
+
+      // 2. Vérifier la session persistante Supabase via /api/auth/session (cookie HTTP-only validé dans PostgreSQL)
+      const res = await fetch("/api/auth/session", {
+        method: "GET",
+        headers: { "Cache-Control": "no-cache" },
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.valid && json.user) {
+          authStore.setAuthenticated(json.user, json.school);
+          return true;
+        }
+      } else if (res.status === 401 || res.status === 403) {
+        // Supabase confirme explicitement qu'aucune session n'existe ou que le compte est suspendu
+        authStore.setUnauthenticated();
+        return false;
+      }
+    } catch (err) {
+      console.error("[auth-store] Erreur réseau lors de la récupération de session Supabase :", err);
+      // RÈGLE 9 : Une erreur temporaire ne doit pas être interprétée automatiquement comme une déconnexion
+      if (memoryAuthState.user && memoryAuthState.isAuthenticated) {
+        memoryAuthState = {
+          ...memoryAuthState,
+          isLoading: false,
+          isInitialized: true,
+        };
+        notify();
+        return true;
+      }
+    } finally {
+      checkSessionPromise = null;
     }
-    memoryAuthState = DEFAULT_AUTH_STATE;
-  } catch (e) {
-    console.error("[auth-store] Erreur lecture localStorage :", e);
-    memoryAuthState = DEFAULT_AUTH_STATE;
-  }
+
+    authStore.setUnauthenticated();
+    return false;
+  })();
+
+  return checkSessionPromise;
 }
 
-function saveStateToStorage() {
-  if (typeof window === "undefined") return;
-  try {
-    if (memoryAuthState.user && memoryAuthState.isAuthenticated) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryAuthState));
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  } catch (e) {
-    console.error("[auth-store] Erreur sauvegarde localStorage :", e);
-  }
-}
-
-// Initialisation au chargement côté client
+// Initialisation côté client au chargement
 if (typeof window !== "undefined") {
-  loadStateFromStorage();
+  try {
+    supabase.auth.onAuthStateChange(async (event) => {
+      if (event === "SIGNED_OUT") {
+        authStore.setUnauthenticated();
+      } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        await checkSupabaseSession();
+      }
+    });
+  } catch (err) {
+    console.warn("[auth-store] onAuthStateChange setup warning:", err);
+  }
+
+  // Démarrer la vérification de session dès le chargement du module
+  checkSupabaseSession();
 }
 
 export const authStore = {
@@ -98,6 +146,65 @@ export const authStore = {
     };
   },
 
+  setAuthenticated(userData: any, schoolData?: any) {
+    const activeSchool = subscriptionStore.getActiveSchool();
+    const isPaid = subscriptionStore.getSnapshot().school.status === "ACTIVE";
+
+    const schoolId = schoolData?.id || userData.schoolId || activeSchool.id;
+    const schoolName = schoolData?.name || userData.schoolName || activeSchool.name;
+    const rawCode = schoolData?.code || userData.schoolCode || activeSchool.code || "";
+    const schoolCode = rawCode === "ECO-001" ? "" : rawCode;
+
+    if (schoolName) {
+      subscriptionStore.syncSchoolWithUser({
+        id: schoolId,
+        name: schoolName,
+        code: schoolCode,
+        shortName: schoolData?.short_name || schoolData?.shortName,
+        city: schoolData?.city,
+        country: schoolData?.country,
+        phone: schoolData?.phone || userData.phone,
+        email: schoolData?.email || userData.email,
+      });
+    }
+
+    const cleanRole = (userData.role || "directeur").toLowerCase() as Role;
+    const identifier = userData.identifier || generateUserIdentifier(schoolCode || "0000", cleanRole);
+
+    const user: AuthUser = {
+      id: userData.id,
+      identifier,
+      email: userData.email,
+      fullName: userData.fullName || userData.full_name || "Utilisateur",
+      role: cleanRole,
+      schoolId,
+      schoolName,
+      schoolCode,
+      phone: userData.phone,
+      permissions: userData.permissions,
+      isSubscriptionPaid: cleanRole === "parent" ? subscriptionStore.getSnapshot().parent.status === "ACTIVE" : isPaid,
+    };
+
+    memoryAuthState = {
+      user,
+      isAuthenticated: true,
+      isLoading: false,
+      isInitialized: true,
+    };
+    notify();
+    return user;
+  },
+
+  setUnauthenticated() {
+    memoryAuthState = {
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+      isInitialized: true,
+    };
+    notify();
+  },
+
   login(params: {
     id?: string;
     identifier?: string;
@@ -108,8 +215,8 @@ export const authStore = {
     schoolName?: string;
     schoolCode?: string;
     phone?: string;
+    permissions?: string[];
   }) {
-    // Synchroniser immédiatement l'établissement avec subscriptionStore
     if (params.schoolName) {
       subscriptionStore.syncSchoolWithUser({
         id: params.schoolId,
@@ -147,29 +254,28 @@ export const authStore = {
       schoolName,
       schoolCode,
       phone: params.phone,
+      permissions: params.permissions,
       isSubscriptionPaid: params.role === "parent" ? subscriptionStore.getSnapshot().parent.status === "ACTIVE" : isPaid,
     };
 
     memoryAuthState = {
       user,
       isAuthenticated: true,
+      isLoading: false,
+      isInitialized: true,
     };
-    saveStateToStorage();
     notify();
     return user;
   },
 
-  logout() {
-    memoryAuthState = {
-      user: null,
-      isAuthenticated: false,
-    };
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(STORAGE_KEY);
-      // Supprimer les flags de session temporaire
-      sessionStorage.clear();
-    }
-    notify();
+  async logout() {
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+    try {
+      await fetch("/api/auth/session", { method: "DELETE" });
+    } catch {}
+    this.setUnauthenticated();
   },
 
   registerSchool(params: {
@@ -185,15 +291,12 @@ export const authStore = {
     schoolCode: string; // 4 chiffres obligatoires
     password?: string;
   }) {
-    // Validation du code établissement à 4 chiffres
     const codeCheck = validateSchoolCode(params.schoolCode);
     if (!codeCheck.valid) {
       throw new Error(codeCheck.error || "Code établissement invalide.");
     }
 
     const cleanSchoolCode = params.schoolCode.trim();
-
-    // 1. Créer ou mettre à jour l'établissement
     const schoolId = params.schoolId || `school-${Date.now()}`;
     const createdSchool: SchoolProfile = {
       id: schoolId,
@@ -216,14 +319,10 @@ export const authStore = {
     };
 
     subscriptionStore.createSchool(createdSchool);
-
-    // 2. Activer automatiquement 1 MOIS D'ESSAI GRATUIT avec la formule Starter (Règle 1)
     subscriptionStore.activateStarterTrial(createdSchool.id);
 
-    // 3. Générer l'identifiant unique du Directeur avec le préfixe à 4 chiffres (ex: 4827DIR01)
     const dirIdentifier = generateUserIdentifier(cleanSchoolCode, "directeur");
 
-    // 4. Connecter le directeur avec accès immédiat (1 mois gratuit Starter)
     const user = this.login({
       id: params.schoolId,
       identifier: dirIdentifier,
@@ -251,21 +350,17 @@ export const authStore = {
     relationship?: string;
     password?: string;
   }) {
-    // 1. Définir le statut du forfait parent sur PENDING_PAYMENT
     subscriptionStore.changeParentPlan(params.chosenPlan);
     subscriptionStore.setParentStatus("PENDING_PAYMENT");
 
-    // Récupérer le code établissement
     let schoolCode = params.schoolCode;
     if (!schoolCode) {
       const sch = subscriptionStore.getSchoolState().schools.find((s) => s.id === params.schoolId);
       schoolCode = sch?.code || "0000";
     }
 
-    // 2. Générer l'identifiant unique du Parent avec le préfixe de l'établissement (ex: 4827PAR01)
     const parentIdentifier = generateUserIdentifier(schoolCode, "parent");
 
-    // 3. Connecter le parent avec l'établissement choisi
     const user = this.login({
       id: params.userId,
       identifier: parentIdentifier,
@@ -305,7 +400,6 @@ export const authStore = {
         };
       }
     }
-    saveStateToStorage();
     notify();
   },
 };
@@ -320,8 +414,11 @@ export function useAuthStore() {
   return {
     user: state.user,
     isAuthenticated: state.isAuthenticated,
+    isLoading: state.isLoading,
+    isInitialized: state.isInitialized,
     login: authStore.login,
     logout: authStore.logout,
+    checkSession: checkSupabaseSession,
     registerSchool: authStore.registerSchool,
     registerParent: authStore.registerParent,
     validatePayment: authStore.validatePayment,
@@ -329,4 +426,3 @@ export function useAuthStore() {
 }
 
 export const useAuth = useAuthStore;
-

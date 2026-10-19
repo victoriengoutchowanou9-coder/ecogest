@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { verifyPasswordPbkdf2 } from "@/lib/server/dev-auth";
+import {
+  createSchoolUserSessionToken,
+  SESSION_COOKIE_NAME,
+  SESSION_MAX_AGE_SECONDS,
+} from "@/lib/server/session";
 
 export async function POST(request: Request) {
   try {
@@ -186,7 +191,8 @@ export async function POST(request: Request) {
     const userIdentifier = storedIdentifier || (cleanCode ? `${cleanCode}${fallbackPrefix}01` : "USR01");
     const fonction = cleanRole === "directeur" ? "Direction Générale" : user.role;
 
-    return NextResponse.json({
+    const sessionToken = createSchoolUserSessionToken(user.id, user.email);
+    const response = NextResponse.json({
       success: true,
       message: "Connexion réussie.",
       user: {
@@ -205,6 +211,16 @@ export async function POST(request: Request) {
       },
       school: school || null,
     });
+
+    response.cookies.set(SESSION_COOKIE_NAME, sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_MAX_AGE_SECONDS,
+    });
+
+    return response;
   } catch (err: any) {
     console.error("[api/auth/login] Erreur inattendue Supabase :", err);
     return NextResponse.json(

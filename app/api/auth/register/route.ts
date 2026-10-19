@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { validateGeoCoherence } from "@/lib/geo-data";
+import {
+  createSchoolUserSessionToken,
+  SESSION_COOKIE_NAME,
+  SESSION_MAX_AGE_SECONDS,
+} from "@/lib/server/session";
 
 // Validation rigoureuse de l'adresse email (RFC 5322 simplifiée)
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -264,11 +269,14 @@ export async function POST(request: Request) {
         });
       } catch {}
 
-      return NextResponse.json({
+      const registeredUserId = userRow?.id || createdSchoolId;
+      const sessionToken = createSchoolUserSessionToken(registeredUserId, normalizedEmail);
+
+      const response = NextResponse.json({
         success: true,
         message: "Établissement et compte directeur créés avec succès !",
         user: {
-          id: userRow?.id || `usr-${Date.now()}`,
+          id: registeredUserId,
           email: normalizedEmail,
           fullName: finalDirectorName,
           role: "directeur",
@@ -278,6 +286,16 @@ export async function POST(request: Request) {
         },
         school: schoolRow,
       });
+
+      response.cookies.set(SESSION_COOKIE_NAME, sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: SESSION_MAX_AGE_SECONDS,
+      });
+
+      return response;
     }
 
     // =========================================================================
@@ -433,11 +451,14 @@ export async function POST(request: Request) {
         });
       } catch {}
 
-      return NextResponse.json({
+      const registeredParentId = userRow?.id || `usr-${Date.now()}`;
+      const sessionToken = createSchoolUserSessionToken(registeredParentId, normalizedEmail);
+
+      const response = NextResponse.json({
         success: true,
         message: "Compte parent créé avec succès !",
         user: {
-          id: userRow?.id || `usr-${Date.now()}`,
+          id: registeredParentId,
           email: normalizedEmail,
           fullName: finalParentName,
           role: "parent",
@@ -448,6 +469,16 @@ export async function POST(request: Request) {
         },
         school: matchedSchool,
       });
+
+      response.cookies.set(SESSION_COOKIE_NAME, sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: SESSION_MAX_AGE_SECONDS,
+      });
+
+      return response;
     }
 
     return NextResponse.json(
