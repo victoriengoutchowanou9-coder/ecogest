@@ -1,19 +1,16 @@
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import {
   Menu,
   School,
   Calendar,
-  ChevronDown,
   ExternalLink,
   Shield,
   CreditCard,
   GraduationCap,
   BookOpenCheck,
   Home,
-  Building2,
   Sparkles,
-  Check,
   Settings,
   FileText,
   Clock,
@@ -40,11 +37,9 @@ export const Topbar: React.FC<TopbarProps> = ({
 }) => {
   const { role: currentRole } = useRoleContext();
   const { user: currentUser } = useAuthStore();
-  const [schoolMenuOpen, setSchoolMenuOpen] = useState(false);
   const currentNav = ROLE_NAVIGATIONS[currentRole];
 
-  const { activeSchool, schools, schoolPlan, schoolPlanDef, switchActiveSchool } =
-    useSubscriptionStore();
+  const { activeSchool, schoolPlan, schoolPlanDef } = useSubscriptionStore();
 
   const displayName =
     activeSchool.name && activeSchool.name !== "Établissement Scolaire"
@@ -86,31 +81,16 @@ export const Topbar: React.FC<TopbarProps> = ({
           <Menu className="w-6 h-6" />
         </button>
 
-        {/* School Logo & Title with Multi-School Switcher */}
+        {/* School Logo & Title (Isolation stricte : pas d'interconnexion ni de changement d'école) */}
         <div className="relative flex items-center gap-2.5 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-school-primary text-white flex items-center justify-center font-black text-sm shadow-sm shrink-0 uppercase">
             {displayShort ? displayShort.charAt(0) : "E"}
           </div>
 
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-sm md:text-base text-slate-900 leading-tight truncate">
-                {displayName}
-              </span>
-
-              {/* Multiple schools selector button (for Premium or multi-schools) */}
-              {schools.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => setSchoolMenuOpen(!schoolMenuOpen)}
-                  className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 flex items-center gap-0.5 shrink-0"
-                  title="Changer d'établissement actif"
-                >
-                  <span>Changer</span>
-                  <ChevronDown className="w-2.5 h-2.5" />
-                </button>
-              )}
-            </div>
+            <span className="font-extrabold text-sm md:text-base text-slate-900 leading-tight truncate block">
+              {displayName}
+            </span>
 
             <p className="text-[11px] text-slate-500 truncate flex items-center gap-1">
               <span>{activeSchool.city ? `${activeSchool.city}, ` : ""}{activeSchool.country}</span>
@@ -118,47 +98,6 @@ export const Topbar: React.FC<TopbarProps> = ({
               <span className="font-medium text-slate-600">{activeSchool.activeYear}</span>
             </p>
           </div>
-
-          {/* School Switcher Dropdown (Requirement 4) */}
-          {schoolMenuOpen && schools.length > 1 && (
-            <div className="absolute left-0 top-12 w-72 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl z-50 animate-in fade-in">
-              <div className="px-3 py-2 border-b border-slate-100">
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                  <Building2 className="w-3.5 h-3.5 text-school-primary" />
-                  <span>Vos Établissements (Formule {schoolPlan})</span>
-                </p>
-              </div>
-              <div className="space-y-1 mt-1">
-                {schools.map((sch) => {
-                  const isCurrent = sch.id === activeSchool.id;
-                  return (
-                    <button
-                      key={sch.id}
-                      type="button"
-                      onClick={() => {
-                        switchActiveSchool(sch.id);
-                        setSchoolMenuOpen(false);
-                      }}
-                      className={cn(
-                        "w-full text-left p-2.5 rounded-xl transition flex items-center justify-between text-xs",
-                        isCurrent
-                          ? "bg-school-50 text-school-primary font-bold border border-school-100"
-                          : "hover:bg-slate-50 text-slate-700"
-                      )}
-                    >
-                      <div className="min-w-0 pr-2">
-                        <p className="truncate font-semibold text-slate-900">{sch.name}</p>
-                        <p className="text-[11px] text-slate-500 truncate">
-                          {sch.city}, {sch.country}
-                        </p>
-                      </div>
-                      {isCurrent && <Check className="w-4 h-4 text-school-primary shrink-0" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

@@ -63,7 +63,6 @@ export default function AuthPage() {
     changeParentPlan,
     activeSchool,
     schools,
-    switchActiveSchool,
   } = subscriptionStore;
 
   // Mode principal : Connexion ou Inscription

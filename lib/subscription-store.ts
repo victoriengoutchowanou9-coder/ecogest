@@ -118,6 +118,11 @@ function loadStateFromStorage() {
             ...s,
             code: s.code === "ECO-001" ? "" : (s.code || ""),
           }));
+          // ISOLATION STRICTE : Pas de multi-écoles ni d'interconnexion résiduelle
+          if (parsed.activeSchoolId && parsed.schools.length > 0) {
+            const active = parsed.schools.find((s: SchoolProfile) => s && s.id === parsed.activeSchoolId);
+            parsed.schools = active ? [active] : [parsed.schools[0]];
+          }
         }
         memorySchoolState = { ...DEFAULT_SCHOOL_STATE, ...parsed };
       }
@@ -219,75 +224,55 @@ export const subscriptionStore = {
       (s) => s.id === cleanId || s.name.toLowerCase() === cleanName.toLowerCase()
     );
 
-    let updatedSchools: SchoolProfile[];
-    if (existingIndex >= 0) {
-      const existing = validSchools[existingIndex];
-      const targetCode = cleanCode || (existing.code !== "ECO-001" ? existing.code : "");
-      const targetShortName = params.shortName || existing.shortName || cleanName.slice(0, 15);
-      const targetCity = params.city || existing.city || "";
-      const targetCountry = params.country || existing.country || "Bénin";
-      const targetPhone = params.phone || existing.phone || "";
-      const targetEmail = params.email || existing.email || "";
+    const existing = existingIndex >= 0 ? validSchools[existingIndex] : null;
+    const targetCode = cleanCode || (existing && existing.code !== "ECO-001" ? existing.code : "");
+    const targetShortName = params.shortName || (existing ? existing.shortName : undefined) || cleanName.slice(0, 15);
+    const targetCity = params.city || (existing ? existing.city : "") || "";
+    const targetCountry = params.country || (existing ? existing.country : "Bénin") || "Bénin";
+    const targetPhone = params.phone || (existing ? existing.phone : "") || "";
+    const targetEmail = params.email || (existing ? existing.email : "") || "";
 
-      // Si l'école est déjà active et que rien n'a changé, ne pas déclencher de boucle de mise à jour
-      if (
-        memorySchoolState.activeSchoolId === existing.id &&
-        existing.name === cleanName &&
-        existing.code === targetCode &&
-        existing.shortName === targetShortName &&
-        existing.city === targetCity &&
-        existing.country === targetCountry &&
-        existing.phone === targetPhone &&
-        existing.email === targetEmail
-      ) {
-        return;
-      }
-
-      updatedSchools = [...validSchools];
-      updatedSchools[existingIndex] = {
-        ...existing,
-        id: cleanId,
-        name: cleanName,
-        code: targetCode,
-        shortName: targetShortName,
-        city: targetCity,
-        country: targetCountry,
-        phone: targetPhone,
-        email: targetEmail,
-      };
-    } else {
-      const newSchoolProfile: SchoolProfile = {
-        id: cleanId,
-        code: cleanCode,
-        name: cleanName,
-        shortName: params.shortName || cleanName.slice(0, 15),
-        slug: cleanName.toLowerCase().replace(/[^a-z0-9]/g, "-"),
-        logo: "",
-        coverImage: "",
-        country: params.country || "Bénin",
-        region: "",
-        city: params.city || "",
-        address: params.city ? `${params.city}, ${params.country || "Bénin"}` : "",
-        phone: params.phone || "",
-        email: params.email || "",
-        devise: "Travail - Rigueur - Réussite",
-        currency: "FCFA",
-        activeYear: "2026-2027",
-        teachingType: "PRIMAIRE_SECONDAIRE",
-      };
-
-      const isPlaceholderOnly =
-        validSchools.length <= 1 &&
-        (!validSchools[0] ||
-          validSchools[0].id === "school-1" ||
-          validSchools[0].name === "Établissement Scolaire");
-
-      updatedSchools = isPlaceholderOnly ? [newSchoolProfile] : [...validSchools, newSchoolProfile];
+    // Si l'école est déjà active et strictement identique, ne pas déclencher de mise à jour inutile
+    if (
+      memorySchoolState.schools.length === 1 &&
+      memorySchoolState.activeSchoolId === cleanId &&
+      existing &&
+      existing.id === cleanId &&
+      existing.name === cleanName &&
+      existing.code === targetCode &&
+      existing.shortName === targetShortName &&
+      existing.city === targetCity &&
+      existing.country === targetCountry &&
+      existing.phone === targetPhone &&
+      existing.email === targetEmail
+    ) {
+      return;
     }
 
+    const isolatedSchoolProfile: SchoolProfile = {
+      id: cleanId,
+      code: targetCode,
+      name: cleanName,
+      shortName: targetShortName,
+      slug: cleanName.toLowerCase().replace(/[^a-z0-9]/g, "-"),
+      logo: existing ? existing.logo : "",
+      coverImage: existing ? existing.coverImage : "",
+      country: targetCountry,
+      region: existing ? existing.region : "",
+      city: targetCity,
+      address: params.city ? `${params.city}, ${targetCountry}` : (existing ? existing.address : ""),
+      phone: targetPhone,
+      email: targetEmail,
+      devise: "Travail - Rigueur - Réussite",
+      currency: "FCFA",
+      activeYear: "2026-2027",
+      teachingType: "PRIMAIRE_SECONDAIRE",
+    };
+
+    // ISOLATION ABSOLUE : Un compte ne contient QUE son propre établissement unique
     memorySchoolState = {
       ...memorySchoolState,
-      schools: updatedSchools,
+      schools: [isolatedSchoolProfile],
       activeSchoolId: cleanId,
     };
     saveSchoolState();
