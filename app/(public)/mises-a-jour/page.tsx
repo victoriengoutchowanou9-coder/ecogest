@@ -26,6 +26,33 @@ export default function MisesAJourPage() {
 
   const releases = [
     {
+      version: "ECOGEST 3.3.5",
+      date: "19 Octobre 2026",
+      badge: "Synchronisation Supervision Développeur & Base Supabase",
+      badgeColor: "bg-emerald-600 text-white",
+      summary: "Synchronisation complète en temps réel entre les comptes établissements et l'espace « Développeur & Supervision technique ». Affichage de l'identifiant normalisé (ex: 4345DIR01), de la fonction officielle « Direction Générale », statut du compte, et réconciliation automatique des comptes lors de l'inscription et de la connexion.",
+      sections: [
+        {
+          type: "Synchronisation Base de Données Supabase",
+          icon: <ShieldCheck className="w-4 h-4 text-emerald-600" />,
+          items: [
+            "Enregistrement immédiat et automatisé de chaque établissement et responsable dans les tables distantes Supabase (schools et school_users).",
+            "Création de l'endpoint de synchronisation continue (/api/auth/sync) pour garantir le rattachement de tous les comptes à la supervision centrale.",
+            "Normalisation et persistance de l'identifiant directeur et de la fonction « Direction Générale ».",
+          ],
+        },
+        {
+          type: "Espace Développeur & Supervision Technique",
+          icon: <Layout className="w-4 h-4 text-slate-700" />,
+          items: [
+            "Affichage dédié de la colonne Identifiant Officiel (ex : 4345DIR01) dans la table de supervision des utilisateurs.",
+            "Attribution du badge officiel « Direction Générale » pour les comptes de direction d'établissement.",
+            "Maintien de la confidentialité totale de la console développeur, inaccessible et invisible sur les interfaces publiques.",
+          ],
+        },
+      ],
+    },
+    {
       version: "ECOGEST 3.3.4",
       date: "19 Octobre 2026",
       badge: "Épuration Interface & Clarté Visuelle",
