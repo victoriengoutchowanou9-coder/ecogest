@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { ShieldAlert, CreditCard, Sparkles, ArrowRight, Lock } from "lucide-react";
 import { ROLE_NAVIGATIONS, CURRENT_SCHOOL, Role } from "@/lib/permissions";
 import { RoleProvider, useRoleContext } from "@/lib/context/RoleContext";
-import { useAuthStore } from "@/lib/auth-store";
+import { useAuthStore, authStore } from "@/lib/auth-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { Topbar } from "./Topbar";
 import { Sidebar } from "./Sidebar";
@@ -38,7 +38,10 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     if (isDevAdmin) return;
     if (!currentUser || !isAuthenticated) {
       router.push("/connexion");
-    } else if (currentUser.schoolName) {
+      return;
+    }
+
+    if (currentUser.schoolName) {
       syncSchoolWithUser({
         id: currentUser.schoolId,
         name: currentUser.schoolName,
@@ -46,12 +49,37 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         phone: currentUser.phone,
       });
     }
+
+    // Vérification d'authenticité de la session directement auprès de Supabase
+    let isCancelled = false;
+    const verifySupabaseSession = async () => {
+      try {
+        const res = await fetch("/api/auth/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: currentUser.id, email: currentUser.email }),
+        });
+        if (!isCancelled && (res.status === 401 || res.status === 403)) {
+          authStore.logout();
+          router.push("/connexion");
+        }
+      } catch {
+        // Erreur réseau transitoire
+      }
+    };
+
+    verifySupabaseSession();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [
     currentUser?.id,
     currentUser?.schoolId,
     currentUser?.schoolName,
     currentUser?.schoolCode,
     currentUser?.phone,
+    currentUser?.email,
     isAuthenticated,
     router,
     isDevAdmin,

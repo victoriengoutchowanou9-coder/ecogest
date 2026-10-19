@@ -85,7 +85,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Insertion
+    // Hachage sécurisé du mot de passe
+    let passwordHash = `hash_${Date.now()}`;
+    try {
+      const { hashPasswordPbkdf2 } = await import("@/lib/server/dev-auth");
+      passwordHash = hashPasswordPbkdf2(password || "Password123!");
+    } catch {}
+
+    // Insertion directe dans Supabase
     const { data: newUser, error: insertError } = await supabase
       .from("school_users")
       .insert({
@@ -96,7 +103,7 @@ export async function POST(request: Request) {
         phone: phone || "",
         status: "ACTIF",
         permissions,
-        password_hash: `hash_${Date.now()}`,
+        password_hash: passwordHash,
       })
       .select()
       .single();

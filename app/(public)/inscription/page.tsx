@@ -46,7 +46,7 @@ interface DbSchool {
 export default function InscriptionPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { registerSchool, registerParent } = useAuthStore();
+  const authStore = useAuthStore();
   const subscriptionStore = useSubscriptionStore();
 
   const [pathway, setPathway] = useState<"SCHOOL" | "PARENT">("SCHOOL");
@@ -270,23 +270,11 @@ export default function InscriptionPage() {
       setIsVerificationModalOpen(false);
 
       if (pendingRegistration.pathway === "SCHOOL") {
-        const effectiveSchoolId = data.school?.id;
-        const effectiveSchoolName = data.school?.name || pendingRegistration.payload.schoolName;
-        const effectiveSchoolCode = data.school?.code || pendingRegistration.payload.schoolCode;
-
-        registerSchool({
-          schoolId: effectiveSchoolId,
-          directorName: pendingRegistration.fullName,
-          schoolName: effectiveSchoolName,
-          schoolEmail: pendingRegistration.email,
-          schoolPhone: pendingRegistration.phone,
-          schoolCity: pendingRegistration.payload.city,
-          schoolRegion: pendingRegistration.payload.department,
-          schoolCountry: pendingRegistration.payload.country,
-          chosenPlan: pendingRegistration.payload.chosenPlan,
-          schoolCode: effectiveSchoolCode,
-          password: pendingRegistration.payload.password,
-        });
+        const createdSchoolData = data.school;
+        const effectiveSchoolId = createdSchoolData?.id || data.user?.schoolId;
+        const effectiveSchoolName = createdSchoolData?.name || data.user?.schoolName || pendingRegistration.payload.schoolName;
+        const effectiveSchoolCode = createdSchoolData?.code || data.user?.schoolCode || pendingRegistration.payload.schoolCode;
+        const effectiveIdentifier = data.user?.identifier || `${effectiveSchoolCode}DIR01`;
 
         subscriptionStore.syncSchoolWithUser({
           id: effectiveSchoolId,
@@ -298,21 +286,37 @@ export default function InscriptionPage() {
           email: pendingRegistration.email,
         });
 
+        authStore.login({
+          id: data.user?.id,
+          identifier: effectiveIdentifier,
+          email: pendingRegistration.email,
+          fullName: pendingRegistration.fullName,
+          role: "directeur",
+          schoolId: effectiveSchoolId,
+          schoolName: effectiveSchoolName,
+          schoolCode: effectiveSchoolCode,
+          phone: pendingRegistration.phone,
+        });
+
         toast(
-          `Compte vérifié avec succès ! Bienvenue sur ECOGEST. Formule Starter activée pour « ${effectiveSchoolName} ».`,
+          `Compte vérifié avec succès ! Bienvenue sur ECOGEST. Établissement « ${effectiveSchoolName} » enregistré dans Supabase.`,
           "success"
         );
         router.push("/directeur");
       } else {
-        registerParent({
-          userId: data.user?.id,
-          fullName: pendingRegistration.fullName,
+        const effectiveSchoolCode = data.user?.schoolCode || pendingRegistration.payload.schoolCode || "0000";
+        const effectiveIdentifier = data.user?.identifier || `${effectiveSchoolCode}PAR01`;
+
+        authStore.login({
+          id: data.user?.id,
+          identifier: effectiveIdentifier,
           email: pendingRegistration.email,
-          phone: pendingRegistration.phone,
+          fullName: pendingRegistration.fullName,
+          role: "parent",
           schoolId: pendingRegistration.payload.schoolId,
           schoolName: pendingRegistration.payload.schoolName,
-          chosenPlan: pendingRegistration.payload.chosenPlan,
-          relationship: pendingRegistration.payload.relationship,
+          schoolCode: effectiveSchoolCode,
+          phone: pendingRegistration.phone,
         });
 
         toast(

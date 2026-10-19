@@ -61,11 +61,54 @@ export default function UtilisateursPage() {
   const planPrice = typeof schoolPlanDef?.priceFcfa === "number" ? schoolPlanDef.priceFcfa.toLocaleString() : "6 000";
   const maxUsers = schoolPlanDef?.maxUsers || 10;
 
-  const loadCurrentSchoolUsers = React.useCallback((): UserAccount[] => {
+  const loadUsersFromSupabase = React.useCallback(async () => {
     const sId = activeSchool?.id || getActiveSchoolId();
-    if (!sId) return [];
-    const list = getSchoolUsers(sId);
-    return list.map((u): UserAccount => {
+    if (!sId) return;
+
+    try {
+      const res = await fetch(`/api/auth/users?schoolId=${encodeURIComponent(sId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.users)) {
+          const roleDisplay: Record<string, UserAccount["role"]> = {
+            directeur: "Directeur",
+            censeur: "Censeur",
+            secretariat: "Secrétariat",
+            surveillant: "Surveillant",
+            enseignant: "Enseignant",
+            comptabilite: "Comptable",
+            parent: "Parent",
+          };
+
+          const mapped: UserAccount[] = data.users.map((u: any) => {
+            const perms = Array.isArray(u.permissions) ? u.permissions : [];
+            const storedId = perms.find((p: string) => p.startsWith("IDENTIFIER:"))?.replace("IDENTIFIER:", "");
+            const cleanCode = (schoolCode || "0000").replace(/\D/g, "").slice(0, 4);
+            const fallbackPrefix = (u.role || "ENS").slice(0, 3).toUpperCase();
+            return {
+              id: u.id,
+              identifier: storedId || `${cleanCode}${fallbackPrefix}01`,
+              name: u.full_name || "Utilisateur",
+              email: u.email,
+              phone: u.phone || "—",
+              role: roleDisplay[(u.role || "").toLowerCase()] || "Enseignant",
+              status: u.status || "ACTIF",
+              lastLogin: u.updated_at ? new Date(u.updated_at).toLocaleDateString("fr-FR") : "Jamais connecté",
+              permissions: perms,
+            };
+          });
+
+          setUsers(mapped);
+          setUsersCount(mapped.length);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn("Erreur chargement utilisateurs Supabase :", err);
+    }
+
+    const fallbackList = getSchoolUsers(sId);
+    if (fallbackList.length > 0) {
       const roleDisplay: Record<Role, UserAccount["role"]> = {
         directeur: "Directeur",
         censeur: "Censeur",
@@ -75,7 +118,7 @@ export default function UtilisateursPage() {
         comptabilite: "Comptable",
         parent: "Parent",
       };
-      return {
+      const mapped = fallbackList.map((u) => ({
         id: u.id,
         identifier: u.identifier,
         name: u.fullName,
@@ -85,20 +128,20 @@ export default function UtilisateursPage() {
         status: u.status,
         lastLogin: u.lastLogin || "Jamais connecté",
         permissions: u.permissions || [],
-      };
-    });
-  }, [activeSchool?.id]);
+      }));
+      setUsers(mapped);
+      setUsersCount(mapped.length);
+    }
+  }, [activeSchool?.id, schoolCode, setUsersCount]);
 
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
 
-  // Charger depuis le registre système officiel
+  // Charger depuis la base de données Supabase
   React.useEffect(() => {
-    const list = loadCurrentSchoolUsers();
-    setUsers(list);
-    setUsersCount(list.length);
-  }, [loadCurrentSchoolUsers, setUsersCount]);
+    loadUsersFromSupabase();
+  }, [loadUsersFromSupabase]);
 
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -129,13 +172,21 @@ export default function UtilisateursPage() {
     setIsModalOpen(true);
   };
 
-  const handleToggleStatus = (id: string) => {
+  const handleToggleStatus = async (id: string) => {
     const target = users.find((u) => u.id === id);
     if (!target) return;
     const nextStatus: "ACTIF" | "SUSPENDU" = target.status === "ACTIF" ? "SUSPENDU" : "ACTIF";
+
+    try {
+      await fetch("/api/auth/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: nextStatus }),
+      });
+    } catch {}
+
     updateSystemUserStatus(id, nextStatus);
-    const refreshed = loadCurrentSchoolUsers();
-    setUsers(refreshed);
+    await loadUsersFromSupabase();
     toast(`Compte de ${target.name} (${target.identifier}) passé à ${nextStatus}`, nextStatus === "ACTIF" ? "success" : "info");
   };
 
@@ -194,7 +245,35 @@ export default function UtilisateursPage() {
     const newIdentifier = generateUserIdentifier(schoolCode, mappedRole);
 
     try {
+      // 1. Création directe et obligatoire dans Supabase
+      const res = await fetch("/api/auth/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolId: currentSchoolId,
+          name: formName.trim(),
+          email: cleanEmail,
+          phone: formPhone.trim(),
+          role: mappedRole,
+          password: formPassword,
+          permissions: [
+            ...selectedPermissions,
+            `CODE:${schoolCode}`,
+            `IDENTIFIER:${newIdentifier}`,
+          ],
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data.success) {
+        toast(data.error || "Erreur lors de l'enregistrement dans la base Supabase.", "error");
+        return;
+      }
+
+      // 2. Mise à jour de l'affichage d'interface (sans persistance de mot de passe)
       registerSystemUser({
+        id: data.user?.id,
         identifier: newIdentifier,
         email: cleanEmail,
         fullName: formName.trim(),
@@ -202,30 +281,10 @@ export default function UtilisateursPage() {
         schoolId: currentSchoolId,
         schoolName: currentSchoolName,
         schoolCode: schoolCode,
-        password: formPassword,
         phone: formPhone.trim(),
         status: "ACTIF",
         permissions: selectedPermissions,
       });
-
-      // Synchronisation Supabase backend API
-      try {
-        await fetch("/api/auth/users", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            schoolId: currentSchoolId,
-            name: formName.trim(),
-            email: cleanEmail,
-            phone: formPhone.trim(),
-            role: mappedRole,
-            password: formPassword,
-            permissions: selectedPermissions,
-          }),
-        });
-      } catch (apiErr) {
-        console.warn("Sync Supabase non bloquante :", apiErr);
-      }
 
       // Synchronisation Censeur si c'est un enseignant avec clé cloisonnée par école
       if (mappedRole === "enseignant") {
@@ -261,9 +320,7 @@ export default function UtilisateursPage() {
       window.dispatchEvent(new Event("ecogest_shared_data_update"));
       window.dispatchEvent(new Event("educogest_censeur_storage_update"));
 
-      const refreshed = loadCurrentSchoolUsers();
-      setUsers(refreshed);
-      setUsersCount(refreshed.length);
+      await loadUsersFromSupabase();
 
       setIsModalOpen(false);
       toast(

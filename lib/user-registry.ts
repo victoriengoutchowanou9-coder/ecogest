@@ -12,7 +12,7 @@ export interface SystemUser {
   schoolId: string;
   schoolName: string;
   schoolCode: string; // Exact 4 digits
-  password: string;
+  password?: string; // Jamais persisté en clair
   status: "ACTIF" | "SUSPENDU";
   phone?: string;
   createdAt: string;
@@ -32,7 +32,13 @@ function loadUsers(): SystemUser[] {
     const raw = localStorage.getItem(STORAGE_KEY_USERS);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) {
+        // Sécurité : éliminer tout mot de passe qui aurait été précédemment stocké
+        return parsed.map((u: any) => {
+          const { password, ...safeUser } = u;
+          return safeUser as SystemUser;
+        });
+      }
     }
   } catch (e) {
     console.warn("Erreur lecture registre utilisateurs:", e);
@@ -43,7 +49,12 @@ function loadUsers(): SystemUser[] {
 function saveUsers(users: SystemUser[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+    // Sécurité : interdiction absolue de persister des mots de passe dans le navigateur
+    const sanitized = users.map((u: any) => {
+      const { password, ...safeUser } = u;
+      return safeUser;
+    });
+    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(sanitized));
     window.dispatchEvent(new Event(USERS_UPDATE_EVENT));
     window.dispatchEvent(new Event("ecogest_shared_data_update"));
   } catch (e) {
@@ -157,53 +168,15 @@ export function registerSystemUser(user: Omit<SystemUser, "id" | "createdAt"> & 
 }
 
 /**
- * Authentifie un utilisateur avec son Identifiant ou E-mail + Mot de passe obligatoire.
+ * Authentification locale DÉSACTIVÉE : Supabase est la source exclusive d'authentification.
  */
 export function authenticateSystemUser(
-  identifierOrEmail: string,
-  password: string
+  _identifierOrEmail: string,
+  _password: string
 ): { success: boolean; error?: string; user?: SystemUser } {
-  const query = (identifierOrEmail || "").trim();
-  const pwd = (password || "").trim();
-
-  if (!query) {
-    return { success: false, error: "Veuillez saisir votre identifiant ou votre adresse e-mail." };
-  }
-  if (!pwd) {
-    return { success: false, error: "Veuillez saisir votre mot de passe." };
-  }
-
-  const users = loadUsers();
-  const found = users.find(
-    (u) =>
-      u.identifier?.toUpperCase() === query.toUpperCase() ||
-      u.email?.toLowerCase() === query.toLowerCase()
-  );
-
-  if (!found) {
-    return {
-      success: false,
-      error: "Identifiant ou adresse e-mail introuvable. Veuillez vérifier vos informations de connexion.",
-    };
-  }
-
-  if (found.status === "SUSPENDU") {
-    return {
-      success: false,
-      error: "Ce compte utilisateur est actuellement suspendu. Veuillez contacter la Direction de votre établissement.",
-    };
-  }
-
-  if (found.password !== pwd) {
-    return {
-      success: false,
-      error: "Mot de passe incorrect. Veuillez vérifier votre saisie.",
-    };
-  }
-
   return {
-    success: true,
-    user: found,
+    success: false,
+    error: "L'authentification locale est définitivement désactivée. Supabase est la source unique et exclusive d'authentification.",
   };
 }
 
@@ -303,169 +276,38 @@ function saveResetOTPs(requests: PasswordResetRequest[]): void {
   }
 }
 
-/**
- * Modifie le mot de passe d'un utilisateur après vérification de l'ancien mot de passe.
- * Fonctionne de façon autonome pour chaque utilisateur (Direction, Censeur, Enseignant, Parent, etc.).
- */
 export function changeUserPassword(
-  identifierOrEmail: string,
-  oldPassword: string,
-  newPassword: string
+  _identifierOrEmail: string,
+  _oldPassword: string,
+  _newPassword: string
 ): { success: boolean; error?: string } {
-  const query = (identifierOrEmail || "").trim();
-  const oldPwd = (oldPassword || "").trim();
-  const newPwd = (newPassword || "").trim();
-
-  if (!query) {
-    return { success: false, error: "Utilisateur non identifié." };
-  }
-  if (!oldPwd) {
-    return { success: false, error: "Veuillez renseigner votre mot de passe actuel." };
-  }
-  if (!newPwd || newPwd.length < 6) {
-    return { success: false, error: "Le nouveau mot de passe doit comporter au moins 6 caractères." };
-  }
-  if (oldPwd === newPwd) {
-    return { success: false, error: "Le nouveau mot de passe doit être différent de l'ancien mot de passe." };
-  }
-
-  const users = loadUsers();
-  const userIndex = users.findIndex(
-    (u) =>
-      u.identifier?.toUpperCase() === query.toUpperCase() ||
-      u.email?.toLowerCase() === query.toLowerCase()
-  );
-
-  if (userIndex === -1) {
-    return { success: false, error: "Compte introuvable dans le système." };
-  }
-
-  if (users[userIndex].password !== oldPwd) {
-    return { success: false, error: "L'ancien mot de passe est incorrect." };
-  }
-
-  users[userIndex].password = newPwd;
-  saveUsers(users);
-
-  return { success: true };
+  return {
+    success: false,
+    error: "La modification locale du mot de passe est désactivée. Utilisez l'API sécurisée /api/auth/password.",
+  };
 }
 
-/**
- * Génère un code OTP sécurisé pour la réinitialisation de mot de passe (procédure « Mot de passe oublié ? »).
- */
-export function requestPasswordResetOTP(identifierOrEmail: string): {
+export function requestPasswordResetOTP(_identifierOrEmail: string): {
   success: boolean;
   error?: string;
   otp?: string;
   emailMasked?: string;
   userFullName?: string;
 } {
-  const query = (identifierOrEmail || "").trim();
-  if (!query) {
-    return { success: false, error: "Veuillez renseigner votre identifiant ou adresse e-mail." };
-  }
-
-  const users = loadUsers();
-  const user = users.find(
-    (u) =>
-      u.identifier?.toUpperCase() === query.toUpperCase() ||
-      u.email?.toLowerCase() === query.toLowerCase()
-  );
-
-  if (!user) {
-    return {
-      success: false,
-      error: "Aucun compte ne correspond à cet identifiant ou cette adresse e-mail.",
-    };
-  }
-
-  if (user.status === "SUSPENDU") {
-    return {
-      success: false,
-      error: "Ce compte est actuellement suspendu. Veuillez contacter l'administration de votre établissement.",
-    };
-  }
-
-  // Génération d'un OTP à 6 chiffres valide 15 minutes
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = Date.now() + 15 * 60 * 1000;
-
-  const existingRequests = loadResetOTPs().filter(
-    (r) => r.identifierOrEmail.toLowerCase() !== query.toLowerCase()
-  );
-  existingRequests.push({
-    identifierOrEmail: query.toLowerCase(),
-    otp,
-    expiresAt,
-  });
-  saveResetOTPs(existingRequests);
-
-  // Masquage de l'e-mail (ex: j***n@domain.com)
-  const parts = user.email.split("@");
-  const local = parts[0] || "";
-  const domain = parts[1] || "ecogest.bj";
-  const maskedLocal = local.length <= 2 ? local[0] + "***" : `${local[0]}***${local[local.length - 1]}`;
-  const emailMasked = `${maskedLocal}@${domain}`;
-
   return {
-    success: true,
-    emailMasked,
-    userFullName: user.fullName,
+    success: false,
+    error: "La réinitialisation locale est désactivée. Utilisez l'API sécurisée /api/auth/otp.",
   };
 }
 
-/**
- * Réinitialise le mot de passe à l'aide de l'OTP de validation.
- */
 export function resetUserPasswordWithOTP(
-  identifierOrEmail: string,
-  otp: string,
-  newPassword: string
+  _identifierOrEmail: string,
+  _otp: string,
+  _newPassword: string
 ): { success: boolean; error?: string } {
-  const query = (identifierOrEmail || "").trim().toLowerCase();
-  const code = (otp || "").trim();
-  const newPwd = (newPassword || "").trim();
-
-  if (!query || !code) {
-    return { success: false, error: "Identifiant et code de sécurité requis." };
-  }
-
-  if (!newPwd || newPwd.length < 6) {
-    return { success: false, error: "Le nouveau mot de passe doit comporter au moins 6 caractères." };
-  }
-
-  const requests = loadResetOTPs();
-  const validRequest = requests.find(
-    (r) =>
-      r.identifierOrEmail === query &&
-      r.otp === code &&
-      r.expiresAt > Date.now()
-  );
-
-  if (!validRequest) {
-    return {
-      success: false,
-      error: "Code de sécurité invalide ou expiré (durée de validité : 15 minutes). Veuillez faire une nouvelle demande.",
-    };
-  }
-
-  const users = loadUsers();
-  const userIndex = users.findIndex(
-    (u) =>
-      u.identifier?.toUpperCase() === query.toUpperCase() ||
-      u.email?.toLowerCase() === query.toLowerCase()
-  );
-
-  if (userIndex === -1) {
-    return { success: false, error: "Utilisateur introuvable dans le système." };
-  }
-
-  users[userIndex].password = newPwd;
-  saveUsers(users);
-
-  // Supprimer l'OTP utilisé
-  saveResetOTPs(requests.filter((r) => r !== validRequest));
-
-  return { success: true };
+  return {
+    success: false,
+    error: "La réinitialisation locale est désactivée. Utilisez l'API sécurisée /api/auth/password.",
+  };
 }
 

@@ -48,7 +48,21 @@ export async function POST(request: Request) {
       }
     }
 
-    // 3. Recherche par identifiant de type 4 chiffres + Rôle (ex: 4827DIR01)
+    // 3. Recherche par identifiant précis stocké dans les permissions (ex: 4345DIR01)
+    if (!user) {
+      try {
+        const { data: usersByIdentifier } = await supabase
+          .from("school_users")
+          .select("*")
+          .contains("permissions", JSON.stringify([`IDENTIFIER:${cleanQuery.toUpperCase()}`]));
+
+        if (usersByIdentifier && usersByIdentifier.length > 0) {
+          user = usersByIdentifier[0];
+        }
+      } catch {}
+    }
+
+    // 4. Recherche par identifiant de type 4 chiffres + Rôle (ex: 4345DIR01)
     if (!user && /^\d{4}[A-Za-z]{3}\d{2}$/.test(cleanQuery)) {
       const schoolCode = cleanQuery.slice(0, 4);
       const rolePrefix = cleanQuery.slice(4, 7).toUpperCase();
@@ -153,27 +167,52 @@ export async function POST(request: Request) {
       });
     } catch {}
 
+    const permissions = Array.isArray(user.permissions) ? user.permissions : [];
+    const storedIdentifier = permissions
+      .find((p: string) => p.startsWith("IDENTIFIER:"))
+      ?.replace("IDENTIFIER:", "");
+    const cleanRole = (user.role || "directeur").toLowerCase();
+    const cleanCode = (school?.code || "").replace(/\D/g, "").slice(0, 4);
+    const rolePrefixMap: Record<string, string> = {
+      directeur: "DIR",
+      censeur: "CEN",
+      secretariat: "SEC",
+      surveillant: "SUR",
+      enseignant: "ENS",
+      comptabilite: "CPT",
+      parent: "PAR",
+    };
+    const fallbackPrefix = rolePrefixMap[cleanRole] || "USR";
+    const userIdentifier = storedIdentifier || (cleanCode ? `${cleanCode}${fallbackPrefix}01` : "USR01");
+    const fonction = cleanRole === "directeur" ? "Direction Générale" : user.role;
+
     return NextResponse.json({
       success: true,
       message: "Connexion réussie.",
       user: {
         id: user.id,
+        identifier: userIdentifier,
         email: user.email,
         fullName: user.full_name,
-        role: user.role.toLowerCase(),
-        phone: user.phone,
+        role: cleanRole,
+        fonction,
+        phone: user.phone || school?.phone || "",
         schoolId: user.school_id,
         schoolName: school?.name || "Établissement Scolaire",
         schoolCode: school?.code || "",
-        status: user.status,
+        status: user.status || "ACTIF",
+        permissions,
       },
       school: school || null,
     });
   } catch (err: any) {
-    console.error("[api/auth/login] Erreur inattendue :", err);
+    console.error("[api/auth/login] Erreur inattendue Supabase :", err);
     return NextResponse.json(
-      { success: false, error: "Une erreur est survenue lors de la connexion." },
-      { status: 500 }
+      {
+        success: false,
+        error: "Le service d'authentification Supabase est temporairement indisponible. Veuillez réessayer ultérieurement.",
+      },
+      { status: 503 }
     );
   }
 }

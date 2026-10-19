@@ -34,7 +34,6 @@ import {
 import { useAuthStore } from "@/lib/auth-store";
 import { useToast } from "@/components/ui/Toast";
 import {
-  authenticateSystemUser,
   validateSchoolCode,
 } from "@/lib/user-registry";
 import { ForgotPasswordModal } from "@/components/account/ForgotPasswordModal";
@@ -145,7 +144,7 @@ export default function AuthPage() {
         parent: "/parent",
       };
 
-      // 2. Authentification via l'API serveur et base de données Supabase
+      // 2. Authentification EXCLUSIVE via l'API serveur et base de données Supabase
       let loggedInUser: any = null;
       let loggedInSchool: any = null;
 
@@ -169,25 +168,31 @@ export default function AuthPage() {
           toast(apiData.error || "Mot de passe incorrect.", "error");
           return;
         } else if (apiRes.status === 403) {
-          setLoginError(apiData.error || "Compte suspendu.");
+          setLoginError(apiData.error || "Ce compte est actuellement suspendu.");
           toast(apiData.error || "Ce compte est actuellement suspendu.", "error");
+          return;
+        } else if (apiRes.status === 404) {
+          setLoginError(apiData.error || "Identifiant ou adresse e-mail introuvable.");
+          toast(apiData.error || "Identifiant ou adresse e-mail introuvable.", "error");
+          return;
+        } else {
+          const errMsg = apiData.error || "Le service d'authentification Supabase est temporairement indisponible.";
+          setLoginError(errMsg);
+          toast(errMsg, "error");
           return;
         }
       } catch (err) {
-        console.warn("[connexion] API login non disponible, fallback local :", err);
+        console.error("[connexion] Erreur communication Supabase :", err);
+        const errMsg = "Le service d'authentification Supabase est temporairement indisponible. Veuillez vérifier votre connexion.";
+        setLoginError(errMsg);
+        toast(errMsg, "error");
+        return;
       }
 
-      // 3. Authentification locale de secours (pour utilisateurs hors-ligne ou maquettes)
       if (!loggedInUser) {
-        const authResult = authenticateSystemUser(cleanIdentifier, cleanPassword);
-
-        if (!authResult.success || !authResult.user) {
-          setLoginError(authResult.error || "Identifiant ou mot de passe incorrect.");
-          toast(authResult.error || "Échec d'authentification.", "error");
-          return;
-        }
-
-        loggedInUser = authResult.user;
+        setLoginError("Impossible de vérifier les identifiants avec la base de données Supabase.");
+        toast("Impossible de vérifier les identifiants avec la base de données Supabase.", "error");
+        return;
       }
 
       const userRole = (loggedInUser.role || "directeur").toLowerCase() as Role;
@@ -196,7 +201,7 @@ export default function AuthPage() {
       const schoolCode = rawSchoolCode === "ECO-001" ? "" : rawSchoolCode;
       const schoolId = loggedInSchool?.id || loggedInUser.schoolId;
 
-      // Synchroniser explicitement subscriptionStore pour que toute l'UI affiche le vrai établissement
+      // Synchroniser subscriptionStore avec l'établissement réel issu de Supabase
       subscriptionStore.syncSchoolWithUser({
         id: schoolId,
         name: schoolName,
@@ -219,22 +224,6 @@ export default function AuthPage() {
         schoolCode,
         phone: loggedInUser.phone,
       });
-
-      // Synchronisation de garantie avec Supabase et la supervision développeur
-      try {
-        fetch("/api/auth/sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user: loggedInUser,
-            school: loggedInSchool || {
-              id: schoolId,
-              name: schoolName,
-              code: schoolCode,
-            },
-          }),
-        }).catch(() => {});
-      } catch {}
 
       toast(`Connexion réussie ! Bienvenue ${loggedInUser.fullName || loggedInUser.full_name}.`, "success");
       router.push(targetPath[userRole] || "/directeur");
@@ -284,22 +273,10 @@ export default function AuthPage() {
 
       if (pendingRegistration.pathway === "SCHOOL") {
         const createdSchoolData = data.school;
-        const effectiveSchoolId = createdSchoolData?.id || `school-${Date.now()}`;
-        const effectiveSchoolName = createdSchoolData?.name || pendingRegistration.payload.schoolName;
-        const effectiveSchoolCode = createdSchoolData?.code || pendingRegistration.payload.schoolCode;
-
-        const regResult = authStore.registerSchool({
-          schoolId: effectiveSchoolId,
-          schoolName: effectiveSchoolName,
-          directorName: pendingRegistration.fullName,
-          schoolEmail: pendingRegistration.email,
-          schoolPhone: pendingRegistration.phone,
-          schoolCountry: pendingRegistration.payload.country,
-          schoolCity: pendingRegistration.payload.city,
-          chosenPlan: pendingRegistration.payload.plan,
-          schoolCode: effectiveSchoolCode,
-          password: pendingRegistration.payload.password,
-        });
+        const effectiveSchoolId = createdSchoolData?.id || data.user?.schoolId;
+        const effectiveSchoolName = createdSchoolData?.name || data.user?.schoolName || pendingRegistration.payload.schoolName;
+        const effectiveSchoolCode = createdSchoolData?.code || data.user?.schoolCode || pendingRegistration.payload.schoolCode;
+        const effectiveIdentifier = data.user?.identifier || `${effectiveSchoolCode}DIR01`;
 
         subscriptionStore.syncSchoolWithUser({
           id: effectiveSchoolId,
@@ -314,27 +291,43 @@ export default function AuthPage() {
 
         changeSchoolPlan(pendingRegistration.payload.plan);
 
+        authStore.login({
+          id: data.user?.id,
+          identifier: effectiveIdentifier,
+          email: pendingRegistration.email,
+          fullName: pendingRegistration.fullName,
+          role: "directeur",
+          schoolId: effectiveSchoolId,
+          schoolName: effectiveSchoolName,
+          schoolCode: effectiveSchoolCode,
+          phone: pendingRegistration.phone,
+        });
+
         toast(
-          `Compte vérifié ! Établissement « ${effectiveSchoolName} » créé avec succès ! Votre identifiant Directeur est : ${regResult.identifier}.`,
+          `Compte vérifié ! Établissement « ${effectiveSchoolName} » enregistré avec succès dans Supabase ! Votre identifiant Directeur est : ${effectiveIdentifier}.`,
           "success"
         );
         router.push("/directeur");
       } else {
-        const regResult = authStore.registerParent({
-          fullName: pendingRegistration.fullName,
-          email: pendingRegistration.email,
-          phone: pendingRegistration.phone,
-          schoolId: pendingRegistration.payload.schoolId,
-          schoolName: pendingRegistration.payload.schoolName,
-          schoolCode: pendingRegistration.payload.schoolCode,
-          chosenPlan: pendingRegistration.payload.chosenPlan,
-          password: pendingRegistration.payload.password,
-        });
+        const effectiveSchoolCode = data.user?.schoolCode || pendingRegistration.payload.schoolCode || "0000";
+        const effectiveIdentifier = data.user?.identifier || `${effectiveSchoolCode}PAR01`;
 
         changeParentPlan(pendingRegistration.payload.chosenPlan);
 
+        authStore.login({
+          id: data.user?.id,
+          identifier: effectiveIdentifier,
+          email: pendingRegistration.email,
+          fullName: pendingRegistration.fullName,
+          role: "parent",
+          schoolId: pendingRegistration.payload.schoolId,
+          schoolName: pendingRegistration.payload.schoolName,
+          schoolCode: effectiveSchoolCode,
+          phone: pendingRegistration.phone,
+        });
+
         toast(
-          `Compte parent vérifié avec succès ! Votre identifiant de connexion est : ${regResult.identifier}.`,
+          `Compte parent vérifié avec succès ! Votre identifiant de connexion est : ${effectiveIdentifier}.`,
           "success"
         );
         router.push("/parent/abonnement?activation=required");

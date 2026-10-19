@@ -222,10 +222,10 @@ export const authStore = {
 
     // 3. Générer l'identifiant unique du Directeur avec le préfixe à 4 chiffres (ex: 4827DIR01)
     const dirIdentifier = generateUserIdentifier(cleanSchoolCode, "directeur");
-    const directorPassword = params.password || "Directeur2026!";
 
-    // 4. Enregistrer dans le registre persistant des utilisateurs
-    const systemUser = registerSystemUser({
+    // 4. Connecter le directeur avec accès immédiat (1 mois gratuit Starter)
+    const user = this.login({
+      id: params.schoolId,
       identifier: dirIdentifier,
       email: params.schoolEmail,
       fullName: params.directorName || "Directeur",
@@ -233,31 +233,9 @@ export const authStore = {
       schoolId: createdSchool.id,
       schoolName: createdSchool.name,
       schoolCode: cleanSchoolCode,
-      password: directorPassword,
       phone: params.schoolPhone,
-      status: "ACTIF",
     });
 
-    // 5. Connecter le directeur avec accès immédiat (1 mois gratuit Starter)
-    const user: AuthUser = {
-      id: systemUser.id,
-      identifier: dirIdentifier,
-      email: params.schoolEmail,
-      fullName: params.directorName || "Directeur",
-      role: "directeur",
-      schoolId: createdSchool.id,
-      schoolName: createdSchool.name,
-      schoolCode: cleanSchoolCode,
-      phone: params.schoolPhone,
-      isSubscriptionPaid: true,
-    };
-
-    memoryAuthState = {
-      user,
-      isAuthenticated: true,
-    };
-    saveStateToStorage();
-    notify();
     return { user, school: createdSchool, identifier: dirIdentifier };
   },
 
@@ -286,10 +264,10 @@ export const authStore = {
 
     // 2. Générer l'identifiant unique du Parent avec le préfixe de l'établissement (ex: 4827PAR01)
     const parentIdentifier = generateUserIdentifier(schoolCode, "parent");
-    const parentPassword = params.password || "Parent2026!";
 
-    // 3. Enregistrer dans le registre persistant
-    const systemUser = registerSystemUser({
+    // 3. Connecter le parent avec l'établissement choisi
+    const user = this.login({
+      id: params.userId,
       identifier: parentIdentifier,
       email: params.email,
       fullName: params.fullName,
@@ -297,31 +275,9 @@ export const authStore = {
       schoolId: params.schoolId,
       schoolName: params.schoolName,
       schoolCode,
-      password: parentPassword,
       phone: params.phone,
-      status: "ACTIF",
     });
 
-    // 4. Connecter le parent avec l'établissement choisi et isSubscriptionPaid = false
-    const user: AuthUser = {
-      id: systemUser.id,
-      identifier: parentIdentifier,
-      email: params.email,
-      fullName: params.fullName,
-      role: "parent",
-      schoolId: params.schoolId,
-      schoolName: params.schoolName,
-      schoolCode,
-      phone: params.phone,
-      isSubscriptionPaid: false,
-    };
-
-    memoryAuthState = {
-      user,
-      isAuthenticated: true,
-    };
-    saveStateToStorage();
-    notify();
     return { user, identifier: parentIdentifier };
   },
 

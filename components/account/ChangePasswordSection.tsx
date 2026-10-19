@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle, KeyRound, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
-import { changeUserPassword } from "@/lib/user-registry";
 import { useToast } from "@/components/ui/Toast";
 
 interface ChangePasswordSectionProps {
@@ -62,33 +61,27 @@ export function ChangePasswordSection({ userEmailOrIdentifier, className = "" }:
     setLoading(true);
 
     try {
-      // 1. Mise à jour dans le registre local / session
-      const result = changeUserPassword(identifier, oldPassword, newPassword);
+      // Modification du mot de passe exclusivement via Supabase
+      const res = await fetch("/api/auth/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "change",
+          identifierOrEmail: identifier,
+          oldPassword,
+          newPassword,
+        }),
+      });
 
-      if (!result.success) {
-        setErrorMsg(result.error || "L'ancien mot de passe est incorrect.");
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data.success) {
+        setErrorMsg(data.error || "L'ancien mot de passe est incorrect ou le service est indisponible.");
         setLoading(false);
         return;
       }
 
-      // 2. Synchronisation backend / Supabase
-      try {
-        await fetch("/api/auth/password", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "change",
-            identifierOrEmail: identifier,
-            oldPassword,
-            newPassword,
-          }),
-        });
-      } catch (apiErr) {
-        // Enregistrement local déjà réussi
-        console.warn("Sync mot de passe backend non bloquante :", apiErr);
-      }
-
-      setSuccessMsg("Votre mot de passe a été modifié avec succès !");
+      setSuccessMsg("Votre mot de passe a été modifié avec succès dans Supabase !");
       toast("Mot de passe mis à jour avec succès.", "success");
       setOldPassword("");
       setNewPassword("");
