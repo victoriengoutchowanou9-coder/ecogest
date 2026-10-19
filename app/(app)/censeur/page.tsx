@@ -71,9 +71,20 @@ export default function CenseurDashboardPage() {
     [parentAccessRequests]
   );
 
-  // Today's schedule snapshot (e.g. Mercredi)
+  // Today's schedule snapshot
   const todaySchedules = useMemo(() => {
-    return schedules.filter((s) => s.dayOfWeek === "Mercredi" || s.dayOfWeek === "Lundi");
+    const dayNames = [
+      "Dimanche",
+      "Lundi",
+      "Mardi",
+      "Mercredi",
+      "Jeudi",
+      "Vendredi",
+      "Samedi",
+    ];
+    const todayName = dayNames[new Date().getDay()];
+    const todayItems = schedules.filter((s) => s.dayOfWeek === todayName);
+    return todayItems.length > 0 ? todayItems : schedules.slice(0, 4);
   }, [schedules]);
 
   return (
@@ -255,36 +266,44 @@ export default function CenseurDashboardPage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {todaySchedules.map((sch) => (
-            <Link
-              key={sch.id}
-              href="/censeur/enseignants"
-              className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 hover:border-school-300 hover:bg-school-50/20 transition-all space-y-2 text-xs group block"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200 group-hover:border-school-300">
-                  {sch.className}
-                </span>
-                <span className="font-mono text-[11px] font-semibold text-slate-600">{sch.timeSlot}</span>
-              </div>
-              <div>
-                <h4 className="font-bold text-school-primary group-hover:underline">{sch.subjectName}</h4>
-                <p className="text-slate-600 text-[11px] mt-0.5">{sch.teacherName}</p>
-              </div>
-              <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[11px] text-slate-500">
-                <span className="flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-slate-400" />
-                  {sch.room}
-                </span>
-                <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                  <span>En cours</span>
-                  <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
+        {todaySchedules.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            {todaySchedules.map((sch) => (
+              <Link
+                key={sch.id}
+                href="/censeur/enseignants"
+                className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 hover:border-school-300 hover:bg-school-50/20 transition-all space-y-2 text-xs group block"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200 group-hover:border-school-300">
+                    {sch.className}
+                  </span>
+                  <span className="font-mono text-[11px] font-semibold text-slate-600">{sch.timeSlot}</span>
+                </div>
+                <div>
+                  <h4 className="font-bold text-school-primary group-hover:underline">{sch.subjectName}</h4>
+                  <p className="text-slate-600 text-[11px] mt-0.5">{sch.teacherName}</p>
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[11px] text-slate-500">
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-slate-400" />
+                    {sch.room}
+                  </span>
+                  <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                    <span>En cours</span>
+                    <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="py-8 text-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+            <Clock className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+            <p className="text-xs font-semibold text-slate-600">Aucune séance planifiée pour le moment</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Consultez ou enrichissez l&apos;emploi du temps complet pour programmer des cours.</p>
+          </div>
+        )}
       </div>
 
       {/* Navigation Quick Access Grid — Modules Censeur */}

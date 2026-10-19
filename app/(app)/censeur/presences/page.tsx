@@ -34,7 +34,7 @@ export default function CenseurPresencesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedClass, setSelectedClass] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedDate, setSelectedDate] = useState("2026-10-14");
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
 
   // State for modification modal
   const [editingItem, setEditingItem] = useState<CenseurAttendanceItem | null>(null);
@@ -212,6 +212,16 @@ export default function CenseurPresencesPage() {
               onChange={(e) => setSelectedDate(e.target.value)}
               className="bg-transparent border-0 text-xs font-semibold focus:outline-none text-slate-800"
             />
+            {selectedDate && (
+              <button
+                type="button"
+                onClick={() => setSelectedDate("")}
+                className="text-[10px] text-slate-400 hover:text-slate-700 underline ml-1"
+                title="Afficher toutes les dates"
+              >
+                Toutes
+              </button>
+            )}
           </div>
 
           {/* Class Filter */}

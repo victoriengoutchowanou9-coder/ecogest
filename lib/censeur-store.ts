@@ -500,6 +500,14 @@ export function useCenseurStore() {
     });
   }, []);
 
+  const deleteHomeworkProgram = useCallback((id: string) => {
+    setHomeworkPrograms((prev) => {
+      const next = prev.filter((h) => h.id !== id);
+      safeSetStorage(getHomeworkKey(), next);
+      return next;
+    });
+  }, []);
+
   // 4. Parent messages
   const replyToParentMessage = useCallback(
     (messageId: string, replyText: string, repliedBy: string = "Censeur des Études") => {
@@ -601,6 +609,14 @@ export function useCenseurStore() {
     }
   }, []);
 
+  const deleteSubject = useCallback((id: string) => {
+    setSubjectsList((prev) => {
+      const next = prev.filter((s) => s.id !== id);
+      safeSetStorage(getCenseurSubjectsKey(), next);
+      return next;
+    });
+  }, []);
+
   // 6. Teacher account management
   const createTeacherAccount = useCallback(
     (teacher: Omit<CenseurTeacherAccount, "id" | "createdAt">) => {
@@ -629,6 +645,36 @@ export function useCenseurStore() {
     },
     []
   );
+
+  const deleteTeacherAccount = useCallback((id: string) => {
+    setTeacherAccounts((prev) => {
+      const next = prev.filter((t) => t.id !== id);
+      safeSetStorage(getTeacherAccountsKey(), next);
+      return next;
+    });
+  }, []);
+
+  // 6b. Schedule & Timetable management by Censeur
+  const addSchedule = useCallback((sch: Omit<TeacherCourseSchedule, "id">) => {
+    const newSch: TeacherCourseSchedule = {
+      ...sch,
+      id: `sch-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    };
+    setSchedules((prev) => {
+      const next = [...prev, newSch];
+      safeSetStorage(getSchedulesKey(), next);
+      return next;
+    });
+    return newSch;
+  }, []);
+
+  const deleteSchedule = useCallback((id: string) => {
+    setSchedules((prev) => {
+      const next = prev.filter((s) => s.id !== id);
+      safeSetStorage(getSchedulesKey(), next);
+      return next;
+    });
+  }, []);
 
   // 7. Parent access requests & student validation
   const submitParentAccessRequest = useCallback(
@@ -739,12 +785,17 @@ export function useCenseurStore() {
     confirmAttendance,
     addHomeworkProgram,
     updateHomeworkStatus,
+    deleteHomeworkProgram,
     replyToParentMessage,
     markMessageAsRead,
     addSubject,
     updateSubject,
+    deleteSubject,
     createTeacherAccount,
     updateTeacherAccount,
+    deleteTeacherAccount,
+    addSchedule,
+    deleteSchedule,
     submitParentAccessRequest,
     validateParentAccessRequest,
     toggleChildAccessActivation,

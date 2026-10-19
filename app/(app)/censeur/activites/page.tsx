@@ -15,6 +15,7 @@ import {
   X,
   GraduationCap,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
@@ -28,6 +29,7 @@ export default function CenseurActivitesPage() {
     teachers,
     addHomeworkProgram,
     updateHomeworkStatus,
+    deleteHomeworkProgram,
   } = useCenseurStore();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -352,18 +354,32 @@ export default function CenseurActivitesPage() {
               {/* Status Update Actions */}
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                 <span className="text-[11px] text-slate-400">Modifier l&apos;état :</span>
-                <select
-                  value={prog.status}
-                  onChange={(e) =>
-                    updateHomeworkStatus(prog.id, e.target.value as HomeworkProgram["status"])
-                  }
-                  className="text-xs font-semibold bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 focus:outline-none focus:border-school-primary"
-                >
-                  <option value="PROGRAMME">Programmé</option>
-                  <option value="EN_COURS">En cours</option>
-                  <option value="TERMINE">Terminé</option>
-                  <option value="ANNULE">Annulé</option>
-                </select>
+                <div className="flex items-center gap-1.5">
+                  <select
+                    value={prog.status}
+                    onChange={(e) =>
+                      updateHomeworkStatus(prog.id, e.target.value as HomeworkProgram["status"])
+                    }
+                    className="text-xs font-semibold bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 focus:outline-none focus:border-school-primary"
+                  >
+                    <option value="PROGRAMME">Programmé</option>
+                    <option value="EN_COURS">En cours</option>
+                    <option value="TERMINE">Terminé</option>
+                    <option value="ANNULE">Annulé</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm(`Supprimer définitivement l'activité « ${prog.title} » ?`)) {
+                        deleteHomeworkProgram(prog.id);
+                      }
+                    }}
+                    className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition"
+                    title="Supprimer cette activité"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           ))

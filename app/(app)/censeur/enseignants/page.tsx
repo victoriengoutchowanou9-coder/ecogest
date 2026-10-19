@@ -21,10 +21,11 @@ import {
   Mail,
   KeyRound,
   FileCheck,
+  Trash2,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
-import { useCenseurStore, CenseurTeacherAccount } from "@/lib/censeur-store";
+import { useCenseurStore, CenseurTeacherAccount, TeacherCourseSchedule } from "@/lib/censeur-store";
 import { cn } from "@/lib/utils";
 
 export default function CenseurEnseignantsPage() {
@@ -35,6 +36,9 @@ export default function CenseurEnseignantsPage() {
     classrooms,
     createTeacherAccount,
     updateTeacherAccount,
+    deleteTeacherAccount,
+    addSchedule,
+    deleteSchedule,
   } = useCenseurStore();
 
   const [activeTab, setActiveTab] = useState<"comptes" | "horaires">("comptes");
@@ -42,6 +46,15 @@ export default function CenseurEnseignantsPage() {
   const [selectedClass, setSelectedClass] = useState<string>("ALL");
   const [selectedSubject, setSelectedSubject] = useState<string>("ALL");
   const [searchTeacher, setSearchTeacher] = useState<string>("");
+
+  // Modal State for Schedule Course
+  const [isAddScheduleModalOpen, setIsAddScheduleModalOpen] = useState(false);
+  const [scheduleDay, setScheduleDay] = useState<TeacherCourseSchedule["dayOfWeek"]>("Lundi");
+  const [scheduleTimeSlot, setScheduleTimeSlot] = useState("08:00 - 10:00");
+  const [scheduleClassId, setScheduleClassId] = useState(classrooms[0]?.id || "3e-a");
+  const [scheduleSubjectName, setScheduleSubjectName] = useState("Mathématiques");
+  const [scheduleTeacherId, setScheduleTeacherId] = useState(teacherAccounts[0]?.id || "");
+  const [scheduleRoom, setScheduleRoom] = useState("Salle 12");
 
   // Modal State for Teacher Account
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -193,6 +206,25 @@ export default function CenseurEnseignantsPage() {
     }
   };
 
+  const handleSaveSchedule = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cls = classrooms.find((c) => c.id === scheduleClassId);
+    const teacher = teacherAccounts.find((t) => t.id === scheduleTeacherId);
+    addSchedule({
+      dayOfWeek: scheduleDay,
+      timeSlot: scheduleTimeSlot,
+      classId: scheduleClassId,
+      className: cls ? cls.name : scheduleClassId,
+      subjectId: `sub-${scheduleSubjectName.toLowerCase().replace(/\s+/g, "-")}`,
+      subjectName: scheduleSubjectName,
+      teacherId: scheduleTeacherId || "tch-def",
+      teacherName: teacher ? teacher.name : "Enseignant",
+      room: scheduleRoom,
+      status: "PROGRAMME",
+    });
+    setIsAddScheduleModalOpen(false);
+  };
+
   return (
     <div className="space-y-6 pb-12">
       <PageHeader
@@ -200,13 +232,25 @@ export default function CenseurEnseignantsPage() {
         subtitle="Création des comptes enseignants, affectations pédagogiques, attribution des classes et emploi du temps"
         breadcrumbs={[{ label: "Censeur", href: "/censeur" }, { label: "Enseignants & Horaires" }]}
         actions={
-          <button
-            onClick={handleOpenAddModal}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-school-primary hover:bg-school-primary/90 rounded-xl transition shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Créer un compte enseignant
-          </button>
+          <div className="flex items-center gap-2">
+            {activeTab === "comptes" ? (
+              <button
+                onClick={handleOpenAddModal}
+                className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-school-primary hover:bg-school-primary/90 rounded-xl transition shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Créer un compte enseignant
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsAddScheduleModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-school-primary hover:bg-school-primary/90 rounded-xl transition shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Ajouter un cours à l'emploi du temps
+              </button>
+            )}
+          </div>
         }
       />
 
@@ -382,13 +426,26 @@ export default function CenseurEnseignantsPage() {
 
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                   <span className="text-[11px] text-slate-400">{tea.roleTitle}</span>
-                  <button
-                    onClick={() => handleOpenEditModal(tea)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                    Modifier l&apos;affectation
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleOpenEditModal(tea)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                      Modifier
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Êtes-vous sûr de vouloir supprimer le compte enseignant de ${tea.name} ?`)) {
+                          deleteTeacherAccount(tea.id);
+                        }
+                      }}
+                      className="p-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-xl transition"
+                      title="Supprimer ce compte"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -473,6 +530,7 @@ export default function CenseurEnseignantsPage() {
                     <th className="py-3 px-4">Enseignant responsable</th>
                     <th className="py-3 px-4">Salle</th>
                     <th className="py-3 px-4 text-center">Statut</th>
+                    <th className="py-3 px-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -503,6 +561,19 @@ export default function CenseurEnseignantsPage() {
                         <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                           Programmé
                         </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          onClick={() => {
+                            if (confirm(`Supprimer ce cours de l'emploi du temps (${sch.className} - ${sch.subjectName}) ?`)) {
+                              deleteSchedule(sch.id);
+                            }
+                          }}
+                          className="p-1 text-slate-400 hover:text-rose-600 rounded transition"
+                          title="Supprimer ce créneau"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -721,6 +792,133 @@ export default function CenseurEnseignantsPage() {
                   className="px-4 py-2 text-xs font-semibold text-white bg-school-primary hover:bg-school-primary/90 rounded-xl shadow-sm transition"
                 >
                   {editingTeacher ? "Mettre à jour la fiche" : "Créer le compte enseignant"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Course Add Modal */}
+      {isAddScheduleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Ajouter un cours à l&apos;emploi du temps
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Planification d&apos;une séance de cours sous la supervision du Censeur
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAddScheduleModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSchedule} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Jour de la semaine *</label>
+                  <select
+                    value={scheduleDay}
+                    onChange={(e) => setScheduleDay(e.target.value as TeacherCourseSchedule["dayOfWeek"])}
+                    className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-school-primary"
+                  >
+                    {daysList.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Créneau horaire *</label>
+                  <input
+                    type="text"
+                    placeholder="Ex : 08:00 - 10:00"
+                    value={scheduleTimeSlot}
+                    onChange={(e) => setScheduleTimeSlot(e.target.value)}
+                    className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-school-primary"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Classe *</label>
+                  <select
+                    value={scheduleClassId}
+                    onChange={(e) => setScheduleClassId(e.target.value)}
+                    className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-school-primary"
+                  >
+                    {classrooms.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Matière *</label>
+                  <input
+                    type="text"
+                    placeholder="Ex : Mathématiques"
+                    value={scheduleSubjectName}
+                    onChange={(e) => setScheduleSubjectName(e.target.value)}
+                    className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-school-primary"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Enseignant responsable *</label>
+                  <select
+                    value={scheduleTeacherId}
+                    onChange={(e) => setScheduleTeacherId(e.target.value)}
+                    className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-school-primary"
+                  >
+                    <option value="">Sélectionner un enseignant</option>
+                    {teacherAccounts.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.specialty})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Salle de cours *</label>
+                  <input
+                    type="text"
+                    placeholder="Ex : Salle 12"
+                    value={scheduleRoom}
+                    onChange={(e) => setScheduleRoom(e.target.value)}
+                    className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-school-primary"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAddScheduleModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-xs font-semibold text-white bg-school-primary hover:bg-school-primary/90 rounded-xl shadow-sm transition"
+                >
+                  Enregistrer la séance
                 </button>
               </div>
             </form>

@@ -15,6 +15,7 @@ import {
   Users,
   Award,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
@@ -27,6 +28,7 @@ export default function CenseurMatieresPage() {
     teacherAccounts,
     addSubject,
     updateSubject,
+    deleteSubject,
   } = useCenseurStore();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -358,13 +360,26 @@ export default function CenseurMatieresPage() {
                       <span className="font-semibold text-slate-700">{sub.weeklyHours} h/sem</span>
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => handleOpenEditModal(sub)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                        Modifier
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => handleOpenEditModal(sub)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          Modifier
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`Êtes-vous sûr de vouloir supprimer la matière « ${sub.name} » pour la classe ${sub.className} ?`)) {
+                              deleteSubject(sub.id);
+                            }
+                          }}
+                          className="p-1 text-xs text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                          title="Supprimer la matière"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

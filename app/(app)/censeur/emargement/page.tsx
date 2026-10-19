@@ -9,10 +9,21 @@ import { FilterBar } from "@/components/ui/FilterBar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { MOCK_TEACHER_ATTENDANCES, TeacherAttendance } from "@/lib/mock-data";
 import { useToast } from "@/components/ui/Toast";
+import { getScopedStorageKey } from "@/lib/school-context";
+
+const getStorageKey = () => getScopedStorageKey("educogest_teacher_attendances_v2");
 
 export default function EmargementPage() {
   const { toast } = useToast();
-  const [attendances, setAttendances] = useState<TeacherAttendance[]>(MOCK_TEACHER_ATTENDANCES);
+  const [attendances, setAttendances] = useState<TeacherAttendance[]>(() => {
+    if (typeof window === "undefined") return MOCK_TEACHER_ATTENDANCES;
+    try {
+      const stored = localStorage.getItem(getStorageKey());
+      return stored ? JSON.parse(stored) : MOCK_TEACHER_ATTENDANCES;
+    } catch {
+      return MOCK_TEACHER_ATTENDANCES;
+    }
+  });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
@@ -95,7 +106,11 @@ export default function EmargementPage() {
       hoursDone: formStatus === "ABSENT" ? 0 : Number(formHours) || 2,
       notes: formNotes || undefined,
     };
-    setAttendances([newEntry, ...attendances]);
+    const next = [newEntry, ...attendances];
+    setAttendances(next);
+    try {
+      localStorage.setItem(getStorageKey(), JSON.stringify(next));
+    } catch {}
     setIsModalOpen(false);
     toast(`Pointage enregistré avec succès pour ${formTeacher}`, "success");
   };
