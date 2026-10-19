@@ -189,13 +189,21 @@ export async function POST(request: Request) {
 
       const createdSchoolId = schoolRow.id;
 
-      // Insertion du directeur dans school_users
+      // Insertion du directeur dans school_users avec hash sécurisé
+      let passwordHash = `hash_${Date.now()}`;
+      try {
+        const { hashPasswordPbkdf2 } = await import("@/lib/server/dev-auth");
+        passwordHash = hashPasswordPbkdf2(password);
+      } catch (hashErr) {
+        console.warn("[register] Note hash fallback :", hashErr);
+      }
+
       const { data: userRow, error: userInsertError } = await supabase
         .from("school_users")
         .insert({
           school_id: createdSchoolId,
           email: normalizedEmail,
-          password_hash: `hash_${Date.now()}`,
+          password_hash: passwordHash,
           full_name: finalDirectorName,
           role: "directeur",
           phone: formattedPhone,
@@ -206,6 +214,7 @@ export async function POST(request: Request) {
             "MANAGE_SETTINGS",
             "MANAGE_CLASSES",
             "MANAGE_FINANCE",
+            `CODE:${finalSchoolCode}`,
           ],
         })
         .select()
@@ -214,6 +223,20 @@ export async function POST(request: Request) {
       if (userInsertError) {
         console.error("[register] Erreur insertion school_users directeur :", userInsertError);
       }
+
+      // Initialisation abonnement établissement dans Supabase
+      try {
+        await supabase.from("school_subscriptions").insert({
+          school_id: createdSchoolId,
+          plan_type: chosenPlan === "PREMIUM" ? "PREMIUM" : chosenPlan === "BASIC" ? "BASIC" : "STANDARD",
+          price_fcfa: chosenPlan === "PREMIUM" ? 25000 : chosenPlan === "BASIC" ? 5000 : 15000,
+          status: "ACTIVE",
+          max_schools: chosenPlan === "PREMIUM" ? 2 : 1,
+          max_users: chosenPlan === "PREMIUM" ? 50 : chosenPlan === "BASIC" ? 10 : 25,
+          features: {},
+          auto_renew: false,
+        });
+      } catch {}
 
       // Enregistrement dans le journal d'audit développeur
       try {

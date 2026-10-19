@@ -21,6 +21,7 @@ import {
 import { Role, ROLE_NAVIGATIONS, SCHOOL_YEARS } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/context/RoleContext";
 import { useSubscriptionStore, SchoolPlanCode } from "@/lib/subscription-store";
+import { useAuthStore } from "@/lib/auth-store";
 import { cn } from "@/lib/utils";
 import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
 
@@ -38,11 +39,22 @@ export const Topbar: React.FC<TopbarProps> = ({
   onSchoolYearChange,
 }) => {
   const { role: currentRole } = useRoleContext();
+  const { user: currentUser } = useAuthStore();
   const [schoolMenuOpen, setSchoolMenuOpen] = useState(false);
   const currentNav = ROLE_NAVIGATIONS[currentRole];
 
   const { activeSchool, schools, schoolPlan, schoolPlanDef, switchActiveSchool } =
     useSubscriptionStore();
+
+  const displayName =
+    activeSchool.name && activeSchool.name !== "Établissement Scolaire"
+      ? activeSchool.name
+      : currentUser?.schoolName || activeSchool.name;
+
+  const displayShort =
+    activeSchool.shortName && activeSchool.shortName !== "Établissement"
+      ? activeSchool.shortName
+      : currentUser?.schoolName?.slice(0, 15) || displayName.slice(0, 15);
 
   const roleIcons: Record<Role, React.ReactNode> = {
     directeur: <Shield className="w-4 h-4 text-purple-600" />,
@@ -77,13 +89,13 @@ export const Topbar: React.FC<TopbarProps> = ({
         {/* School Logo & Title with Multi-School Switcher */}
         <div className="relative flex items-center gap-2.5 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-school-primary text-white flex items-center justify-center font-black text-sm shadow-sm shrink-0 uppercase">
-            {activeSchool.shortName ? activeSchool.shortName.charAt(0) : "E"}
+            {displayShort ? displayShort.charAt(0) : "E"}
           </div>
 
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-sm md:text-base text-slate-900 leading-tight truncate">
-                {activeSchool.name}
+                {displayName}
               </span>
 
               {/* Multiple schools selector button (for Premium or multi-schools) */}

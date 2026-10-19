@@ -206,7 +206,7 @@ export default function ParametresEtablissementPage() {
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Sigle : <strong className="text-slate-700">{activeSchool.shortName || "Non défini"}</strong> &bull; Code établissement : <span className="font-mono font-bold text-slate-700">{activeSchool.code}</span>
+                  Sigle : <strong className="text-slate-700">{activeSchool.shortName || "Non défini"}</strong> &bull; Code établissement : <span className="font-mono font-bold text-slate-700">{activeSchool.code && activeSchool.code !== "ECO-001" ? activeSchool.code : "Non défini"}</span>
                 </p>
                 {activeSchool.devise && (
                   <p className="text-xs italic text-slate-600 mt-1">« {activeSchool.devise} »</p>

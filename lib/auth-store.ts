@@ -46,7 +46,18 @@ function loadStateFromStorage() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.user && parsed.isAuthenticated) {
+        if (parsed.user.schoolCode === "ECO-001") {
+          parsed.user.schoolCode = "";
+        }
         memoryAuthState = parsed;
+        if (parsed.user.schoolName) {
+          subscriptionStore.syncSchoolWithUser({
+            id: parsed.user.schoolId,
+            name: parsed.user.schoolName,
+            code: parsed.user.schoolCode,
+            phone: parsed.user.phone,
+          });
+        }
         return;
       }
     }
@@ -98,14 +109,25 @@ export const authStore = {
     schoolCode?: string;
     phone?: string;
   }) {
+    // Synchroniser immédiatement l'établissement avec subscriptionStore
+    if (params.schoolName) {
+      subscriptionStore.syncSchoolWithUser({
+        id: params.schoolId,
+        name: params.schoolName,
+        code: params.schoolCode,
+        phone: params.phone,
+      });
+    }
+
     const activeSchool = subscriptionStore.getActiveSchool();
     const isPaid = subscriptionStore.getSnapshot().school.status === "ACTIVE";
 
     const schoolId = params.schoolId || activeSchool.id;
     const schoolName = params.schoolName || activeSchool.name;
-    const schoolCode = params.schoolCode || activeSchool.code || "0000";
+    const rawCode = params.schoolCode || activeSchool.code || "";
+    const schoolCode = rawCode === "ECO-001" ? "" : rawCode;
 
-    const identifier = params.identifier || generateUserIdentifier(schoolCode, params.role);
+    const identifier = params.identifier || generateUserIdentifier(schoolCode || "0000", params.role);
 
     const user: AuthUser = {
       id: params.id || `usr-${Date.now()}`,

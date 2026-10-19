@@ -44,6 +44,7 @@ export default function AuthPage() {
   const { toast } = useToast();
   const authStore = useAuthStore();
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const subscriptionStore = useSubscriptionStore();
   const {
     changeSchoolPlan,
     createSchool,
@@ -51,7 +52,7 @@ export default function AuthPage() {
     activeSchool,
     schools,
     switchActiveSchool,
-  } = useSubscriptionStore();
+  } = subscriptionStore;
 
   // Mode principal : Connexion ou Inscription
   const [authMode, setAuthMode] = useState<"LOGIN" | "REGISTER">("LOGIN");
@@ -120,23 +121,7 @@ export default function AuthPage() {
           return;
         }
       } catch {
-        // En cas d'erreur de communication réseau, basculer sur le flux standard
-      }
-
-      // 2. Authentification des utilisateurs scolaires et parents
-      const authResult = authenticateSystemUser(cleanIdentifier, cleanPassword);
-
-      if (!authResult.success || !authResult.user) {
-        setLoginError(authResult.error || "Identifiant ou mot de passe incorrect.");
-        toast(authResult.error || "Échec d'authentification.", "error");
-        return;
-      }
-
-      const user = authResult.user;
-
-      // Basculer l'établissement actif pour charger uniquement les données de son école
-      if (user.schoolId) {
-        switchActiveSchool(user.schoolId);
+        // En cas d'erreur de communication réseau, poursuivre vers l'authentification standard
       }
 
       const targetPath: Record<Role, string> = {
@@ -149,20 +134,83 @@ export default function AuthPage() {
         parent: "/parent",
       };
 
-      authStore.login({
-        id: user.id,
-        identifier: user.identifier,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        schoolId: user.schoolId,
-        schoolName: user.schoolName,
-        schoolCode: user.schoolCode,
-        phone: user.phone,
+      // 2. Authentification via l'API serveur et base de données Supabase
+      let loggedInUser: any = null;
+      let loggedInSchool: any = null;
+
+      try {
+        const apiRes = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            identifier: cleanIdentifier,
+            password: cleanPassword,
+          }),
+        });
+
+        const apiData = await apiRes.json().catch(() => ({}));
+
+        if (apiRes.ok && apiData.success && apiData.user) {
+          loggedInUser = apiData.user;
+          loggedInSchool = apiData.school;
+        } else if (apiRes.status === 401) {
+          setLoginError(apiData.error || "Mot de passe incorrect.");
+          toast(apiData.error || "Mot de passe incorrect.", "error");
+          return;
+        } else if (apiRes.status === 403) {
+          setLoginError(apiData.error || "Compte suspendu.");
+          toast(apiData.error || "Ce compte est actuellement suspendu.", "error");
+          return;
+        }
+      } catch (err) {
+        console.warn("[connexion] API login non disponible, fallback local :", err);
+      }
+
+      // 3. Authentification locale de secours (pour utilisateurs hors-ligne ou maquettes)
+      if (!loggedInUser) {
+        const authResult = authenticateSystemUser(cleanIdentifier, cleanPassword);
+
+        if (!authResult.success || !authResult.user) {
+          setLoginError(authResult.error || "Identifiant ou mot de passe incorrect.");
+          toast(authResult.error || "Échec d'authentification.", "error");
+          return;
+        }
+
+        loggedInUser = authResult.user;
+      }
+
+      const userRole = (loggedInUser.role || "directeur").toLowerCase() as Role;
+      const schoolName = loggedInSchool?.name || loggedInUser.schoolName || "Établissement";
+      const rawSchoolCode = loggedInSchool?.code || loggedInUser.schoolCode || "";
+      const schoolCode = rawSchoolCode === "ECO-001" ? "" : rawSchoolCode;
+      const schoolId = loggedInSchool?.id || loggedInUser.schoolId;
+
+      // Synchroniser explicitement subscriptionStore pour que toute l'UI affiche le vrai établissement
+      subscriptionStore.syncSchoolWithUser({
+        id: schoolId,
+        name: schoolName,
+        code: schoolCode,
+        shortName: loggedInSchool?.short_name,
+        city: loggedInSchool?.city,
+        country: loggedInSchool?.country,
+        phone: loggedInSchool?.phone,
+        email: loggedInSchool?.email,
       });
 
-      toast(`Connexion réussie ! Bienvenue ${user.fullName} (${user.identifier}).`, "success");
-      router.push(targetPath[user.role]);
+      authStore.login({
+        id: loggedInUser.id,
+        identifier: loggedInUser.identifier,
+        email: loggedInUser.email,
+        fullName: loggedInUser.fullName || loggedInUser.full_name,
+        role: userRole,
+        schoolId,
+        schoolName,
+        schoolCode,
+        phone: loggedInUser.phone,
+      });
+
+      toast(`Connexion réussie ! Bienvenue ${loggedInUser.fullName || loggedInUser.full_name}.`, "success");
+      router.push(targetPath[userRole] || "/directeur");
     } finally {
       setLoginLoading(false);
     }
@@ -211,13 +259,16 @@ export default function AuthPage() {
     }
 
     const cleanCode = schoolCode.trim();
+    const cleanSchoolName = schoolName.trim();
+    let createdSchoolData: any = null;
 
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          schoolName: schoolName.trim(),
+          pathway: "SCHOOL",
+          schoolName: cleanSchoolName,
           schoolCode: cleanCode,
           directorName: schoolDirectorName.trim() || "Direction de l'Établissement",
           email: schoolEmail.trim(),
@@ -229,57 +280,53 @@ export default function AuthPage() {
         }),
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        if (res.status === 409) {
-          toast(data.error || "Cette adresse e-mail est déjà utilisée.", "error");
-          return;
-        }
+        toast(data.error || "Une erreur est survenue lors de l'inscription.", "error");
+        return;
       }
-    } catch {
-      // Continue client fallback
+
+      createdSchoolData = data.school;
+    } catch (err) {
+      console.error("[connexion-register] Erreur requête :", err);
     }
 
-    // Créer dans le store d'authentification avec code 4 chiffres et mot de passe
+    const effectiveSchoolId = createdSchoolData?.id || `school-${Date.now()}`;
+    const effectiveSchoolName = createdSchoolData?.name || cleanSchoolName;
+    const effectiveSchoolCode = createdSchoolData?.code || cleanCode;
+
+    // Enregistrement dans le store d'authentification avec les vraies données
     const regResult = authStore.registerSchool({
-      schoolName: schoolName.trim(),
+      schoolId: effectiveSchoolId,
+      schoolName: effectiveSchoolName,
       directorName: schoolDirectorName.trim() || "Direction de l'Établissement",
       schoolEmail: schoolEmail.trim(),
       schoolPhone: schoolPhone.trim(),
       schoolCountry: schoolCountry,
       schoolCity: schoolCity,
       chosenPlan: schoolChosenPlan,
-      schoolCode: cleanCode,
+      schoolCode: effectiveSchoolCode,
       password: schoolPassword,
+    });
+
+    // Mettre à jour l'école active immédiatement
+    subscriptionStore.syncSchoolWithUser({
+      id: effectiveSchoolId,
+      name: effectiveSchoolName,
+      code: effectiveSchoolCode,
+      shortName: schoolShortName.trim() || effectiveSchoolName.slice(0, 15),
+      city: schoolCity,
+      country: schoolCountry,
+      phone: schoolPhone,
+      email: schoolEmail,
     });
 
     // Appliquer le forfait d'abonnement choisi
     changeSchoolPlan(schoolChosenPlan);
 
-    // Mettre à jour les informations de l'école
-    createSchool({
-      code: cleanCode,
-      name: schoolName.trim(),
-      shortName: schoolShortName.trim() || schoolName.trim().slice(0, 15),
-      slug: schoolName
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "-")
-        .replace(/-+/g, "-"),
-      logo: "",
-      coverImage: "",
-      country: schoolCountry,
-      region: "Littoral",
-      city: schoolCity,
-      address: `${schoolCity}, ${schoolCountry}`,
-      phone: schoolPhone,
-      email: schoolEmail,
-      devise: "Travail - Rigueur - Réussite",
-      currency: "FCFA",
-      activeYear: "2026-2027",
-    });
-
     toast(
-      `Établissement « ${schoolName} » créé avec succès ! 1 mois gratuit Starter activé. Votre identifiant Directeur est : ${regResult.identifier}.`,
+      `Établissement « ${effectiveSchoolName} » créé avec succès ! 1 mois gratuit Starter activé. Votre identifiant Directeur est : ${regResult.identifier}.`,
       "success"
     );
     router.push("/directeur");

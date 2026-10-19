@@ -46,7 +46,7 @@ export default function CenseurProfilPage() {
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                Identifiant : <span className="font-mono font-bold text-slate-800">{user?.identifier || "Non défini"}</span> &bull; Établissement : <strong className="text-slate-800">{activeSchool.name}</strong> (Code : {activeSchool.code || "0000"})
+                Identifiant : <span className="font-mono font-bold text-slate-800">{user?.identifier || "Non défini"}</span> &bull; Établissement : <strong className="text-slate-800">{activeSchool.name}</strong>{activeSchool.code && activeSchool.code !== "ECO-001" ? ` (Code : ${activeSchool.code})` : ""}
               </p>
             </div>
           </div>

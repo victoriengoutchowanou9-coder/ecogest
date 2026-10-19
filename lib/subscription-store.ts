@@ -52,7 +52,7 @@ export interface ParentSubscriptionState {
 const INITIAL_SCHOOLS: SchoolProfile[] = [
   {
     id: "school-1",
-    code: "ECO-001",
+    code: "",
     name: "Établissement Scolaire",
     shortName: "Établissement",
     slug: "etablissement",
@@ -111,7 +111,16 @@ function loadStateFromStorage() {
   try {
     const rawSchool = localStorage.getItem(STORAGE_KEY_SCHOOL);
     if (rawSchool) {
-      memorySchoolState = { ...DEFAULT_SCHOOL_STATE, ...JSON.parse(rawSchool) };
+      const parsed = JSON.parse(rawSchool);
+      if (parsed) {
+        if (Array.isArray(parsed.schools)) {
+          parsed.schools = parsed.schools.map((s: SchoolProfile) => ({
+            ...s,
+            code: s.code === "ECO-001" ? "" : (s.code || ""),
+          }));
+        }
+        memorySchoolState = { ...DEFAULT_SCHOOL_STATE, ...parsed };
+      }
     }
     const rawParent = localStorage.getItem(STORAGE_KEY_PARENT);
     if (rawParent) {
@@ -180,14 +189,97 @@ export const subscriptionStore = {
   getActiveSchool(): SchoolProfile {
     const validSchools = (memorySchoolState.schools || []).filter((s): s is SchoolProfile => Boolean(s && s.id));
     const school = validSchools.find((s) => s.id === memorySchoolState.activeSchoolId);
-    return school || validSchools[0] || INITIAL_SCHOOLS[0];
+    const active = school || validSchools[0] || INITIAL_SCHOOLS[0];
+    if (active && active.code === "ECO-001") {
+      active.code = "";
+    }
+    return active;
   },
 
-  // Basculer d'établissement (pour le forfait Premium)
-  switchActiveSchool(schoolId: string) {
+  // Synchronise ou injecte immédiatement l'établissement lié à l'utilisateur connecté
+  syncSchoolWithUser(params: {
+    id?: string;
+    name: string;
+    code?: string;
+    shortName?: string;
+    city?: string;
+    country?: string;
+    phone?: string;
+    email?: string;
+  }) {
+    if (!params.name || !params.name.trim()) return;
+    const cleanName = params.name.trim();
+    const cleanCode = params.code && params.code !== "ECO-001" ? params.code.trim() : "";
+    const cleanId = params.id || memorySchoolState.activeSchoolId || `school-${Date.now()}`;
+
+    const validSchools = (memorySchoolState.schools || []).filter((s): s is SchoolProfile => Boolean(s && s.id));
+    const existingIndex = validSchools.findIndex(
+      (s) => s.id === cleanId || s.name.toLowerCase() === cleanName.toLowerCase()
+    );
+
+    let updatedSchools: SchoolProfile[];
+    if (existingIndex >= 0) {
+      updatedSchools = [...validSchools];
+      updatedSchools[existingIndex] = {
+        ...updatedSchools[existingIndex],
+        id: cleanId,
+        name: cleanName,
+        code: cleanCode || (updatedSchools[existingIndex].code !== "ECO-001" ? updatedSchools[existingIndex].code : ""),
+        shortName: params.shortName || updatedSchools[existingIndex].shortName || cleanName.slice(0, 15),
+        city: params.city || updatedSchools[existingIndex].city || "",
+        country: params.country || updatedSchools[existingIndex].country || "Bénin",
+        phone: params.phone || updatedSchools[existingIndex].phone || "",
+        email: params.email || updatedSchools[existingIndex].email || "",
+      };
+    } else {
+      const newSchoolProfile: SchoolProfile = {
+        id: cleanId,
+        code: cleanCode,
+        name: cleanName,
+        shortName: params.shortName || cleanName.slice(0, 15),
+        slug: cleanName.toLowerCase().replace(/[^a-z0-9]/g, "-"),
+        logo: "",
+        coverImage: "",
+        country: params.country || "Bénin",
+        region: "",
+        city: params.city || "",
+        address: params.city ? `${params.city}, ${params.country || "Bénin"}` : "",
+        phone: params.phone || "",
+        email: params.email || "",
+        devise: "Travail - Rigueur - Réussite",
+        currency: "FCFA",
+        activeYear: "2026-2027",
+        teachingType: "PRIMAIRE_SECONDAIRE",
+      };
+
+      const isPlaceholderOnly =
+        validSchools.length <= 1 &&
+        (!validSchools[0] ||
+          validSchools[0].id === "school-1" ||
+          validSchools[0].name === "Établissement Scolaire");
+
+      updatedSchools = isPlaceholderOnly ? [newSchoolProfile] : [...validSchools, newSchoolProfile];
+    }
+
+    memorySchoolState = {
+      ...memorySchoolState,
+      schools: updatedSchools,
+      activeSchoolId: cleanId,
+    };
+    saveSchoolState();
+  },
+
+  // Basculer d'établissement (avec résolution intelligente si ID non présent)
+  switchActiveSchool(schoolId: string, fallbackName?: string, fallbackCode?: string) {
     const validSchools = (memorySchoolState.schools || []).filter((s): s is SchoolProfile => Boolean(s && s.id));
     const target = validSchools.find((s) => s.id === schoolId);
-    if (!target) return false;
+    if (!target) {
+      if (fallbackName) {
+        this.syncSchoolWithUser({ id: schoolId, name: fallbackName, code: fallbackCode });
+        return true;
+      }
+      return false;
+    }
     memorySchoolState = { ...memorySchoolState, activeSchoolId: schoolId };
     saveSchoolState();
     return true;
@@ -241,9 +333,10 @@ export const subscriptionStore = {
     const plan = SCHOOL_PLANS[memorySchoolState.currentPlan] || SCHOOL_PLANS.STARTER;
     const validSchools = (memorySchoolState.schools || []).filter((s): s is SchoolProfile => Boolean(s && s.id));
     const isInitialPlaceholderOnly =
-      validSchools.length === 1 &&
-      validSchools[0].id === "school-1" &&
-      validSchools[0].name === "Établissement Scolaire";
+      validSchools.length <= 1 &&
+      (!validSchools[0] ||
+        validSchools[0].id === "school-1" ||
+        validSchools[0].name === "Établissement Scolaire");
     const current = isInitialPlaceholderOnly ? 0 : validSchools.length;
     if (current >= plan.maxSchools) {
       return {
@@ -261,27 +354,22 @@ export const subscriptionStore = {
   },
 
   // Créer un nouvel établissement (contrôlé par le forfait et préservant les existants)
-  createSchool(newSchool: Omit<SchoolProfile, "id">): { success: boolean; error?: string; school?: SchoolProfile } {
+  createSchool(newSchool: Omit<SchoolProfile, "id"> & { id?: string }): { success: boolean; error?: string; school?: SchoolProfile } {
     const isInitialPlaceholderOnly =
-      memorySchoolState.schools.length === 1 &&
-      memorySchoolState.schools[0].id === "school-1" &&
-      memorySchoolState.schools[0].name === "Établissement Scolaire";
-
-    if (!isInitialPlaceholderOnly) {
-      const check = this.canAddSchool();
-      if (!check.allowed) {
-        return { success: false, error: check.reason };
-      }
-    }
+      memorySchoolState.schools.length <= 1 &&
+      (!memorySchoolState.schools[0] ||
+        memorySchoolState.schools[0].id === "school-1" ||
+        memorySchoolState.schools[0].name === "Établissement Scolaire");
 
     const created: SchoolProfile = {
       ...newSchool,
-      id: (newSchool as any).id || `school-${Date.now()}`,
+      id: newSchool.id || `school-${Date.now()}`,
+      code: newSchool.code && newSchool.code !== "ECO-001" ? newSchool.code : "",
     };
 
     const nextSchools = isInitialPlaceholderOnly
       ? [created]
-      : [...memorySchoolState.schools, created];
+      : [...memorySchoolState.schools.filter((s) => s.id !== created.id), created];
 
     const today = new Date();
     const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -480,6 +568,7 @@ export function useSubscriptionStore() {
     canAddUser: subscriptionStore.canAddUser.bind(subscriptionStore),
     canAddSchool: subscriptionStore.canAddSchool.bind(subscriptionStore),
     switchActiveSchool: subscriptionStore.switchActiveSchool.bind(subscriptionStore),
+    syncSchoolWithUser: subscriptionStore.syncSchoolWithUser.bind(subscriptionStore),
     updateSchoolProfile: subscriptionStore.updateSchoolProfile.bind(subscriptionStore),
     createSchool: subscriptionStore.createSchool.bind(subscriptionStore),
     changeSchoolPlan: subscriptionStore.changeSchoolPlan.bind(subscriptionStore),

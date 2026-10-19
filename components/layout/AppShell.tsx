@@ -27,7 +27,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const { role: routeRole } = useRoleContext();
   const router = useRouter();
   const { user: currentUser } = useAuthStore();
-  const { schoolStatus, schoolPlanDef, parentStatus, parentPlanDef } = useSubscriptionStore();
+  const { schoolStatus, schoolPlanDef, parentStatus, parentPlanDef, syncSchoolWithUser } = useSubscriptionStore();
 
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [activeSchoolYear, setActiveSchoolYear] = useState(CURRENT_SCHOOL.activeYear);
@@ -38,8 +38,15 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     if (isDevAdmin) return;
     if (!currentUser || !isAuthenticated) {
       router.push("/connexion");
+    } else if (currentUser.schoolName) {
+      syncSchoolWithUser({
+        id: currentUser.schoolId,
+        name: currentUser.schoolName,
+        code: currentUser.schoolCode,
+        phone: currentUser.phone,
+      });
     }
-  }, [currentUser, isAuthenticated, router, isDevAdmin]);
+  }, [currentUser, isAuthenticated, router, isDevAdmin, syncSchoolWithUser]);
 
   if (isDevAdmin) {
     return <>{children}</>;

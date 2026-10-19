@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import { X } from "lucide-react";
 import { Sidebar } from "./Sidebar";
-import { CURRENT_SCHOOL } from "@/lib/permissions";
+import { useSubscriptionStore } from "@/lib/subscription-store";
 
 interface MobileDrawerProps {
   isOpen: boolean;
@@ -14,6 +14,8 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   isOpen,
   onClose,
 }) => {
+  const { activeSchool } = useSubscriptionStore();
+
   // Close drawer on escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -46,12 +48,12 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3.5 bg-slate-50">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-school-primary text-white flex items-center justify-center font-bold text-sm">
-              E
+              {activeSchool?.shortName ? activeSchool.shortName.charAt(0).toUpperCase() : "E"}
             </div>
             <div>
-              <span className="font-bold text-sm text-school-primary">ECODUC</span>
+              <span className="font-bold text-sm text-school-primary">ECOGEST</span>
               <p className="text-[11px] text-slate-500 truncate max-w-[170px]">
-                {CURRENT_SCHOOL.shortName}
+                {activeSchool?.shortName || activeSchool?.name || "Établissement"}
               </p>
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { MapPin, Navigation, ExternalLink } from "lucide-react";
-import { CURRENT_SCHOOL } from "@/lib/permissions";
+import { useSubscriptionStore } from "@/lib/subscription-store";
 
 interface SchoolMapProps {
   lat?: number;
@@ -12,11 +12,12 @@ interface SchoolMapProps {
 }
 
 export const SchoolMap: React.FC<SchoolMapProps> = ({
-  lat = CURRENT_SCHOOL.coordinates.lat,
-  lng = CURRENT_SCHOOL.coordinates.lng,
+  lat = 6.3582,
+  lng = 2.3985,
   zoom = 15,
   className,
 }) => {
+  const { activeSchool } = useSubscriptionStore();
   // Free OpenStreetMap embed URL (no secret key needed)
   const osmUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.01}%2C${lat - 0.007}%2C${lng + 0.01}%2C${lat + 0.007}&layer=mapnik&marker=${lat}%2C${lng}`;
   const fullOsmLink = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=${zoom}/${lat}/${lng}`;
@@ -44,9 +45,9 @@ export const SchoolMap: React.FC<SchoolMapProps> = ({
             </div>
             <div>
               <p className="text-xs font-bold text-slate-900 leading-tight">
-                {CURRENT_SCHOOL.shortName}
+                {activeSchool.shortName || activeSchool.name}
               </p>
-              <p className="text-[11px] text-slate-500 mt-0.5">{CURRENT_SCHOOL.address}</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">{activeSchool.address}</p>
             </div>
           </div>
         </div>

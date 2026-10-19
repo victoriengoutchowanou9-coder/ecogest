@@ -46,6 +46,7 @@ export default function InscriptionPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { registerSchool, registerParent } = useAuthStore();
+  const subscriptionStore = useSubscriptionStore();
 
   const [pathway, setPathway] = useState<"SCHOOL" | "PARENT">("SCHOOL");
   const [showPassword, setShowPassword] = useState(false);
@@ -235,23 +236,38 @@ export default function InscriptionPage() {
         return;
       }
 
+      const effectiveSchoolId = data.school?.id;
+      const effectiveSchoolName = data.school?.name || schoolName.trim();
+      const effectiveSchoolCode = data.school?.code || schoolCode.trim();
+
       // Enregistrement dans le store d'authentification
       registerSchool({
-        schoolId: data.school?.id,
+        schoolId: effectiveSchoolId,
         directorName: fullDirectorName,
-        schoolName: schoolName.trim(),
+        schoolName: effectiveSchoolName,
         schoolEmail: cleanEmail,
         schoolPhone: finalPhone,
         schoolCity: city.trim(),
         schoolRegion: department.trim(),
         schoolCountry: country,
         chosenPlan,
-        schoolCode: data.school?.code || schoolCode.trim(),
+        schoolCode: effectiveSchoolCode,
         password,
       });
 
+      // Synchronisation immédiate de l'établissement actif pour tout le système
+      subscriptionStore.syncSchoolWithUser({
+        id: effectiveSchoolId,
+        name: effectiveSchoolName,
+        code: effectiveSchoolCode,
+        city: city.trim(),
+        country: country,
+        phone: finalPhone,
+        email: cleanEmail,
+      });
+
       toast(
-        `Bienvenue sur ECOGEST ! Votre établissement « ${schoolName} » bénéficie automatiquement de 1 mois d'essai gratuit avec la Formule Starter.`,
+        `Bienvenue sur ECOGEST ! Votre établissement « ${effectiveSchoolName} » bénéficie automatiquement de 1 mois d'essai gratuit avec la Formule Starter.`,
         "success"
       );
       router.push("/directeur");

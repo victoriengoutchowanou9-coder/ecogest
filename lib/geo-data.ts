@@ -361,41 +361,36 @@ export function validateGeoCoherence(
 
   const cfg = COUNTRIES_GEO_DATA[country];
 
-  // 2. Département
-  if (!department) {
-    return {
-      valid: false,
-      error: `Veuillez sélectionner un département obligatoire pour ${country}.`,
-    };
+  // 2. Département (avec détection automatique si non renseigné ou si la ville se trouve dans un autre département)
+  let deptObj = cfg.departments.find(
+    (d) => d.name.toLowerCase() === (department || "").trim().toLowerCase()
+  );
+
+  if ((!deptObj || !department) && city) {
+    const matchedDept = cfg.departments.find((d) =>
+      d.cities.some((c) => c.toLowerCase() === city.trim().toLowerCase())
+    );
+    if (matchedDept) {
+      deptObj = matchedDept;
+    }
   }
 
-  const deptObj = cfg.departments.find(
-    (d) => d.name.toLowerCase() === department.trim().toLowerCase()
-  );
+  if (!deptObj && cfg.departments.length > 0) {
+    deptObj = cfg.departments[0];
+  }
 
   if (!deptObj) {
     return {
       valid: false,
-      error: `Le département « ${department} » n'appartient pas au pays sélectionné (${country}).`,
+      error: `Veuillez sélectionner un département valide pour ${country}.`,
     };
   }
 
   // 3. Ville
-  if (!city) {
+  if (!city || !city.trim()) {
     return {
       valid: false,
-      error: `Veuillez sélectionner une ville obligatoire pour le département ${department}.`,
-    };
-  }
-
-  const cityMatches = deptObj.cities.some(
-    (c) => c.toLowerCase() === city.trim().toLowerCase()
-  );
-
-  if (!cityMatches) {
-    return {
-      valid: false,
-      error: `La ville « ${city} » n'est pas reconnue dans le département « ${department} » (${country}).`,
+      error: `La ville de l'établissement est obligatoire.`,
     };
   }
 

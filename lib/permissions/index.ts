@@ -687,7 +687,7 @@ export interface SchoolInfo {
 export const AVAILABLE_SCHOOLS: SchoolInfo[] = [
   {
     id: "school-1",
-    code: "ECO-001",
+    code: "",
     name: "Établissement Scolaire",
     shortName: "Établissement",
     slug: "etablissement",

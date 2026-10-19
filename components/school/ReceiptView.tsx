@@ -3,7 +3,7 @@
 import React from "react";
 import { Printer, Download, CheckCircle2, ShieldCheck, Wallet, ArrowLeft } from "lucide-react";
 import { formatFCFA, formatDateTime } from "@/lib/utils";
-import { CURRENT_SCHOOL } from "@/lib/permissions";
+import { useSubscriptionStore } from "@/lib/subscription-store";
 import { CashReceiptRecord } from "@/lib/mock-finance-db";
 import { PaymentReceipt } from "@/lib/mock-data";
 
@@ -35,12 +35,14 @@ interface ReceiptViewProps {
 }
 
 export const ReceiptView: React.FC<ReceiptViewProps> = ({ receipt, onClose }) => {
+  const { activeSchool } = useSubscriptionStore();
   const handlePrint = () => {
     window.print();
   };
 
   const academicYear =
     ("academicYearId" in receipt ? receipt.academicYearId : (receipt as any).academicYear) ||
+    activeSchool.activeYear ||
     "2026-2027";
   const previousPaid =
     "previousPaidAmount" in receipt && receipt.previousPaidAmount !== undefined
@@ -88,15 +90,15 @@ export const ReceiptView: React.FC<ReceiptViewProps> = ({ receipt, onClose }) =>
           <div>
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-xl bg-school-primary text-white font-black flex items-center justify-center text-sm shadow-sm">
-                E
+                {activeSchool.shortName ? activeSchool.shortName.charAt(0).toUpperCase() : "E"}
               </div>
               <h1 className="text-lg font-black text-school-primary uppercase tracking-wide">
-                {CURRENT_SCHOOL.name}
+                {activeSchool.name}
               </h1>
             </div>
-            <p className="text-xs text-slate-500 italic mt-0.5">{CURRENT_SCHOOL.devise}</p>
+            <p className="text-xs text-slate-500 italic mt-0.5">{activeSchool.devise}</p>
             <p className="text-xs text-slate-600 mt-1">
-              {CURRENT_SCHOOL.address} &bull; Tél : {CURRENT_SCHOOL.phone}
+              {activeSchool.address} &bull; Tél : {activeSchool.phone || "+229"}
             </p>
           </div>
 

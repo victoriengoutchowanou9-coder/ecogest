@@ -23,7 +23,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable, Column } from "@/components/ui/DataTable";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { formatFCFA, formatDate, formatDateTime } from "@/lib/utils";
-import { CURRENT_SCHOOL } from "@/lib/permissions";
+import { useSubscriptionStore } from "@/lib/subscription-store";
 import { useToast } from "@/components/ui/Toast";
 import { useFinanceStore } from "@/lib/finance-store";
 import { PayrollRecord, StaffMember, PayrollStatus } from "@/lib/mock-finance-db";
@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 
 export default function ComptabiliteSalairesPage() {
   const { toast } = useToast();
+  const { activeSchool } = useSubscriptionStore();
   const { staff, payroll, updatePayrollStatus, paySalaryRecord, createPayrollRecord } =
     useFinanceStore();
 
@@ -524,10 +525,10 @@ export default function ComptabiliteSalairesPage() {
               <div className="flex justify-between items-start border-b border-slate-200 pb-4">
                 <div>
                   <h2 className="text-base font-black text-school-primary uppercase">
-                    {CURRENT_SCHOOL.name}
+                    {activeSchool.name}
                   </h2>
-                  <p className="text-xs text-slate-500">{CURRENT_SCHOOL.address}</p>
-                  <p className="text-xs text-slate-500">Tél : {CURRENT_SCHOOL.phone}</p>
+                  <p className="text-xs text-slate-500">{activeSchool.address}</p>
+                  <p className="text-xs text-slate-500">Tél : {activeSchool.phone || "+229"}</p>
                 </div>
                 <div className="text-right">
                   <span className="text-xs font-bold px-2.5 py-1 rounded bg-slate-100 text-slate-800 font-mono">
