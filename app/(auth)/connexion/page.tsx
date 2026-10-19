@@ -93,7 +93,7 @@ export default function AuthPage() {
     const cleanPassword = loginPassword.trim();
 
     if (!cleanIdentifier) {
-      setLoginError("Veuillez saisir votre Identifiant (ex: 4827DIR01) ou votre adresse e-mail.");
+      setLoginError("Veuillez saisir votre identifiant ou votre adresse e-mail.");
       toast("L'identifiant ou l'adresse e-mail est obligatoire.", "error");
       return;
     }
@@ -567,7 +567,7 @@ export default function AuthPage() {
                   </p>
                 </div>
 
-                <form onSubmit={handleLoginSubmit} className="space-y-4">
+                <form onSubmit={handleLoginSubmit} className="space-y-4" autoComplete="off">
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-slate-700">
                       Identifiant ou Adresse e-mail *
@@ -577,6 +577,13 @@ export default function AuthPage() {
                       <input
                         type="text"
                         required
+                        autoComplete="off"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        data-lpignore="true"
+                        data-form-type="other"
+                        name="ecogest_login_user_no_suggest"
+                        id="ecogest_login_user_no_suggest"
                         value={loginIdentifier}
                         onChange={(e) => {
                           setLoginIdentifier(e.target.value);
@@ -587,11 +594,11 @@ export default function AuthPage() {
                             ? "border-rose-400 focus:border-rose-500 focus:ring-rose-200"
                             : "border-slate-300 focus:border-school-primary focus:ring-school-primary/20"
                         }`}
-                        placeholder="Ex: 4827DIR01 ou direction@ecole.bj"
+                        placeholder="Identifiant ou adresse e-mail"
                       />
                     </div>
                     <p className="text-[11px] text-slate-500">
-                      Saisissez l&apos;identifiant à préfixe de votre école (ex: 4827DIR01, 4827CEN01, 4827PAR01) ou votre e-mail.
+                      Saisissez l&apos;identifiant de votre compte ou votre adresse e-mail.
                     </p>
                   </div>
 
@@ -752,7 +759,11 @@ export default function AuthPage() {
                           type="text"
                           required
                           maxLength={4}
-                          placeholder="Ex: 4827"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          data-lpignore="true"
+                          placeholder="4 chiffres"
                           value={schoolCode}
                           onChange={(e) => {
                             const val = e.target.value.replace(/\D/g, "").slice(0, 4);
@@ -767,7 +778,7 @@ export default function AuthPage() {
                           <p className="text-[11px] text-rose-600 font-semibold">{schoolCodeError}</p>
                         )}
                         <p className="text-[10px] text-slate-500">
-                          Règle 3 ECOGEST : Ce code à 4 chiffres devient le préfixe de tous les identifiants de l&apos;établissement (ex: 4827DIR01, 4827CEN01...).
+                          Ce code à 4 chiffres à définir servira pour votre établissement.
                         </p>
                       </div>
 
@@ -1032,7 +1043,9 @@ export default function AuthPage() {
                           <label className="text-[11px] font-medium text-slate-600">Matricule / EducMaster</label>
                           <input
                             type="text"
-                            placeholder="Ex: EM-2026-0042"
+                            autoComplete="off"
+                            data-lpignore="true"
+                            placeholder="Matricule de l'élève"
                             value={childMatricule}
                             onChange={(e) => setChildMatricule(e.target.value)}
                             className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono"
@@ -1042,7 +1055,9 @@ export default function AuthPage() {
                           <label className="text-[11px] font-medium text-slate-600">Classe</label>
                           <input
                             type="text"
-                            placeholder="Ex: 3ème A"
+                            autoComplete="off"
+                            data-lpignore="true"
+                            placeholder="Classe de l'élève"
                             value={childClass}
                             onChange={(e) => setChildClass(e.target.value)}
                             className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"

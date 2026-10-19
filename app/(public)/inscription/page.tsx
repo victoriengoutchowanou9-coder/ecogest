@@ -563,7 +563,11 @@ export default function InscriptionPage() {
                     type="text"
                     required
                     maxLength={4}
-                    placeholder="Ex : 4827"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    placeholder="4 chiffres"
                     value={schoolCode}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, "").slice(0, 4);
@@ -1053,7 +1057,9 @@ export default function InscriptionPage() {
                       <label className="text-[11px] font-semibold text-slate-600">Matricule ou N° EducMaster</label>
                       <input
                         type="text"
-                        placeholder="Ex : ECO-2026-0042"
+                        autoComplete="off"
+                        data-lpignore="true"
+                        placeholder="Matricule de l'élève"
                         value={childMatricule}
                         onChange={(e) => setChildMatricule(e.target.value)}
                         className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono text-slate-900"
@@ -1063,7 +1069,9 @@ export default function InscriptionPage() {
                       <label className="text-[11px] font-semibold text-slate-600">Classe actuelle</label>
                       <input
                         type="text"
-                        placeholder="Ex : 3ème A"
+                        autoComplete="off"
+                        data-lpignore="true"
+                        placeholder="Classe de l'élève"
                         value={childClass}
                         onChange={(e) => setChildClass(e.target.value)}
                         className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900"

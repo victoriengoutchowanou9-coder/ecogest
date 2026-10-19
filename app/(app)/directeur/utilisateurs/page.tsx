@@ -15,6 +15,9 @@ import {
   ToggleRight,
   AlertTriangle,
   Sparkles,
+  Eye,
+  EyeOff,
+  Lock,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable, Column } from "@/components/ui/DataTable";
@@ -105,7 +108,8 @@ export default function UtilisateursPage() {
   const [formEmail, setFormEmail] = useState("");
   const [formEmailError, setFormEmailError] = useState("");
   const [formPhone, setFormPhone] = useState("+229 ");
-  const [formPassword, setFormPassword] = useState("Pass2026!");
+  const [formPassword, setFormPassword] = useState("");
+  const [showFormPassword, setShowFormPassword] = useState(false);
   const [formRole, setFormRole] = useState<UserAccount["role"]>("Enseignant");
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([
     "SAISIE_NOTES",
@@ -119,6 +123,8 @@ export default function UtilisateursPage() {
       setIsLimitModalOpen(true);
       return;
     }
+    setFormPassword("");
+    setShowFormPassword(false);
     setFormEmailError("");
     setIsModalOpen(true);
   };
@@ -268,7 +274,8 @@ export default function UtilisateursPage() {
       setFormEmail("");
       setFormEmailError("");
       setFormPhone("+229 ");
-      setFormPassword("Pass2026!");
+      setFormPassword("");
+      setShowFormPassword(false);
     } catch (err: any) {
       toast(err?.message || "Erreur lors de la création du compte.", "error");
     }
@@ -550,14 +557,28 @@ export default function UtilisateursPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="font-bold text-slate-700 block">Mot de passe temporaire *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Au moins 8 caractères"
-                    value={formPassword}
-                    onChange={(e) => setFormPassword(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-mono text-slate-900"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showFormPassword ? "text" : "password"}
+                      required
+                      autoComplete="new-password"
+                      data-lpignore="true"
+                      data-form-type="other"
+                      placeholder="Définir le mot de passe (min. 8 car.)"
+                      value={formPassword}
+                      onChange={(e) => setFormPassword(e.target.value)}
+                      className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-school-primary/20"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowFormPassword(!showFormPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                      tabIndex={-1}
+                      title={showFormPassword ? "Masquer" : "Afficher"}
+                    >
+                      {showFormPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               </div>
 

@@ -367,7 +367,11 @@ export function ForgotPasswordModal({ isOpen, onClose, onSuccess }: ForgotPasswo
                     type="text"
                     value={identifierInput}
                     onChange={(e) => setIdentifierInput(e.target.value)}
-                    placeholder="Ex: 4827DIR01, contact@ecole.bj ou +229..."
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    placeholder="Identifiant, e-mail ou téléphone (+229...)"
                     required
                     className="w-full pl-3.5 pr-10 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-school-primary/20 focus:border-school-primary"
                   />
