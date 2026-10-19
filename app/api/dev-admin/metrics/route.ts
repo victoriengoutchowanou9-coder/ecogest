@@ -181,14 +181,17 @@ export async function GET() {
       });
     }
 
-    // 7. Activité récente réelle
+    // 7. Activité récente réelle (priorité aux créations d'établissements, connexions et actions utilisateurs)
     const { data: recentActivityData } = await supabase
       .from("system_audit_logs")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(15);
+      .limit(60);
 
-    const recentActivity = recentActivityData || [];
+    const allLogs = recentActivityData || [];
+    // Priorité aux événements métier réels (créations d'établissements, connexions, inscriptions, abonnements)
+    const businessLogs = allLogs.filter((l) => l.event_type !== "INTERVENTION_TECHNIQUE");
+    const recentActivity = (businessLogs.length >= 5 ? businessLogs : allLogs).slice(0, 15);
 
     // 8. État des services
     const dbLatencyMs = Date.now() - startTime;

@@ -338,24 +338,40 @@ export default function DevDashboardPage() {
 
           <div className="space-y-3">
             {metrics?.recentActivity && metrics.recentActivity.length > 0 ? (
-              metrics.recentActivity.slice(0, 5).map((log: any) => (
+              metrics.recentActivity.slice(0, 8).map((log: any) => (
                 <div
                   key={log.id}
-                  className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-start justify-between gap-3 text-xs"
+                  className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-start justify-between gap-3 text-xs hover:border-slate-300 transition"
                 >
                   <div className="space-y-1 min-w-0">
-                    <p className="font-semibold text-slate-900 truncate">{log.action_title}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        log.event_type === "CREATION_ETABLISSEMENT"
+                          ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                          : log.event_type === "CONNEXION"
+                          ? "bg-blue-100 text-blue-800 border border-blue-200"
+                          : "bg-slate-200 text-slate-800"
+                      }`}>
+                        {log.event_type === "CREATION_ETABLISSEMENT" ? "Inscription École" : log.event_type}
+                      </span>
+                      <p className="font-semibold text-slate-900 truncate">{log.action_title}</p>
+                    </div>
                     <div className="flex items-center gap-2 text-[11px] text-slate-500 flex-wrap">
                       <span className="font-medium text-slate-700">{log.user_email || "Système"}</span>
                       <span>&bull;</span>
                       <span className="uppercase text-[10px] font-bold text-school-primary">
                         {log.user_role || "Système"}
                       </span>
-                      <span>&bull;</span>
-                      <span>{log.school_name || "Général"}</span>
+                      {log.school_name && (
+                        <>
+                          <span>&bull;</span>
+                          <span className="font-medium text-slate-700">{log.school_name}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <span className="text-[10px] text-slate-400 shrink-0 font-mono">
+                    {new Date(log.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}{" "}
                     {new Date(log.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
