@@ -26,6 +26,35 @@ export default function MisesAJourPage() {
 
   const releases = [
     {
+      version: "ECOGEST 3.3.3",
+      date: "19 Octobre 2026",
+      badge: "Sécurité & Authentification Développeur Furtive",
+      badgeColor: "bg-indigo-600 text-white",
+      summary: "Suppression définitive de tout élément visuel public vers l'espace développeur, authentification unique et invisible via la page de connexion standard, détection serveur du rôle développeur sans fuite d'informations, redirection automatique sécurisée, middleware de protection des routes et verrouillage RLS strict des tables techniques.",
+      sections: [
+        {
+          type: "Confidentialité & Page de Connexion Standard",
+          icon: <ShieldCheck className="w-4 h-4 text-indigo-600" />,
+          items: [
+            "Suppression totale du lien public « Espace Développeur & Supervision Technique → » sur ordinateur et mobile.",
+            "Formulaire de connexion unifié : les développeurs et administrateurs techniques s'authentifient via la page de connexion standard comme tous les autres utilisateurs.",
+            "Zéro fuite d'information : en cas d'erreur de mot de passe ou d'identifiant, un message neutre unique (« Identifiant ou mot de passe incorrect. ») est renvoyé sans révéler le statut ou l'existence d'un compte développeur.",
+            "Suppression de la page dédiée de connexion technique : toute tentative d'accès manuel à l'ancienne URL est automatiquement déroutée vers la connexion standard.",
+          ],
+        },
+        {
+          type: "Contrôle Serveur, Middleware & Sécurité RLS",
+          icon: <Terminal className="w-4 h-4 text-purple-600" />,
+          items: [
+            "Détection serveur dynamique : vérification de rôle effectuée exclusivement côté serveur avec hachage cryptographique PBKDF2 et comparaison en temps constant.",
+            "Middleware Next.js strict : intercepte immédiatement tout accès à l'espace /dev-admin/* et exige un jeton chiffré et signé valide (redirection HTTP automatique vers /connexion).",
+            "Politiques RLS Supabase verrouillées : interdiction de lecture publique sur les tables techniques (developer_sessions et system_audit_logs), accès restreint au service_role.",
+            "Déconnexion sécurisée : la clôture de session développeur redirige immédiatement vers la page de connexion principale avec purge du cookie HttpOnly.",
+          ],
+        },
+      ],
+    },
+    {
       version: "ECOGEST 3.3.2",
       date: "19 Octobre 2026",
       badge: "Refonte Forfaits & Quotas Établissement",
