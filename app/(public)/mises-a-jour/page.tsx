@@ -26,6 +26,42 @@ export default function MisesAJourPage() {
 
   const releases = [
     {
+      version: "ECOGEST 3.3.7",
+      date: "19 Octobre 2026",
+      badge: "Supervision Développeur & Suppression Sécurisée de Comptes",
+      badgeColor: "bg-rose-600 text-white",
+      summary: "Capacité accordée au développeur et à l'administrateur technique de supprimer définitivement un compte utilisateur (tous rôles confondus). Intégration d'un endpoint API DELETE sécurisé, d'une modale de confirmation avec saisie obligatoire de l'e-mail de validation, d'une journalisation d'audit critique et de la protection inviolable des comptes développeurs racines.",
+      sections: [
+        {
+          type: "Suppression Définitive & API Backend Sécurisée",
+          icon: <ShieldCheck className="w-4 h-4 text-emerald-600" />,
+          items: [
+            "Implémentation de l'endpoint DELETE /api/dev-admin/users protégé par authentification développeur obligatoire.",
+            "Suppression effective et immédiate dans la table school_users de la base PostgreSQL Supabase.",
+            "Traçabilité totale : enregistrement automatique dans system_audit_logs d'un événement critique (SUPPRESSION_COMPTE) consignant l'identité de l'opérateur, la cible et le motif.",
+          ],
+        },
+        {
+          type: "Sécurité & Protection Anti-Erreur",
+          icon: <CheckCircle2 className="w-4 h-4 text-blue-600" />,
+          items: [
+            "Interdiction absolue et verrouillée côté serveur de supprimer un compte DEVELOPPEUR ou son propre compte connecté.",
+            "Modale de confirmation renforcée exigeant la saisie exacte de l'adresse e-mail de l'utilisateur ciblé avant toute suppression.",
+            "Possibilité d'ajouter un motif explicite consigné pour l'historique d'exploitation technique.",
+          ],
+        },
+        {
+          type: "Interface Développeur & Expérience Utilisateur",
+          icon: <Layout className="w-4 h-4 text-slate-700" />,
+          items: [
+            "Bouton d'action directe de suppression (icône Corbeille) sur chaque ligne du tableau de supervision.",
+            "Bouton de suppression également accessible directement depuis la modale de fiche détaillée d'un utilisateur.",
+            "Actualisation instantanée des listes et des compteurs métriques du tableau de bord.",
+          ],
+        },
+      ],
+    },
+    {
       version: "ECOGEST 3.3.6",
       date: "19 Octobre 2026",
       badge: "Persistance Session Supabase & Maintien Connexion",

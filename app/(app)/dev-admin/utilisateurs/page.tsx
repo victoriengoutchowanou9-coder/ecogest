@@ -18,6 +18,7 @@ import {
   Clock,
   X,
   ShieldAlert,
+  Trash2,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -61,6 +62,12 @@ export default function DevUtilisateursPage() {
   const [statusModalUser, setStatusModalUser] = useState<UserItem | null>(null);
   const [statusReason, setStatusReason] = useState("");
   const [isSubmittingStatus, setIsSubmittingStatus] = useState(false);
+
+  // Modal Supprimer Utilisateur
+  const [deleteModalUser, setDeleteModalUser] = useState<UserItem | null>(null);
+  const [confirmEmailInput, setConfirmEmailInput] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+  const [isSubmittingDelete, setIsSubmittingDelete] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -149,6 +156,48 @@ export default function DevUtilisateursPage() {
       toast("Erreur réseau.", "error");
     } finally {
       setIsSubmittingStatus(false);
+    }
+  };
+
+  // Suppression d'un utilisateur
+  const handleDeleteUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deleteModalUser) return;
+
+    if (confirmEmailInput.trim().toLowerCase() !== deleteModalUser.email.trim().toLowerCase()) {
+      toast("L'adresse e-mail saisie ne correspond pas.", "error");
+      return;
+    }
+
+    setIsSubmittingDelete(true);
+    try {
+      const res = await fetch(`/api/dev-admin/users?id=${deleteModalUser.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: deleteModalUser.id,
+          reason: deleteReason.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.success) {
+        toast(data.message || "Compte utilisateur supprimé avec succès.", "success");
+        setDeleteModalUser(null);
+        setConfirmEmailInput("");
+        setDeleteReason("");
+        if (selectedUser?.id === deleteModalUser.id) {
+          setSelectedUser(null);
+        }
+        loadData();
+      } else {
+        toast(data.error || "Erreur lors de la suppression du compte.", "error");
+      }
+    } catch {
+      toast("Erreur réseau.", "error");
+    } finally {
+      setIsSubmittingDelete(false);
     }
   };
 
@@ -411,6 +460,21 @@ export default function DevUtilisateursPage() {
                         >
                           {u.status === "ACTIF" ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
                         </button>
+
+                        {u.role?.toLowerCase() !== "developpeur" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeleteModalUser(u);
+                              setConfirmEmailInput("");
+                              setDeleteReason("");
+                            }}
+                            className="p-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 shadow-2xs transition"
+                            title="Supprimer définitivement l'utilisateur"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -488,7 +552,25 @@ export default function DevUtilisateursPage() {
               </p>
             </div>
 
-            <div className="pt-2 flex items-center justify-end border-t border-slate-100">
+            <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+              {selectedUser.role?.toLowerCase() !== "developpeur" ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const u = selectedUser;
+                    setSelectedUser(null);
+                    setDeleteModalUser(u);
+                    setConfirmEmailInput("");
+                    setDeleteReason("");
+                  }}
+                  className="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition inline-flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Supprimer ce compte</span>
+                </button>
+              ) : (
+                <div />
+              )}
               <button
                 type="button"
                 onClick={() => setSelectedUser(null)}
@@ -559,6 +641,87 @@ export default function DevUtilisateursPage() {
                   }`}
                 >
                   {isSubmittingStatus ? "Modification..." : statusModalUser.status === "ACTIF" ? "Confirmer la suspension" : "Confirmer la réactivation"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Supprimer Définitivement Utilisateur */}
+      {deleteModalUser && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl border border-rose-200 shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-800 flex items-center justify-center font-bold">
+                <Trash2 className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="font-black text-base text-rose-950">Suppression Définitive</h3>
+                <p className="text-xs text-slate-500">Action irréversible</p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-900 leading-relaxed space-y-1">
+              <p>
+                ⚠️ Attention : La suppression supprimera définitivement le compte de{" "}
+                <strong>{deleteModalUser.fullName}</strong> ({deleteModalUser.role}) rattaché à{" "}
+                <strong>{deleteModalUser.schoolName}</strong>.
+              </p>
+              <p className="text-[11px] text-rose-700">
+                Toutes les autorisations et sessions associées seront révoquées immédiatement.
+              </p>
+            </div>
+
+            <form onSubmit={handleDeleteUser} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">
+                  Pour confirmer, veuillez saisir l'adresse e-mail exacte de l'utilisateur :
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder={deleteModalUser.email}
+                  value={confirmEmailInput}
+                  onChange={(e) => setConfirmEmailInput(e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-rose-500 focus:bg-white transition"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">
+                  Motif de la suppression (optionnel) :
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Demande de résiliation, doublon de compte..."
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-rose-500 focus:bg-white transition"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteModalUser(null);
+                    setConfirmEmailInput("");
+                    setDeleteReason("");
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={
+                    isSubmittingDelete ||
+                    confirmEmailInput.trim().toLowerCase() !== deleteModalUser.email.trim().toLowerCase()
+                  }
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold transition shadow-sm"
+                >
+                  {isSubmittingDelete ? "Suppression en cours..." : "Supprimer définitivement"}
                 </button>
               </div>
             </form>

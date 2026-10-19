@@ -215,3 +215,105 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: err.message || "Erreur serveur." }, { status: 500 });
   }
 }
+
+/**
+ * DELETE /api/dev-admin/users
+ * Permet au développeur de supprimer définitivement un compte utilisateur.
+ */
+export async function DELETE(request: Request) {
+  const auth = await requireDeveloperAuth();
+  if (!auth.authenticated) {
+    return NextResponse.json({ error: "Session développeur requise." }, { status: 401 });
+  }
+
+  const supabase = getSupabaseAdminClient();
+
+  try {
+    const { searchParams } = new URL(request.url);
+    let userId = searchParams.get("id") || searchParams.get("userId");
+    let reason = searchParams.get("reason") || "";
+
+    // Support payload JSON optionnel
+    if (!userId) {
+      try {
+        const body = await request.json();
+        userId = body.userId || body.id;
+        if (body.reason) reason = body.reason;
+      } catch {}
+    }
+
+    if (!userId) {
+      return NextResponse.json({ error: "L'identifiant de l'utilisateur (userId) est requis." }, { status: 400 });
+    }
+
+    // Récupérer l'utilisateur cible avant suppression
+    const { data: targetUser, error: fetchError } = await supabase
+      .from("school_users")
+      .select("id, full_name, email, role, school_id")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (fetchError || !targetUser) {
+      return NextResponse.json({ error: "Utilisateur introuvable." }, { status: 404 });
+    }
+
+    // Protection : Empêcher la suppression d'un compte Développeur ou de son propre compte
+    const cleanRole = (targetUser.role || "").toUpperCase();
+    if (cleanRole === "DEVELOPPEUR" || targetUser.email?.toLowerCase() === auth.email?.toLowerCase()) {
+      return NextResponse.json(
+        { error: "Impossible de supprimer un compte d'administration technique / développeur." },
+        { status: 403 }
+      );
+    }
+
+    // Récupérer le nom de l'établissement si rattaché
+    let schoolName: string | undefined = undefined;
+    if (targetUser.school_id) {
+      const { data: sch } = await supabase
+        .from("schools")
+        .select("name")
+        .eq("id", targetUser.school_id)
+        .maybeSingle();
+      schoolName = sch?.name;
+    }
+
+    // Suppression définitive en base
+    const { error: deleteError } = await supabase
+      .from("school_users")
+      .delete()
+      .eq("id", userId);
+
+    if (deleteError) {
+      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
+
+    // Journal d'audit de sécurité
+    await recordSystemAuditLog({
+      eventType: "SUPPRESSION_COMPTE",
+      severity: "CRITICAL",
+      actionTitle: `Suppression définitive du compte de ${targetUser.full_name} (${targetUser.role})`,
+      details: {
+        targetUserId: userId,
+        targetEmail: targetUser.email,
+        targetRole: targetUser.role,
+        targetSchoolId: targetUser.school_id,
+        targetSchoolName: schoolName,
+        reason: reason || "Action administrative Développeur",
+        deletedBy: auth.email,
+        timestamp: new Date().toISOString(),
+      },
+      userEmail: auth.email,
+      userRole: "DEVELOPPEUR",
+      schoolId: targetUser.school_id || undefined,
+      schoolName,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Le compte utilisateur « ${targetUser.full_name} » a été supprimé définitivement.`,
+    });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || "Erreur serveur." }, { status: 500 });
+  }
+}
+
