@@ -220,6 +220,22 @@ export default function AuthPage() {
         phone: loggedInUser.phone,
       });
 
+      // Synchronisation de garantie avec Supabase et la supervision développeur
+      try {
+        fetch("/api/auth/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user: loggedInUser,
+            school: loggedInSchool || {
+              id: schoolId,
+              name: schoolName,
+              code: schoolCode,
+            },
+          }),
+        }).catch(() => {});
+      } catch {}
+
       toast(`Connexion réussie ! Bienvenue ${loggedInUser.fullName || loggedInUser.full_name}.`, "success");
       router.push(targetPath[userRole] || "/directeur");
     } finally {

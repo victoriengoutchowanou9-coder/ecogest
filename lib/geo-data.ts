@@ -350,7 +350,7 @@ export function validateGeoCoherence(
   department: string,
   city: string,
   phone: string
-): { valid: boolean; error?: string; formattedPhone?: string } {
+): { valid: boolean; error?: string; formattedPhone?: string; department?: string } {
   // 1. Pays
   if (!country || !COUNTRIES_GEO_DATA[country]) {
     return {
@@ -427,5 +427,6 @@ export function validateGeoCoherence(
   return {
     valid: true,
     formattedPhone,
+    department: deptObj.name,
   };
 }

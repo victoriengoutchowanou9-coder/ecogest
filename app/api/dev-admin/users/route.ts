@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     // 2. Requête sur school_users
     let query = supabase
       .from("school_users")
-      .select("id, school_id, full_name, email, role, phone, status, created_at, updated_at")
+      .select("id, school_id, full_name, email, role, phone, status, permissions, created_at, updated_at")
       .order("created_at", { ascending: false });
 
     if (schoolFilter !== "ALL") {
@@ -84,14 +84,41 @@ export async function GET(request: Request) {
       );
     }
 
-    // Enrichir avec le nom de l'établissement
+    // Enrichir avec le nom de l'établissement et l'identifiant applicatif
+    const rolePrefixMap: Record<string, string> = {
+      directeur: "DIR",
+      censeur: "CEN",
+      secretariat: "SEC",
+      surveillant: "SUR",
+      enseignant: "ENS",
+      comptabilite: "CPT",
+      parent: "PAR",
+      developpeur: "DEV",
+    };
+
     const enriched = userList.map((u) => {
       const sch = u.school_id ? schoolMap.get(u.school_id) : null;
+      const schoolCode = sch ? sch.code : "";
+      const permissionsList = Array.isArray(u.permissions) ? u.permissions : [];
+      const storedIdentifier = permissionsList
+        .find((p: string) => p.startsWith("IDENTIFIER:"))
+        ?.replace("IDENTIFIER:", "");
+
+      const cleanRole = (u.role || "directeur").toLowerCase();
+      const fallbackPrefix = rolePrefixMap[cleanRole] || "USR";
+      const cleanCode = (schoolCode || "0000").replace(/\D/g, "").slice(0, 4).padStart(4, "0");
+      const generatedIdentifier = u.role === "DEVELOPPEUR" ? "DEV-ROOT-001" : `${cleanCode}${fallbackPrefix}01`;
+      const identifier = storedIdentifier || generatedIdentifier;
+
+      const fonction = cleanRole === "directeur" ? "Direction Générale" : u.role;
+
       return {
         id: u.id,
+        identifier,
         fullName: u.full_name,
         email: u.email,
         role: u.role,
+        fonction,
         phone: u.phone || "—",
         status: u.status || "ACTIF",
         schoolId: u.school_id,

@@ -150,6 +150,7 @@ export async function POST(request: Request) {
       }
 
       const formattedPhone = geoValidation.formattedPhone || phone.trim();
+      const resolvedDept = geoValidation.department || selectedDept || "Littoral";
       const rawSchoolCode = (body.schoolCode || "").toString().trim();
       const finalSchoolCode = /^\d{4}$/.test(rawSchoolCode)
         ? rawSchoolCode
@@ -165,9 +166,9 @@ export async function POST(request: Request) {
           short_name: cleanSchoolName.slice(0, 20),
           slug,
           country: selectedCountry,
-          region: selectedDept,
+          region: resolvedDept,
           city: selectedCity,
-          address: `${selectedCity}, ${selectedDept}, ${selectedCountry}`,
+          address: `${selectedCity}, ${resolvedDept}, ${selectedCountry}`,
           phone: formattedPhone,
           email: normalizedEmail,
           currency: "FCFA",
@@ -215,6 +216,8 @@ export async function POST(request: Request) {
             "MANAGE_CLASSES",
             "MANAGE_FINANCE",
             `CODE:${finalSchoolCode}`,
+            `IDENTIFIER:${finalSchoolCode}DIR01`,
+            `FONCTION:Direction Générale`,
           ],
         })
         .select()

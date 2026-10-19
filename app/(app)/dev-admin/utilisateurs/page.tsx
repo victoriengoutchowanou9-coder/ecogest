@@ -25,9 +25,11 @@ import { useToast } from "@/components/ui/Toast";
 
 interface UserItem {
   id: string;
+  identifier?: string;
   fullName: string;
   email: string;
   role: string;
+  fonction?: string;
   phone: string;
   status: "ACTIF" | "SUSPENDU";
   schoolId?: string;
@@ -150,10 +152,14 @@ export default function DevUtilisateursPage() {
     }
   };
 
-  const getRoleBadge = (role: string) => {
+  const getRoleBadge = (role: string, fonction?: string) => {
     const r = (role || "").toLowerCase();
     if (r.includes("directeur")) {
-      return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 uppercase">Directeur</span>;
+      return (
+        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 uppercase">
+          {fonction || "Direction Générale"}
+        </span>
+      );
     }
     if (r.includes("censeur")) {
       return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200 uppercase">Censeur</span>;
@@ -311,7 +317,8 @@ export default function DevUtilisateursPage() {
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
                   <th className="py-3.5 px-4">Nom et Prénom</th>
-                  <th className="py-3.5 px-3">Rôle</th>
+                  <th className="py-3.5 px-3">Identifiant</th>
+                  <th className="py-3.5 px-3">Rôle / Fonction</th>
                   <th className="py-3.5 px-3">Établissement Associé</th>
                   <th className="py-3.5 px-3">Contact</th>
                   <th className="py-3.5 px-3 text-center">Statut Compte</th>
@@ -329,9 +336,16 @@ export default function DevUtilisateursPage() {
                       <div className="text-[11px] text-slate-400 font-mono truncate max-w-[180px]">{u.email}</div>
                     </td>
 
-                    {/* Rôle */}
+                    {/* Identifiant */}
                     <td className="py-3.5 px-3">
-                      {getRoleBadge(u.role)}
+                      <span className="font-mono font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 text-[11px] inline-block">
+                        {u.identifier || "—"}
+                      </span>
+                    </td>
+
+                    {/* Rôle / Fonction */}
+                    <td className="py-3.5 px-3">
+                      {getRoleBadge(u.role, u.fonction)}
                     </td>
 
                     {/* Établissement associé */}
@@ -431,18 +445,26 @@ export default function DevUtilisateursPage() {
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Rôle</span>
-                <span className="font-semibold text-slate-800 capitalize">{selectedUser.role}</span>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Identifiant Officiel</span>
+                <span className="font-mono font-bold text-slate-900 text-sm">{selectedUser.identifier || "—"}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Fonction / Rôle</span>
+                <span className="font-bold text-purple-800">{selectedUser.fonction || "Direction Générale"}</span>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Statut</span>
                 <span className={`font-bold ${selectedUser.status === "ACTIF" ? "text-emerald-700" : "text-rose-700"}`}>
-                  {selectedUser.status}
+                  {selectedUser.status === "ACTIF" ? "Compte Actif" : "Compte Suspendu"}
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Code Établissement</span>
+                <span className="font-mono font-bold text-slate-900">{selectedUser.schoolCode}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 col-span-2">
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Établissement</span>
-                <span className="font-semibold text-slate-800">{selectedUser.schoolName}</span>
+                <span className="font-bold text-slate-900 text-sm">{selectedUser.schoolName}</span>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Téléphone</span>
@@ -452,12 +474,6 @@ export default function DevUtilisateursPage() {
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Date d'inscription</span>
                 <span className="font-semibold text-slate-800">
                   {new Date(selectedUser.createdAt).toLocaleDateString("fr-FR")}
-                </span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Dernière session</span>
-                <span className="font-semibold text-slate-800">
-                  {new Date(selectedUser.lastLogin).toLocaleDateString("fr-FR")}
                 </span>
               </div>
             </div>
