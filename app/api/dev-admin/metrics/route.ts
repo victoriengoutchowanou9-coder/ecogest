@@ -148,8 +148,29 @@ export async function GET() {
     const recentErrors = recentErrorsData || [];
     const totalErrorsCount = recentErrors.length;
 
-    // 6. Alertes système réelles
+    // 6. Alertes système et de sécurité réelles
     const systemAlerts: Array<{ id: string; type: "WARNING" | "CRITICAL" | "INFO"; title: string; message: string; date: string }> = [];
+
+    try {
+      const { data: dbSecAlerts } = await supabase
+        .from("security_alerts")
+        .select("id, severity, title, description, created_at")
+        .eq("is_resolved", false)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (dbSecAlerts && dbSecAlerts.length > 0) {
+        dbSecAlerts.forEach((sa) => {
+          systemAlerts.push({
+            id: `sec-${sa.id}`,
+            type: sa.severity === "CRITICAL" || sa.severity === "HIGH" ? "CRITICAL" : "WARNING",
+            title: `[Alerte Sécurité] ${sa.title}`,
+            message: sa.description,
+            date: sa.created_at,
+          });
+        });
+      }
+    } catch {}
 
     if (expiringSubscriptions > 0) {
       systemAlerts.push({
