@@ -80,12 +80,12 @@ export default function EmargementPage() {
   ];
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formTeacher, setFormTeacher] = useState("Prof. Justin HOUNKPONOU");
-  const [formSubject, setFormSubject] = useState("Mathématiques");
-  const [formClass, setFormClass] = useState("Terminale C");
+  const [formTeacher, setFormTeacher] = useState("");
+  const [formSubject, setFormSubject] = useState("");
+  const [formClass, setFormClass] = useState("");
   const [formSchedule, setFormSchedule] = useState("08:00 - 10:00");
-  const [formArrival, setFormArrival] = useState("07:55");
-  const [formDeparture, setFormDeparture] = useState("10:00");
+  const [formArrival, setFormArrival] = useState("");
+  const [formDeparture, setFormDeparture] = useState("");
   const [formStatus, setFormStatus] = useState<"PRESENT" | "RETARD" | "ABSENT">("PRESENT");
   const [formHours, setFormHours] = useState(2);
   const [formNotes, setFormNotes] = useState("");

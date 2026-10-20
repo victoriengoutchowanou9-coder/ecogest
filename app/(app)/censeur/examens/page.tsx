@@ -40,14 +40,14 @@ export default function CenseurExamensPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExam, setEditingExam] = useState<ExamScheduleItem | null>(null);
 
-  const [formClassId, setFormClassId] = useState(classrooms[0]?.id || "3e-a");
+  const [formClassId, setFormClassId] = useState(classrooms[0]?.id || "");
   const [formPeriodId, setFormPeriodId] = useState("T1");
-  const [formSubjectName, setFormSubjectName] = useState("Mathématiques");
+  const [formSubjectName, setFormSubjectName] = useState(subjects[0]?.name || "");
   const [formDate, setFormDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [formStartTime, setFormStartTime] = useState("08:00");
   const [formEndTime, setFormEndTime] = useState("11:00");
-  const [formRoom, setFormRoom] = useState("Salle 12");
-  const [formSupervisor, setFormSupervisor] = useState("Prof. Justin HOUNKPONOU");
+  const [formRoom, setFormRoom] = useState("");
+  const [formSupervisor, setFormSupervisor] = useState("");
   const [formStatus, setFormStatus] = useState<ExamScheduleItem["status"]>("PROGRAMME");
   const [formNotes, setFormNotes] = useState("");
 
@@ -98,14 +98,14 @@ export default function CenseurExamensPage() {
 
   const openNewModal = () => {
     setEditingExam(null);
-    setFormClassId(classrooms[0]?.id || "3e-a");
+    setFormClassId(classrooms[0]?.id || "");
     setFormPeriodId("T1");
-    setFormSubjectName("Mathématiques");
+    setFormSubjectName(subjects[0]?.name || "");
     setFormDate(new Date().toISOString().split("T")[0]);
     setFormStartTime("08:00");
     setFormEndTime("11:00");
-    setFormRoom("Salle 12");
-    setFormSupervisor("Prof. Justin HOUNKPONOU");
+    setFormRoom("");
+    setFormSupervisor("");
     setFormStatus("PROGRAMME");
     setFormNotes("");
     setIsModalOpen(true);
@@ -523,7 +523,7 @@ export default function CenseurExamensPage() {
                     type="text"
                     value={formSupervisor}
                     onChange={(e) => setFormSupervisor(e.target.value)}
-                    placeholder="Ex: Prof. HOUNKPONOU"
+                    placeholder="Ex: Surveillant de salle"
                     className="w-full text-xs p-2.5 rounded-xl border border-slate-300"
                     required
                   />

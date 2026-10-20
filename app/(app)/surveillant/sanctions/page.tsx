@@ -21,6 +21,7 @@ import {
   Lock,
 } from "lucide-react";
 import { useSurveillantStore, SanctionRecord } from "@/lib/surveillant-store";
+import { useAuth } from "@/lib/auth-store";
 
 const SANCTION_TYPES: Array<{
   value: SanctionRecord["type"];
@@ -67,6 +68,7 @@ const SANCTION_TYPES: Array<{
 ];
 
 export default function SanctionsPage() {
+  const { user } = useAuth();
   const {
     sanctions,
     students,
@@ -141,7 +143,7 @@ export default function SanctionsPage() {
       endDate: endDate || undefined,
       duration: duration || undefined,
       requiresDirectorApproval: requiresDirector,
-      issuedBy: "Augustin SOSSOU (Surveillant Général)",
+      issuedBy: user?.fullName ? `${user.fullName} (Surveillance)` : "Surveillant Général",
     });
 
     setIsModalOpen(false);

@@ -40,12 +40,12 @@ export default function CenseurActivitesPage() {
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false);
   const [formType, setFormType] = useState<"DEVOIR" | "TD">("DEVOIR");
-  const [formClassId, setFormClassId] = useState(classrooms[0]?.id || "3e-a");
-  const [formSubjectId, setFormSubjectId] = useState(subjects[0]?.id || "mat-math");
-  const [formTeacherName, setFormTeacherName] = useState(teachers[0]?.name || "Prof. Justin HOUNKPONOU");
-  const [formDate, setFormDate] = useState("2026-10-25");
+  const [formClassId, setFormClassId] = useState(classrooms[0]?.id || "");
+  const [formSubjectId, setFormSubjectId] = useState(subjects[0]?.id || "");
+  const [formTeacherName, setFormTeacherName] = useState(teachers[0]?.name || "");
+  const [formDate, setFormDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [formTimeSlot, setFormTimeSlot] = useState("08:00 - 10:00 (2h)");
-  const [formRoom, setFormRoom] = useState("Salle 12");
+  const [formRoom, setFormRoom] = useState("");
   const [formTitle, setFormTitle] = useState("");
   const [formInstructions, setFormInstructions] = useState("");
   const [formError, setFormError] = useState("");

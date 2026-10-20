@@ -18,7 +18,8 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
-import { MOCK_BULLETIN_STUDENTS } from "@/lib/mock-bulletin-db";
+import { useCenseurStore } from "@/lib/censeur-store";
+import { useAuth } from "@/lib/auth-store";
 import { cn } from "@/lib/utils";
 
 interface StudentAttendanceState {
@@ -47,48 +48,57 @@ interface HistoricalSession {
 
 export default function EnseignantPresencesPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { schedules, studentsList: censeurStudents } = useCenseurStore();
 
   const [activeTab, setActiveTab] = useState<"APPEL" | "HISTORIQUE">("APPEL");
-  const [selectedDate, setSelectedDate] = useState("2026-10-14");
-  const [selectedSessionId, setSelectedSessionId] = useState("sess-1");
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [selectedSessionId, setSelectedSessionId] = useState("");
   const [isSessionSaved, setIsSessionSaved] = useState(false);
   const [isCorrectionMode, setIsCorrectionMode] = useState(false);
   const [correctionReasonModalOpen, setCorrectionReasonModalOpen] = useState(false);
   const [correctionReason, setCorrectionReason] = useState("");
 
-  const sessions = [
-    {
-      id: "sess-1",
-      time: "08:00 - 10:00",
-      className: "3ème A",
-      subject: "Mathématiques",
-      room: "Salle 04",
-      totalStudents: 42,
-    },
-    {
-      id: "sess-2",
-      time: "10:15 - 12:15",
-      className: "Terminale C",
-      subject: "Mathématiques",
-      room: "Salle 08",
-      totalStudents: 38,
-    },
-    {
-      id: "sess-3",
-      time: "15:00 - 17:00",
-      className: "1ère D",
-      subject: "Mathématiques",
-      room: "Salle Labo 2",
-      totalStudents: 38,
-    },
-  ];
+  const sessions = useMemo(() => {
+    if (!schedules || schedules.length === 0) return [];
+    const mySchedules = schedules.filter(
+      (s) =>
+        !user ||
+        !s.teacherId ||
+        s.teacherId === user.id ||
+        (user.fullName && s.teacherName?.toLowerCase().includes(user.fullName.toLowerCase()))
+    );
+    return mySchedules.map((s) => ({
+      id: s.id,
+      time: s.timeSlot,
+      className: s.className,
+      subject: s.subjectName,
+      room: s.room || "Salle de cours",
+      totalStudents: censeurStudents.filter((st) => st.classId === s.classId || st.className === s.className).length || 0,
+    }));
+  }, [schedules, user, censeurStudents]);
 
-  const currentSession = sessions.find((s) => s.id === selectedSessionId) || sessions[0];
+  React.useEffect(() => {
+    if (sessions.length > 0 && !sessions.some((s) => s.id === selectedSessionId)) {
+      setSelectedSessionId(sessions[0].id);
+    }
+  }, [sessions, selectedSessionId]);
+
+  const currentSession = sessions.find((s) => s.id === selectedSessionId) || sessions[0] || null;
 
   // Initialize student attendance
-  const [attendances, setAttendances] = useState<Record<string, StudentAttendanceState>>(() => {
+  const [attendances, setAttendances] = useState<Record<string, StudentAttendanceState>>({});
+
+  React.useEffect(() => {
+    if (!currentSession) {
+      setAttendances({});
+      return;
+    }
+    const classStudents = censeurStudents.filter(
+      (s) => s.className === currentSession.className
+    );
     const init: Record<string, StudentAttendanceState> = {};
-    MOCK_BULLETIN_STUDENTS.forEach((st) => {
+    classStudents.forEach((st) => {
       init[st.id] = {
         studentId: st.id,
         studentName: `${st.lastName} ${st.firstName}`,
@@ -99,8 +109,10 @@ export default function EnseignantPresencesPage() {
         motif: "",
       };
     });
-    return init;
-  });
+    setAttendances(init);
+    setIsSessionSaved(false);
+    setIsCorrectionMode(false);
+  }, [currentSession, censeurStudents]);
 
   // Sessions history
   const [historySessions] = useState<HistoricalSession[]>([]);
@@ -150,6 +162,7 @@ export default function EnseignantPresencesPage() {
   };
 
   const handleSaveAttendance = () => {
+    if (!currentSession) return;
     setIsSessionSaved(true);
     setIsCorrectionMode(false);
     toast(
@@ -248,9 +261,18 @@ export default function EnseignantPresencesPage() {
       </div>
 
       {activeTab === "APPEL" ? (
-        <>
-          {/* Session Selector Bar */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        !currentSession || sessions.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3 shadow-sm">
+            <Calendar className="w-12 h-12 text-slate-300 mx-auto" />
+            <h3 className="text-base font-bold text-slate-800">Aucune séance de cours programmée</h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              Vous n&apos;avez aucune séance planifiée pour cette date. La feuille d&apos;émargement et d&apos;appel s&apos;activera automatiquement dès la programmation de vos cours dans l&apos;emploi du temps.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Session Selector Bar */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
@@ -461,6 +483,7 @@ export default function EnseignantPresencesPage() {
           )}
           </div>
         </>
+        )
       ) : (
         /* Historical Sessions View */
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useToast } from "@/components/ui/Toast";
+import { useAuth } from "@/lib/auth-store";
 import {
   MOCK_DIRECTION_ANNOUNCEMENTS,
   DirectionAnnouncement,
@@ -36,90 +37,34 @@ interface AuthorizedMessage {
 
 export default function EnseignantMessagesPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState<"ANNONCES" | "ECHEANCES" | "MESSAGES" | "NOTIFICATIONS">("ANNONCES");
   const [announcements, setAnnouncements] = useState<DirectionAnnouncement[]>(MOCK_DIRECTION_ANNOUNCEMENTS);
 
-  const [messages, setMessages] = useState<AuthorizedMessage[]>([
-    {
-      id: "msg-1",
-      sender: "M. le Censeur des Études",
-      role: "Direction Pédagogique",
-      recipient: "Prof. Justin HOUNKPONOU",
-      subject: "Harmonisation des sujets de Devoir n°2 (Classes de 3ème)",
-      date: "14 Octobre 2026 à 09:15",
-      content:
-        "Bonjour Monsieur Hounkponou, merci de bien vouloir déposer votre proposition d'épreuve pour le Devoir 2 de mathématiques au secrétariat avant vendredi 12h00 pour reprographie.",
-      isRead: false,
-    },
-    {
-      id: "msg-2",
-      sender: "Père Rodrigue GNANVI",
-      role: "Chef d'Établissement",
-      recipient: "Corps Enseignant",
-      subject: "Félicitations pour le bon déroulement de la rentrée scolaire",
-      date: "05 Octobre 2026 à 14:30",
-      content:
-        "Chers professeurs, le conseil de direction vous exprime sa gratitude pour la promptitude de la prise en main des classes et le respect rigoureux des emplois du temps.",
-      isRead: true,
-    },
-  ]);
+  const [messages, setMessages] = useState<AuthorizedMessage[]>([]);
 
   const [newMsgSubject, setNewMsgSubject] = useState("");
   const [newMsgContent, setNewMsgContent] = useState("");
   const [newMsgRecipient, setNewMsgRecipient] = useState("Censeur des Études");
   const [isComposeOpen, setIsComposeOpen] = useState(false);
 
-  const deadlines = [
-    {
-      id: "dl-1",
-      title: "Clôture de la saisie des notes du 1er Trimestre",
-      dueDate: "25 Octobre 2026 à 23h59",
-      target: "Toutes classes (3ème A, Terminale C, 1ère D)",
-      status: "URGENT",
-      daysLeft: 11,
-    },
-    {
-      id: "dl-2",
-      title: "Transmission des appréciations de bulletins",
-      dueDate: "26 Octobre 2026 à 18h00",
-      target: "Professeurs titulaires et spécialistes",
-      status: "IMPORTANT",
-      daysLeft: 12,
-    },
-    {
-      id: "dl-3",
-      title: "Conseils de classe du 1er Trimestre",
-      dueDate: "Du 27 au 30 Octobre 2026",
-      target: "Salle des professeurs",
-      status: "PLANIFIE",
-      daysLeft: 13,
-    },
-  ];
+  const deadlines: Array<{
+    id: string;
+    title: string;
+    dueDate: string;
+    target: string;
+    status: string;
+    daysLeft: number;
+  }> = [];
 
-  const notifications = [
-    {
-      id: "notif-1",
-      title: "Rappel d'émargement",
-      content: "La feuille de présence pour le cours de Terminale C (10h15 - 12h15) attend votre signature.",
-      date: "Aujourd'hui à 12:16",
-      type: "ALERT",
-    },
-    {
-      id: "notif-2",
-      title: "Demande de déverrouillage validée",
-      content: "Le Censeur a accordé l'autorisation de rectification pour l'élève Bio SOULEYMANE (3ème A).",
-      date: "Hier à 16:45",
-      type: "SUCCESS",
-    },
-    {
-      id: "notif-3",
-      title: "Cahier de textes à jour",
-      content: "La séance du 14 Octobre en 3ème A a été synchronisée avec succès dans l'espace parent.",
-      date: "14 Octobre à 10:05",
-      type: "INFO",
-    },
-  ];
+  const notifications: Array<{
+    id: string;
+    title: string;
+    content: string;
+    date: string;
+    type: "ALERT" | "SUCCESS" | "INFO";
+  }> = [];
 
   const handleMarkAnnouncementRead = (id: string) => {
     setAnnouncements((prev) =>
@@ -136,8 +81,8 @@ export default function EnseignantMessagesPage() {
     }
     const newMsg: AuthorizedMessage = {
       id: `msg-${Date.now()}`,
-      sender: "Prof. Justin HOUNKPONOU",
-      role: "Enseignant de Mathématiques",
+      sender: user?.fullName || "Enseignant",
+      role: (user as any)?.specialty ? `Enseignant (${(user as any).specialty})` : "Enseignant",
       recipient: newMsgRecipient,
       subject: newMsgSubject,
       date: "À l'instant",
@@ -148,7 +93,7 @@ export default function EnseignantMessagesPage() {
     setIsComposeOpen(false);
     setNewMsgSubject("");
     setNewMsgContent("");
-    toast(`Message transmis avec succès à ${newMsgRecipient}.`, "success");
+    toast("Votre message a été transmis à l'administration.", "success");
   };
 
   const unreadAnnouncementsCount = announcements.filter((a) => !a.isRead).length;
@@ -244,173 +189,196 @@ export default function EnseignantMessagesPage() {
       {/* Tab 1: Annonces Direction */}
       {activeTab === "ANNONCES" && (
         <div className="space-y-4">
-          {announcements.map((ann) => (
-            <div
-              key={ann.id}
-              className={cn(
-                "p-5 rounded-2xl border transition-all shadow-sm bg-white space-y-3",
-                !ann.isRead ? "border-school-accent ring-1 ring-school-accent" : "border-slate-200"
-              )}
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={cn(
-                      "text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider",
-                      ann.priority === "URGENT"
-                        ? "bg-rose-100 text-rose-800"
-                        : "bg-blue-100 text-blue-800"
-                    )}
-                  >
-                    {ann.category}
-                  </span>
-                  <span className="text-xs font-semibold text-slate-700">{ann.author}</span>
-                  <span className="text-xs text-slate-400">&bull; {ann.date}</span>
+          {announcements.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2 shadow-sm">
+              <Bell className="w-8 h-8 text-slate-300 mx-auto" />
+              <p className="text-sm font-semibold text-slate-700">Aucune annonce officielle</p>
+              <p className="text-xs text-slate-400">Les communications de la direction générale et pédagogique s&apos;afficheront ici.</p>
+            </div>
+          ) : (
+            announcements.map((ann) => (
+              <div
+                key={ann.id}
+                className={cn(
+                  "p-5 rounded-2xl border transition-all shadow-sm bg-white space-y-3",
+                  !ann.isRead ? "border-school-accent ring-1 ring-school-accent" : "border-slate-200"
+                )}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={cn(
+                        "text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider",
+                        ann.priority === "URGENT"
+                          ? "bg-rose-100 text-rose-800"
+                          : "bg-blue-100 text-blue-800"
+                      )}
+                    >
+                      {ann.category}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-700">{ann.author}</span>
+                    <span className="text-xs text-slate-400">&bull; {ann.date}</span>
+                  </div>
+
+                  {!ann.isRead && (
+                    <button
+                      type="button"
+                      onClick={() => handleMarkAnnouncementRead(ann.id)}
+                      className="text-xs text-school-accent font-semibold hover:underline self-end sm:self-auto"
+                    >
+                      Marquer comme lu
+                    </button>
+                  )}
                 </div>
 
-                {!ann.isRead && (
-                  <button
-                    type="button"
-                    onClick={() => handleMarkAnnouncementRead(ann.id)}
-                    className="text-xs text-school-accent font-semibold hover:underline self-end sm:self-auto"
-                  >
-                    Marquer comme lu
-                  </button>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">{ann.title}</h3>
+                  <p className="text-xs text-slate-700 leading-relaxed mt-2">{ann.content}</p>
+                </div>
+
+                {ann.deadline && (
+                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-950 flex items-center gap-2 font-semibold">
+                    <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Date limite impérative : {ann.deadline}</span>
+                  </div>
                 )}
               </div>
-
-              <div>
-                <h3 className="font-bold text-slate-900 text-base">{ann.title}</h3>
-                <p className="text-xs text-slate-700 leading-relaxed mt-2">{ann.content}</p>
-              </div>
-
-              {ann.deadline && (
-                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-950 flex items-center gap-2 font-semibold">
-                  <Clock className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>Date limite impérative : {ann.deadline}</span>
-                </div>
-              )}
-            </div>
-          ))}
+            ))
+          )}
         </div>
       )}
 
       {/* Tab 2: Échéances de Saisie */}
       {activeTab === "ECHEANCES" && (
         <div className="space-y-4">
-          <div className="bg-amber-50/70 border border-amber-200 p-4 rounded-2xl text-xs text-amber-950 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-bold text-sm">Calendrier officiel de fin du 1er Trimestre</h4>
-              <p className="mt-1">
-                Le verrouillage automatique des saisies est programmé selon les directives du ministère.
-                Toutes les 3 interrogations et 2 devoirs de vos classes (3ème A, Terminale C, 1ère D) doivent être soumis avant la date limite.
-              </p>
+          {deadlines.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2 shadow-sm">
+              <Clock className="w-8 h-8 text-slate-300 mx-auto" />
+              <p className="text-sm font-semibold text-slate-700">Aucune échéance urgente</p>
+              <p className="text-xs text-slate-400">Le calendrier officiel des dates limites de saisie sera communiqué par la direction des études.</p>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {deadlines.map((dl) => (
-              <div
-                key={dl.id}
-                className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <span
-                    className={cn(
-                      "text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider",
-                      dl.status === "URGENT"
-                        ? "bg-rose-100 text-rose-800"
-                        : "bg-blue-100 text-blue-800"
-                    )}
-                  >
-                    {dl.status}
-                  </span>
-                  <span className="text-xs font-bold text-school-primary font-mono">
-                    J - {dl.daysLeft}
-                  </span>
-                </div>
-
-                <h3 className="font-bold text-slate-900 text-sm">{dl.title}</h3>
-
-                <div className="space-y-1 text-xs text-slate-500 pt-2 border-t border-slate-100">
-                  <div className="flex items-center gap-1.5 font-medium text-slate-700">
-                    <Clock className="w-3.5 h-3.5 text-school-primary" />
-                    <span>{dl.dueDate}</span>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {deadlines.map((dl) => (
+                <div
+                  key={dl.id}
+                  className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={cn(
+                        "text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider",
+                        dl.status === "URGENT"
+                          ? "bg-rose-100 text-rose-800"
+                          : "bg-blue-100 text-blue-800"
+                      )}
+                    >
+                      {dl.status}
+                    </span>
+                    <span className="text-xs font-bold text-school-primary font-mono">
+                      J - {dl.daysLeft}
+                    </span>
                   </div>
-                  <div className="text-[11px] text-slate-400">Cible : {dl.target}</div>
+
+                  <h3 className="font-bold text-slate-900 text-sm">{dl.title}</h3>
+
+                  <div className="space-y-1 text-xs text-slate-500 pt-2 border-t border-slate-100">
+                    <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                      <Clock className="w-3.5 h-3.5 text-school-primary" />
+                      <span>{dl.dueDate}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400">Cible : {dl.target}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* Tab 3: Messagerie Interne */}
       {activeTab === "MESSAGES" && (
         <div className="space-y-4">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={cn(
-                "p-5 rounded-2xl border transition-all shadow-sm bg-white space-y-3",
-                !msg.isRead ? "border-blue-300 ring-1 ring-blue-300" : "border-slate-200"
-              )}
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900">{msg.sender}</h4>
-                    <span className="text-[11px] text-slate-500">{msg.role}</span>
-                  </div>
-                </div>
-                <span className="text-xs text-slate-400">{msg.date}</span>
-              </div>
-
-              <div>
-                <h5 className="font-bold text-xs text-slate-800">{msg.subject}</h5>
-                <p className="text-xs text-slate-700 leading-relaxed mt-1">{msg.content}</p>
-              </div>
+          {messages.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2 shadow-sm">
+              <MessageSquare className="w-8 h-8 text-slate-300 mx-auto" />
+              <p className="text-sm font-semibold text-slate-700">Aucun message</p>
+              <p className="text-xs text-slate-400">Vous n&apos;avez encore reçu aucun message de l&apos;administration. Cliquez sur &quot;Nouveau message&quot; pour écrire à la direction.</p>
             </div>
-          ))}
+          ) : (
+            messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={cn(
+                  "p-5 rounded-2xl border transition-all shadow-sm bg-white space-y-3",
+                  !msg.isRead ? "border-blue-300 ring-1 ring-blue-300" : "border-slate-200"
+                )}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">{msg.sender}</h4>
+                      <span className="text-[11px] text-slate-500">{msg.role}</span>
+                    </div>
+                  </div>
+                  <span className="text-xs text-slate-400">{msg.date}</span>
+                </div>
+
+                <div>
+                  <h5 className="font-bold text-xs text-slate-800">{msg.subject}</h5>
+                  <p className="text-xs text-slate-700 leading-relaxed mt-1">{msg.content}</p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
 
       {/* Tab 4: Notifications Système */}
       {activeTab === "NOTIFICATIONS" && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden">
-          {notifications.map((n) => (
-            <div key={n.id} className="p-4 flex items-start gap-3 hover:bg-slate-50 transition-colors">
-              <div
-                className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                  n.type === "ALERT"
-                    ? "bg-amber-100 text-amber-700"
-                    : n.type === "SUCCESS"
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-blue-100 text-blue-700"
-                )}
-              >
-                {n.type === "ALERT" ? (
-                  <Clock className="w-4 h-4" />
-                ) : n.type === "SUCCESS" ? (
-                  <CheckCircle2 className="w-4 h-4" />
-                ) : (
-                  <Bell className="w-4 h-4" />
-                )}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-900">{n.title}</h4>
-                  <span className="text-[10px] text-slate-400">{n.date}</span>
-                </div>
-                <p className="text-xs text-slate-600 mt-0.5">{n.content}</p>
-              </div>
+        <div>
+          {notifications.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2 shadow-sm">
+              <AlertTriangle className="w-8 h-8 text-slate-300 mx-auto" />
+              <p className="text-sm font-semibold text-slate-700">Aucune notification système</p>
+              <p className="text-xs text-slate-400">Toutes vos actions pédagogiques et de présence sont à jour.</p>
             </div>
-          ))}
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden">
+              {notifications.map((n) => (
+                <div key={n.id} className="p-4 flex items-start gap-3 hover:bg-slate-50 transition-colors">
+                  <div
+                    className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                      n.type === "ALERT"
+                        ? "bg-amber-100 text-amber-700"
+                        : n.type === "SUCCESS"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-blue-100 text-blue-700"
+                    )}
+                  >
+                    {n.type === "ALERT" ? (
+                      <Clock className="w-4 h-4" />
+                    ) : n.type === "SUCCESS" ? (
+                      <CheckCircle2 className="w-4 h-4" />
+                    ) : (
+                      <Bell className="w-4 h-4" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-slate-900">{n.title}</h4>
+                      <span className="text-[10px] text-slate-400">{n.date}</span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-0.5">{n.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -438,7 +406,7 @@ export default function EnseignantMessagesPage() {
                   className="w-full rounded-xl border border-slate-300 py-2 px-3 font-semibold"
                 >
                   <option value="Censeur des Études">M. le Censeur des Études</option>
-                  <option value="Chef d'Établissement">Père Rodrigue GNANVI (Directeur)</option>
+                  <option value="Chef d'Établissement">Direction / Chef d&apos;Établissement</option>
                   <option value="Surveillant Général">Surveillant Général (Vie Scolaire)</option>
                   <option value="Secrétariat Pédagogique">Secrétariat Pédagogique</option>
                 </select>

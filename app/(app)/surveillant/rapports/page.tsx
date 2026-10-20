@@ -17,8 +17,10 @@ import {
   Filter,
 } from "lucide-react";
 import { useSurveillantStore } from "@/lib/surveillant-store";
+import { useAuth } from "@/lib/auth-store";
 
 export default function SurveillantRapportsPage() {
+  const { user } = useAuth();
   const {
     attendance,
     incidents,
@@ -242,7 +244,7 @@ export default function SurveillantRapportsPage() {
             <p>
               Réf : <strong>RAP-SG-{selectedDate}</strong>
             </p>
-            <p>Responsable : Augustin SOSSOU (Surveillant Général)</p>
+            <p>Responsable : {user?.fullName ? `${user.fullName} (Surveillance)` : "Surveillant Général"}</p>
           </div>
         </div>
 
@@ -607,7 +609,7 @@ export default function SurveillantRapportsPage() {
         <div className="grid grid-cols-2 gap-8 pt-8 mt-6 border-t border-gray-200 text-xs text-center">
           <div>
             <p className="font-semibold text-gray-700">Le Surveillant Général</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">Augustin SOSSOU</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">{user?.fullName || "Direction de la Surveillance"}</p>
             <div className="h-12 mt-2 flex items-center justify-center text-gray-300 italic">
               [Signature & Registre]
             </div>

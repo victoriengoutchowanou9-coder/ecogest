@@ -21,12 +21,22 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useToast } from "@/components/ui/Toast";
+import { useAuth } from "@/lib/auth-store";
+import { useSubscriptionStore } from "@/lib/subscription-store";
 import { MOCK_TEACHER_PROFILE } from "@/lib/mock-teacher-db";
 import { ChangePasswordSection } from "@/components/account/ChangePasswordSection";
 
 export default function EnseignantProfilPage() {
   const { toast } = useToast();
-  const teacher = MOCK_TEACHER_PROFILE;
+  const { user } = useAuth();
+  const { activeSchool } = useSubscriptionStore();
+  const teacher = {
+    ...MOCK_TEACHER_PROFILE,
+    fullName: user?.fullName || MOCK_TEACHER_PROFILE.fullName,
+    email: user?.email || MOCK_TEACHER_PROFILE.email,
+    speciality: (user as any)?.specialty || MOCK_TEACHER_PROFILE.speciality,
+    phone: user?.phone || MOCK_TEACHER_PROFILE.phone,
+  };
 
   const [phone, setPhone] = useState(teacher.phone);
   const [address, setAddress] = useState(teacher.address);
@@ -108,7 +118,11 @@ export default function EnseignantProfilPage() {
             <div className="p-3 bg-slate-50 rounded-xl">
               <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Classes Assignées</span>
               <span className="text-lg font-black text-slate-900">{teacher.classesAssigned.length}</span>
-              <span className="text-[10px] text-slate-500 block">3ème A, Tle C, 1ère D</span>
+              <span className="text-[10px] text-slate-500 block truncate">
+                {teacher.classesAssigned.length > 0
+                  ? teacher.classesAssigned.map((c) => c.className).join(", ")
+                  : "Aucune classe"}
+              </span>
             </div>
 
             <div className="p-3 bg-slate-50 rounded-xl">
@@ -125,7 +139,9 @@ export default function EnseignantProfilPage() {
 
             <div className="p-3 bg-slate-50 rounded-xl">
               <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Assiduité Cours</span>
-              <span className="text-lg font-black text-emerald-600">98.5%</span>
+              <span className="text-lg font-black text-emerald-600">
+                {teacher.classesAssigned.length > 0 ? "100%" : "—"}
+              </span>
               <span className="text-[10px] text-slate-500 block">émargements réguliers</span>
             </div>
           </div>
@@ -248,13 +264,15 @@ export default function EnseignantProfilPage() {
 
             <div className="flex items-center justify-between py-1.5 border-b border-slate-50">
               <span className="text-slate-500 font-medium">Établissement d&apos;exercice</span>
-              <span className="font-bold text-slate-800">Collège Catholique Père Aupiais</span>
+              <span className="font-bold text-slate-800">{activeSchool.name || "Établissement Scolaire"}</span>
             </div>
 
             <div className="flex items-center justify-between py-1.5">
               <span className="text-slate-500 font-medium">Statut de Titularisation</span>
-              <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
-                Professeur Titulaire de classe (3ème A)
+              <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-semibold text-xs">
+                {teacher.isMainTeacher && teacher.mainClassName
+                  ? `Professeur Titulaire (${teacher.mainClassName})`
+                  : "Professeur de discipline"}
               </span>
             </div>
           </div>

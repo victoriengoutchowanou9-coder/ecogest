@@ -33,44 +33,7 @@ export interface PublicResultItem {
 
 const STORAGE_KEY = "ecogest_public_results_v1";
 
-const DEFAULT_PUBLIC_RESULTS: PublicResultItem[] = [
-  {
-    id: "p-01",
-    title: "Résultats Session BEPC 2026",
-    rate: "95.4 % de réussite",
-    description: "Taux de réussite officiel à la session normale, 38 % de mentions Bien et 12 mentions Très Bien.",
-    session: "Session 2026",
-    isPublished: true,
-    date: "15/07/2026",
-  },
-  {
-    id: "p-02",
-    title: "Résultats Session BAC 2026 (Séries A/B/C/D)",
-    rate: "91.8 % de réussite",
-    description: "Excellente performance d'ensemble avec 100 % d'admis en Série Scientifique C.",
-    session: "Session 2026",
-    isPublished: true,
-    date: "22/07/2026",
-  },
-  {
-    id: "p-03",
-    title: "Grille tarifaire et frais de scolarité 2026-2027",
-    rate: "Grille officielle",
-    description: "Modalités d'échéances en 3 tranches officielles (Octobre, Janvier, Mars).",
-    session: "2026-2027",
-    isPublished: true,
-    date: "01/08/2026",
-  },
-  {
-    id: "p-04",
-    title: "Statistiques d'orientation 2026-2027",
-    rate: "En préparation",
-    description: "Bilan prévisionnel des orientations post-troisième et post-baccalauréat.",
-    session: "2026-2027",
-    isPublished: false,
-    date: "Brouillon",
-  },
-];
+const DEFAULT_PUBLIC_RESULTS: PublicResultItem[] = [];
 
 export default function PublicationsPage() {
   const { toast } = useToast();
@@ -94,15 +57,21 @@ export default function PublicationsPage() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setItems(parsed);
+        if (Array.isArray(parsed)) {
+          // Supprimer tout reliquat d'anciennes données d'exemple fictives
+          const cleaned = parsed.filter(
+            (item: PublicResultItem) =>
+              item.id !== "p-01" &&
+              item.id !== "p-02" &&
+              item.id !== "p-03" &&
+              item.id !== "p-04"
+          );
+          setItems(cleaned);
           setIsLoaded(true);
           return;
         }
       }
-      // Initialisation par défaut
       setItems(DEFAULT_PUBLIC_RESULTS);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_PUBLIC_RESULTS));
     } catch (e) {
       console.warn("Erreur chargement résultats publics :", e);
       setItems(DEFAULT_PUBLIC_RESULTS);

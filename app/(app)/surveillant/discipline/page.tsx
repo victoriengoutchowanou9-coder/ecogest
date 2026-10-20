@@ -23,6 +23,7 @@ import {
   History,
 } from "lucide-react";
 import { useSurveillantStore } from "@/lib/surveillant-store";
+import { useAuth } from "@/lib/auth-store";
 import { DisciplineIncident } from "@/lib/types/bulletin";
 
 const INCIDENT_TYPES = [
@@ -37,6 +38,7 @@ const INCIDENT_TYPES = [
 ];
 
 export default function DisciplineIncidentsPage() {
+  const { user } = useAuth();
   const {
     incidents,
     students,
@@ -110,7 +112,7 @@ export default function DisciplineIncidentsPage() {
       description,
       location,
       involvedParties: involvedParties || "Élève seul",
-      recordedBy: "Augustin SOSSOU (Surveillant Général)",
+      recordedBy: user?.fullName ? `${user.fullName} (Surveillance)` : "Surveillant Général",
       sanction: sanction || "En cours d'appréciation",
       comment: comment || "Rapport consigné au registre disciplinaire",
       status: "OUVERT",

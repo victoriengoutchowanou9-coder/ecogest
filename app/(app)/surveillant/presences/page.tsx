@@ -18,11 +18,13 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useSurveillantStore } from "@/lib/surveillant-store";
+import { useAuth } from "@/lib/auth-store";
 import { useToast } from "@/components/ui/Toast";
 import { CenseurAttendanceItem } from "@/lib/censeur-store";
 
 export default function SurveillantPresencesPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const {
     attendance,
     students,
@@ -179,7 +181,7 @@ export default function SurveillantPresencesPage() {
       exitTime,
       expectedReturnTime: exitReturnTime,
       reason: exitReason.trim() || "Raison médicale / familiale",
-      authorizedBy: "Augustin SOSSOU (Surveillant Général)",
+      authorizedBy: user?.fullName ? `${user.fullName} (Surveillance)` : "Surveillant Général",
       parentNotified: exitParentNotified,
       accompanyingPerson: exitAccompanying.trim() || undefined,
     });

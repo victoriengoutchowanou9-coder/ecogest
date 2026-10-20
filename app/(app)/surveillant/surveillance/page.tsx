@@ -16,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { useSurveillantStore, SurveillanceSlot } from "@/lib/surveillant-store";
+import { useAuth } from "@/lib/auth-store";
 
 const ZONES: Array<{
   value: SurveillanceSlot["zone"];
@@ -41,6 +42,7 @@ const DAYS: SurveillanceSlot["dayOfWeek"][] = [
 ];
 
 export default function SurveillancePlanningPage() {
+  const { user } = useAuth();
   const { slots, addSurveillanceSlot } = useSurveillantStore();
 
   const [selectedDay, setSelectedDay] = useState<string>("ALL");
@@ -51,8 +53,8 @@ export default function SurveillancePlanningPage() {
   const [zone, setZone] = useState<SurveillanceSlot["zone"]>("ENTREE");
   const [dayOfWeek, setDayOfWeek] = useState<SurveillanceSlot["dayOfWeek"]>("Lundi");
   const [timeSlot, setTimeSlot] = useState("07:15 - 08:00");
-  const [surveillantName, setSurveillantName] = useState("Augustin SOSSOU");
-  const [surveillantPhone, setSurveillantPhone] = useState("+229 97 00 11 22");
+  const [surveillantName, setSurveillantName] = useState(user?.fullName || "");
+  const [surveillantPhone, setSurveillantPhone] = useState(user?.phone || "");
   const [notes, setNotes] = useState("");
 
   const filteredSlots = useMemo(() => {

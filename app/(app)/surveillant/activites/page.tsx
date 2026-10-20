@@ -17,6 +17,7 @@ import {
   Send,
 } from "lucide-react";
 import { useSurveillantStore, SchoolActivityRecord } from "@/lib/surveillant-store";
+import { useAuth } from "@/lib/auth-store";
 
 const ACTIVITY_TYPES: Array<{
   value: SchoolActivityRecord["type"];
@@ -29,6 +30,7 @@ const ACTIVITY_TYPES: Array<{
 ];
 
 export default function ActivitesScolairesPage() {
+  const { user } = useAuth();
   const {
     activities,
     exits,
@@ -100,7 +102,7 @@ export default function ActivitesScolairesPage() {
       exitTime,
       expectedReturnTime: expectedReturn,
       reason: exitReason,
-      authorizedBy: "Augustin SOSSOU (Surveillant Général)",
+      authorizedBy: user?.fullName ? `${user.fullName} (Surveillance)` : "Surveillant Général",
       parentNotified,
       accompanyingPerson: accompanying,
     });

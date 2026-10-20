@@ -18,12 +18,14 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useSecretariatStore } from "@/lib/secretariat-store";
 import { useBulletinStore } from "@/lib/bulletin-store";
+import { useExamStore } from "@/lib/exam-store";
 import { useToast } from "@/components/ui/Toast";
 
 export default function SecretariatExamensPage() {
   const { toast } = useToast();
   const { classrooms, students } = useSecretariatStore();
   const { grades, subjects, bulletinStatuses } = useBulletinStore();
+  const { exams } = useExamStore();
 
   const [activeTab, setActiveTab] = useState<"EXAMS" | "RESULTS">("RESULTS");
   const [selectedClassId, setSelectedClassId] = useState(classrooms[0]?.id || "6e-a");
@@ -39,47 +41,18 @@ export default function SecretariatExamensPage() {
     return students.filter((s) => s.classId === currentClass.id);
   }, [students, currentClass]);
 
-  // Exam schedules mock
+  // Exam schedules from official store (dynamique, zéro donnée fictive)
   const examSchedules = useMemo(() => {
-    return [
-      {
-        id: "ex-01",
-        className: "6ème A",
-        subject: "Français (Composition & Dictée)",
-        date: "2026-11-23",
-        time: "08:00 - 10:00",
-        room: "Salle 04",
-        status: "PROGRAMME",
-      },
-      {
-        id: "ex-02",
-        className: "6ème A",
-        subject: "Mathématiques",
-        date: "2026-11-23",
-        time: "10:30 - 12:30",
-        room: "Salle 04",
-        status: "PROGRAMME",
-      },
-      {
-        id: "ex-03",
-        className: "5ème A",
-        subject: "Histoire-Géographie",
-        date: "2026-11-24",
-        time: "08:00 - 10:00",
-        room: "Salle 12",
-        status: "PROGRAMME",
-      },
-      {
-        id: "ex-04",
-        className: "3ème A",
-        subject: "Physique, Chimie & Technologie (PCT)",
-        date: "2026-11-25",
-        time: "08:00 - 10:30",
-        room: "Laboratoire 1",
-        status: "PROGRAMME",
-      },
-    ];
-  }, []);
+    return exams.map((ex) => ({
+      id: ex.id,
+      className: ex.className,
+      subject: ex.subjectName,
+      date: ex.date,
+      time: `${ex.startTime} - ${ex.endTime}`,
+      room: ex.room || "Salle d'examen",
+      status: ex.status,
+    }));
+  }, [exams]);
 
   const handlePrintBulletin = (studentName: string) => {
     toast(`Lancement de l'impression du bulletin officiel pour ${studentName}...`, "info");

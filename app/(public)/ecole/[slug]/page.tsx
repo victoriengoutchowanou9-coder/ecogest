@@ -17,17 +17,9 @@ import { SchoolMap } from "@/components/school/SchoolMap";
 import { formatFCFA } from "@/lib/utils";
 
 export default function EcolePubliquePage() {
-  const examResults = [
-    { year: "Session 2026", bepc: "95.4 %", bac: "91.8 %", mentionBien: "38 %" },
-    { year: "Session 2025", bepc: "93.1 %", bac: "89.2 %", mentionBien: "34 %" },
-    { year: "Session 2024", bepc: "94.6 %", bac: "88.0 %", mentionBien: "31 %" },
-  ];
+  const examResults: Array<{ year: string; bepc: string; bac: string; mentionBien: string }> = [];
 
-  const tuitionFees = [
-    { cycle: "Premier Cycle (6ème à 3ème)", montant: 280000, echeances: "3 tranches (Octobre, Janvier, Mars)" },
-    { cycle: "Second Cycle Littéraire (2nde A à Tle A)", montant: 320000, echeances: "3 tranches (Octobre, Janvier, Mars)" },
-    { cycle: "Second Cycle Scientifique (2nde S, 1ère D/C, Tle D/C)", montant: 350000, echeances: "3 tranches (Octobre, Janvier, Mars)" },
-  ];
+  const tuitionFees: Array<{ cycle: string; montant: number; echeances: string }> = [];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between">
@@ -104,38 +96,46 @@ export default function EcolePubliquePage() {
             Taux de succès enregistrés par l&apos;établissement lors des sessions nationales du BEPC et du Baccalauréat.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {examResults.map((res) => (
-              <div
-                key={res.year}
-                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3"
-              >
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <span className="font-bold text-sm text-slate-800">{res.year}</span>
-                  <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-semibold border border-emerald-200">
-                    Certifié
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-center pt-1">
-                  <div className="p-2.5 bg-slate-50 rounded-xl">
-                    <span className="text-[11px] font-semibold text-slate-500 block">BEPC</span>
-                    <span className="text-xl font-extrabold text-school-primary tabular-nums">
-                      {res.bepc}
+          {examResults.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {examResults.map((res) => (
+                <div
+                  key={res.year}
+                  className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3"
+                >
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="font-bold text-sm text-slate-800">{res.year}</span>
+                    <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-semibold border border-emerald-200">
+                      Certifié
                     </span>
                   </div>
-                  <div className="p-2.5 bg-slate-50 rounded-xl">
-                    <span className="text-[11px] font-semibold text-slate-500 block">BAC</span>
-                    <span className="text-xl font-extrabold text-school-primary tabular-nums">
-                      {res.bac}
-                    </span>
+                  <div className="grid grid-cols-2 gap-2 text-center pt-1">
+                    <div className="p-2.5 bg-slate-50 rounded-xl">
+                      <span className="text-[11px] font-semibold text-slate-500 block">BEPC</span>
+                      <span className="text-xl font-extrabold text-school-primary tabular-nums">
+                        {res.bepc}
+                      </span>
+                    </div>
+                    <div className="p-2.5 bg-slate-50 rounded-xl">
+                      <span className="text-[11px] font-semibold text-slate-500 block">BAC</span>
+                      <span className="text-xl font-extrabold text-school-primary tabular-nums">
+                        {res.bac}
+                      </span>
+                    </div>
                   </div>
+                  <p className="text-xs text-slate-500 text-center">
+                    Mentions Bien &amp; Très Bien : <strong className="text-slate-800">{res.mentionBien}</strong>
+                  </p>
                 </div>
-                <p className="text-xs text-slate-500 text-center">
-                  Mentions Bien &amp; Très Bien : <strong className="text-slate-800">{res.mentionBien}</strong>
-                </p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2">
+              <Award className="w-10 h-10 text-slate-300 mx-auto" />
+              <p className="text-sm font-semibold text-slate-700">Aucun résultat d&apos;examen officiel publié pour le moment.</p>
+              <p className="text-xs text-slate-400">Les taux de réussite officiels aux sessions nationales seront affichés dès validation par la direction.</p>
+            </div>
+          )}
         </section>
 
         {/* Tuition Fees & Inscription */}
@@ -148,24 +148,34 @@ export default function EcolePubliquePage() {
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="divide-y divide-slate-100">
-              {tuitionFees.map((fee, idx) => (
-                <div
-                  key={idx}
-                  className="p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3"
-                >
-                  <div>
-                    <h4 className="text-sm md:text-base font-bold text-slate-900">{fee.cycle}</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Échéances : {fee.echeances}</p>
+            {tuitionFees.length > 0 ? (
+              <div className="divide-y divide-slate-100">
+                {tuitionFees.map((fee, idx) => (
+                  <div
+                    key={idx}
+                    className="p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3"
+                  >
+                    <div>
+                      <h4 className="text-sm md:text-base font-bold text-slate-900">{fee.cycle}</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">Échéances : {fee.echeances}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-lg md:text-xl font-extrabold text-school-primary tabular-nums">
+                        {formatFCFA(fee.montant)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-lg md:text-xl font-extrabold text-school-primary tabular-nums">
-                      {formatFCFA(fee.montant)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center space-y-2">
+                <DollarSign className="w-10 h-10 text-slate-300 mx-auto" />
+                <p className="text-sm font-semibold text-slate-700">Grille tarifaire officielle</p>
+                <p className="text-xs text-slate-500">
+                  Les modalités et les montants des frais de scolarité sont disponibles auprès du secrétariat et de la comptabilité de l&apos;établissement.
+                </p>
+              </div>
+            )}
           </div>
         </section>
 
