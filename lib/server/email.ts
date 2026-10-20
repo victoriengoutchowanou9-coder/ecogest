@@ -1,5 +1,5 @@
 /**
- * Service serveur d'expédition d'e-mails transactionnels (SMTP)
+ * Service serveur d'expédition d'e-mails transactionnels (SMTP & Resend)
  * Conçu pour ECOGEST — Envoi de codes de sécurité OTP et notifications
  */
 
@@ -18,6 +18,24 @@ export interface EmailSendResult {
   provider: string;
   messageId?: string;
   error?: string;
+  devCode?: string;
+  warning?: string;
+}
+
+/**
+ * Vérifie si un service d'envoi d'e-mails est configuré
+ */
+export function isEmailServiceConfigured(): { configured: boolean; provider: string } {
+  if (process.env.RESEND_API_KEY) {
+    return { configured: true, provider: "resend" };
+  }
+  const host = process.env.SMTP_HOST;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  if (host && user && pass) {
+    return { configured: true, provider: "smtp" };
+  }
+  return { configured: false, provider: "none" };
 }
 
 /**
@@ -25,7 +43,7 @@ export interface EmailSendResult {
  * Ex: "contact@ecole.bj" -> "c***t@ecole.bj"
  */
 export function maskEmail(email: string): string {
-  if (!email || !email.includes("@")) return email || "—";
+  if (!email || !email.includes("@")) return email || "";
   const [local, domain] = email.trim().toLowerCase().split("@");
   if (local.length <= 2) {
     return `${local[0]}***@${domain}`;
@@ -58,7 +76,62 @@ function createSmtpTransporter() {
     tls: {
       rejectUnauthorized: process.env.NODE_ENV === "production",
     },
+    connectionTimeout: 10000,
   });
+}
+
+/**
+ * Envoi d'e-mail via Resend API (HTTP direct)
+ */
+async function sendViaResend(params: {
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}): Promise<EmailSendResult> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return { success: false, provider: "resend", error: "RESEND_API_KEY manquante" };
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: params.from,
+        to: [params.to],
+        subject: params.subject,
+        html: params.html,
+        text: params.text,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.error("[Resend API] Erreur:", data);
+      return {
+        success: false,
+        provider: "resend",
+        error: data.message || "Erreur de l'API Resend",
+      };
+    }
+
+    return {
+      success: true,
+      provider: "resend",
+      messageId: data.id,
+    };
+  } catch (err: any) {
+    console.error("[Resend API] Exception:", err.message);
+    return {
+      success: false,
+      provider: "resend",
+      error: err.message,
+    };
+  }
 }
 
 /**
@@ -154,7 +227,7 @@ function generateOtpHtmlTemplate(params: {
 }
 
 /**
- * Envoie un code OTP par e-mail via le serveur SMTP transactionnel
+ * Envoie un code OTP par e-mail via le serveur SMTP ou Resend
  */
 export async function sendOtpEmail(params: SendEmailOtpParams): Promise<EmailSendResult> {
   const { toEmail, fullName = "Utilisateur", otpCode, purpose, expiresMinutes = 10 } = params;
@@ -172,14 +245,32 @@ export async function sendOtpEmail(params: SendEmailOtpParams): Promise<EmailSen
     ? `[ECOGEST] Votre code de confirmation : ${otpCode}`
     : `[ECOGEST] Réinitialisation de votre mot de passe (Code : ${otpCode})`;
 
-  const fromAddress = process.env.SMTP_FROM || "ECOGEST Sécurité <securite@ecogest.bj>";
+  const fromAddress = process.env.SMTP_FROM || process.env.EMAIL_FROM || "ECOGEST <contact@ecogest.bj>";
   const htmlContent = generateOtpHtmlTemplate({
     fullName,
     otpCode,
     purpose,
     expiresMinutes,
   });
+  const textContent = `Votre code de validation ECOGEST est : ${otpCode}. Valable ${expiresMinutes} minutes. Ne le partagez jamais.`;
 
+  // 1. Priorité à Resend si configuré
+  if (process.env.RESEND_API_KEY) {
+    const resendRes = await sendViaResend({
+      from: fromAddress,
+      to: toEmail,
+      subject,
+      html: htmlContent,
+      text: textContent,
+    });
+    if (resendRes.success) {
+      console.log(`[EMAIL RESEND DISPATCH] Code OTP expédié avec succès à ${maskEmail(toEmail)}`);
+      return resendRes;
+    }
+    console.warn("[EMAIL RESEND] Échec d'envoi via Resend:", resendRes.error);
+  }
+
+  // 2. Transporteur SMTP classique
   const transporter = createSmtpTransporter();
 
   if (transporter) {
@@ -189,27 +280,44 @@ export async function sendOtpEmail(params: SendEmailOtpParams): Promise<EmailSen
         to: toEmail,
         subject,
         html: htmlContent,
-        text: `Votre code de validation ECOGEST est : ${otpCode}. Valable ${expiresMinutes} minutes. Ne le partagez jamais.`,
+        text: textContent,
       });
 
+      console.log(`[EMAIL SMTP DISPATCH] Code OTP expédié avec succès à ${maskEmail(toEmail)} (id: ${info.messageId})`);
       return {
         success: true,
         provider: "smtp",
         messageId: info.messageId,
       };
     } catch (err: any) {
-      console.error("[Email SMTP] Erreur d'expédition:", err.message);
+      console.error("[Email SMTP] Erreur d'expédition réelle:", err.message);
+      // Si nous sommes en production avec SMTP configuré qui échoue, remonter l'erreur
+      if (process.env.NODE_ENV === "production" && process.env.DEV_ALLOW_OTP_PREVIEW !== "true") {
+        return {
+          success: false,
+          provider: "smtp",
+          error: `Échec de distribution SMTP : ${err.message}`,
+        };
+      }
     }
   }
 
-  // Fallback sécurisé en mode serveur (quand les identifiants SMTP de production sont absents)
-  console.log(
-    `[EMAIL SMTP DISPATCH] Code OTP transmis avec succès vers ${maskEmail(toEmail)} pour ${purpose} (expéditeur: ${fromAddress}).`
+  // 3. Mode Fallback local / dev lorsque le serveur SMTP n'est pas encore configuré
+  console.warn(
+    `==================================================================\n` +
+    `⚠️ [NOTIFICATION SERVEUR - CODE OTP NON ENVOYÉ PAR MAIL]\n` +
+    `   Raison : Aucun serveur SMTP (SMTP_HOST/USER/PASS) ou Resend configuré dans .env.local\n` +
+    `   Destinataire : ${toEmail}\n` +
+    `   Code OTP     : ${otpCode}\n` +
+    `   Objet        : ${purpose}\n` +
+    `==================================================================`
   );
 
   return {
     success: true,
-    provider: "ecogest_secure_smtp",
-    messageId: `mail-${Date.now()}`,
+    provider: "dev_fallback",
+    devCode: otpCode,
+    warning: "SMTP_NON_CONFIGURE",
+    messageId: `dev-${Date.now()}`,
   };
 }

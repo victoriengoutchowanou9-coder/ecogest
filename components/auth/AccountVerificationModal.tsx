@@ -46,6 +46,7 @@ export function AccountVerificationModal({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
+  const [devCode, setDevCode] = useState<string | null>(null);
 
   // Compte à rebours du renvoi de code (60 secondes)
   useEffect(() => {
@@ -63,6 +64,7 @@ export function AccountVerificationModal({
       setErrorMsg(null);
       setDigits(["", "", "", "", "", ""]);
       setRemainingAttempts(null);
+      setDevCode(null);
     }
   }, [isOpen]);
 
@@ -103,6 +105,8 @@ export function AccountVerificationModal({
       setStep(2);
       setDigits(["", "", "", "", "", ""]);
       setRemainingAttempts(null);
+      setDevCode(data.devCode || null);
+
       toast(
         `Code de confirmation envoyé par ${channel === "EMAIL" ? "e-mail" : "SMS"} !`,
         "success"
@@ -112,7 +116,7 @@ export function AccountVerificationModal({
       setTimeout(() => {
         inputRefs.current[0]?.focus();
       }, 100);
-    } catch (err: any) {
+    } catch {
       setErrorMsg("Une erreur réseau est survenue lors de l'envoi du code.");
     } finally {
       setLoading(false);
@@ -151,6 +155,8 @@ export function AccountVerificationModal({
       setCooldown(data.cooldownSeconds || 60);
       setDigits(["", "", "", "", "", ""]);
       setRemainingAttempts(null);
+      setDevCode(data.devCode || null);
+
       toast(
         `Nouveau code envoyé par ${selectedChannel === "EMAIL" ? "e-mail" : "SMS"} !`,
         "success"
@@ -165,7 +171,6 @@ export function AccountVerificationModal({
 
   // Gestion de la saisie des 6 chiffres
   const handleDigitChange = (index: number, value: string) => {
-    // Si l'utilisateur colle un code complet
     if (value.length > 1) {
       const pasted = value.replace(/\D/g, "").slice(0, 6);
       if (pasted) {
@@ -185,7 +190,6 @@ export function AccountVerificationModal({
     newDigits[index] = cleanChar;
     setDigits(newDigits);
 
-    // Passer au champ suivant
     if (cleanChar && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -197,37 +201,37 @@ export function AccountVerificationModal({
     }
   };
 
-  // Vérification finale du code saisi
-  const handleVerify = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const code = digits.join("");
-    if (code.length !== 6) {
-      setErrorMsg("Veuillez saisir les 6 chiffres du code reçu.");
+  // Validation du code OTP saisi
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    const fullCode = digits.join("").trim();
+    if (fullCode.length !== 6) {
+      setErrorMsg("Veuillez saisir l'intégralité du code à 6 chiffres.");
       return;
     }
 
-    setErrorMsg(null);
     setVerifying(true);
 
     try {
-      const target = selectedChannel === "EMAIL" ? email : phone;
       const res = await fetch("/api/auth/otp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           purpose,
           channel: selectedChannel,
-          target,
-          code,
+          target: selectedChannel === "EMAIL" ? email : phone,
+          code: fullCode,
         }),
       });
 
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setRemainingAttempts(
-          typeof data.remainingAttempts === "number" ? data.remainingAttempts : null
-        );
+        if (typeof data.remainingAttempts === "number") {
+          setRemainingAttempts(data.remainingAttempts);
+        }
         setErrorMsg(data.error || "Code de validation incorrect.");
         setVerifying(false);
         return;
@@ -332,12 +336,7 @@ export function AccountVerificationModal({
                     <Smartphone className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-slate-800">Par numéro de téléphone</span>
-                      <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-700 font-semibold rounded-full">
-                        SMS Direct
-                      </span>
-                    </div>
+                    <span className="text-sm font-bold text-slate-800 block">Par SMS</span>
                     <span className="text-xs text-slate-500 font-mono mt-0.5 block">
                       {phone || "Non renseigné"}
                     </span>
@@ -362,14 +361,47 @@ export function AccountVerificationModal({
               <div className="p-3.5 rounded-xl bg-blue-50/80 border border-blue-200 text-blue-900 text-xs">
                 <p className="font-semibold flex items-center gap-1.5">
                   <Lock className="w-3.5 h-3.5 text-school-primary" />
-                  Code envoyé avec succès
+                  Code de confirmation
                 </p>
                 <p className="text-[11px] text-blue-700 mt-1">
-                  Un code de confirmation à 6 chiffres a été envoyé par{" "}
+                  Un code à 6 chiffres a été émis pour{" "}
                   <strong>{selectedChannel === "EMAIL" ? "e-mail" : "SMS"}</strong> à :{" "}
                   <strong className="font-mono text-slate-900">{maskedTarget}</strong>
                 </p>
               </div>
+
+              {/* Bannière d'aide en mode développement / quand SMTP n'est pas encore configuré */}
+              {devCode && (
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs space-y-2 animate-in fade-in">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold flex items-center gap-1.5 text-amber-900 text-[11px]">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      Mode Démo : Serveur SMTP non configuré
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const arr = devCode.slice(0, 6).split("");
+                        while (arr.length < 6) arr.push("");
+                        setDigits(arr);
+                        inputRefs.current[5]?.focus();
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold text-[11px] transition shadow-xs"
+                    >
+                      Insérer le code
+                    </button>
+                  </div>
+                  <div className="text-[11px] text-amber-800 leading-relaxed">
+                    Aucun compte d&apos;envoi (SMTP ou Resend) n&apos;a encore été renseigné dans <code className="bg-amber-100 px-1 py-0.5 rounded text-[10px] font-mono font-bold">.env.local</code>.
+                    <div className="mt-1 flex items-center gap-2">
+                      <span>Code généré :</span>
+                      <strong className="font-mono text-base bg-white px-2 py-0.5 rounded border border-amber-300 text-slate-900 tracking-widest font-black">
+                        {devCode}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 text-center mb-2">
@@ -441,12 +473,12 @@ export function AccountVerificationModal({
                   {verifying ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Validation en cours...</span>
+                      <span>Vérification...</span>
                     </>
                   ) : (
                     <>
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>Valider mon compte</span>
+                      <span>Confirmer et Activer</span>
                     </>
                   )}
                 </button>

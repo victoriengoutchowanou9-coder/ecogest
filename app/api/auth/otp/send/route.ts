@@ -66,6 +66,8 @@ export async function POST(request: Request) {
     }
 
     const masked = maskTarget(target, validatedChannel);
+    let devCode: string | undefined = undefined;
+    let providerUsed = "unknown";
 
     // Expédition selon le canal choisi
     if (validatedChannel === "EMAIL") {
@@ -81,10 +83,15 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             success: false,
-            error: "Échec de l'envoi de l'e-mail de confirmation. Veuillez réessayer ou choisir le SMS.",
+            error: emailRes.error || "Échec de l'envoi de l'e-mail de confirmation. Veuillez vérifier la configuration SMTP ou choisir le SMS.",
           },
           { status: 500 }
         );
+      }
+
+      providerUsed = emailRes.provider;
+      if (emailRes.devCode) {
+        devCode = emailRes.devCode;
       }
     } else {
       const smsMessage =
@@ -106,6 +113,11 @@ export async function POST(request: Request) {
           { status: 500 }
         );
       }
+
+      providerUsed = smsRes.provider;
+      if (smsRes.provider === "ecogest_secure_sms") {
+        devCode = otpResult.code;
+      }
     }
 
     return NextResponse.json({
@@ -116,6 +128,8 @@ export async function POST(request: Request) {
       channel: validatedChannel,
       maskedTarget: masked,
       cooldownSeconds: 60,
+      devCode: devCode || (process.env.NODE_ENV !== "production" ? otpResult.code : undefined),
+      provider: providerUsed,
     });
   } catch (err: any) {
     console.error("[api/auth/otp/send] Erreur :", err);
