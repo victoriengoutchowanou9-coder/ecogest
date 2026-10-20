@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getServerSupabaseAdmin } from "@/lib/server/supabase-admin";
+
+const supabase = getServerSupabaseAdmin();
 
 export interface ServerTicket {
   id: string;

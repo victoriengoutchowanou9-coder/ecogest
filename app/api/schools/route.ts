@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getServerSupabaseAdmin } from "@/lib/server/supabase-admin";
+
+const supabase = getServerSupabaseAdmin();
 
 /**
  * Récupère la liste de tous les établissements scolaires enregistrés dans la base de données.

@@ -9,7 +9,9 @@
  */
 
 import crypto from "crypto";
-import { supabase } from "@/lib/supabase";
+import { getServerSupabaseAdmin } from "@/lib/server/supabase-admin";
+
+const supabase = getServerSupabaseAdmin();
 import { normalizePhoneE164, maskPhoneNumber } from "./sms";
 import { maskEmail } from "./email";
 

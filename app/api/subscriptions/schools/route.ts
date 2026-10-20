@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { SCHOOL_PLANS, SchoolPlanCode } from "@/lib/subscription-plans";
-import { supabase } from "@/lib/supabase";
+import { getServerSupabaseAdmin } from "@/lib/server/supabase-admin";
+
+const supabase = getServerSupabaseAdmin();
 
 export async function GET() {
   try {
