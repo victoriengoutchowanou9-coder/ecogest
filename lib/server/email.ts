@@ -245,7 +245,7 @@ export async function sendOtpEmail(params: SendEmailOtpParams): Promise<EmailSen
     ? `[ECOGEST] Votre code de confirmation : ${otpCode}`
     : `[ECOGEST] Réinitialisation de votre mot de passe (Code : ${otpCode})`;
 
-  const fromAddress = process.env.SMTP_FROM || process.env.EMAIL_FROM || "ECOGEST <contact@ecogest.bj>";
+  const fromAddress = process.env.SMTP_FROM || process.env.EMAIL_FROM || "ECOGEST <onboarding@resend.dev>";
   const htmlContent = generateOtpHtmlTemplate({
     fullName,
     otpCode,
@@ -254,7 +254,7 @@ export async function sendOtpEmail(params: SendEmailOtpParams): Promise<EmailSen
   });
   const textContent = `Votre code de validation ECOGEST est : ${otpCode}. Valable ${expiresMinutes} minutes. Ne le partagez jamais.`;
 
-  // 1. Priorité à Resend si configuré
+  // 1. Priorité à Resend API si configuré
   if (process.env.RESEND_API_KEY) {
     const resendRes = await sendViaResend({
       from: fromAddress,
@@ -263,11 +263,42 @@ export async function sendOtpEmail(params: SendEmailOtpParams): Promise<EmailSen
       html: htmlContent,
       text: textContent,
     });
+
     if (resendRes.success) {
       console.log(`[EMAIL RESEND DISPATCH] Code OTP expédié avec succès à ${maskEmail(toEmail)}`);
       return resendRes;
     }
-    console.warn("[EMAIL RESEND] Échec d'envoi via Resend:", resendRes.error);
+
+    console.warn("[EMAIL RESEND] Échec d'envoi direct via Resend:", resendRes.error);
+
+    // Si Resend est en mode test/onboarding, il n'autorise que l'adresse du propriétaire du compte
+    const verifiedOwnerMatch = resendRes.error?.match(/to your own email address \(([^)]+)\)/i);
+    if (verifiedOwnerMatch && verifiedOwnerMatch[1]) {
+      const ownerEmail = verifiedOwnerMatch[1].trim();
+      const sandboxRes = await sendViaResend({
+        from: fromAddress,
+        to: ownerEmail,
+        subject: `[ECOGEST Test] Code de confirmation pour ${toEmail} : ${otpCode}`,
+        html: generateOtpHtmlTemplate({
+          fullName: `${fullName} (Destination initiale : ${toEmail})`,
+          otpCode,
+          purpose,
+          expiresMinutes,
+        }),
+        text: `[ECOGEST Sandbox] Code de validation émis pour ${toEmail} : ${otpCode}.`,
+      });
+
+      if (sandboxRes.success) {
+        console.log(`[EMAIL RESEND SANDBOX] Code OTP relayé avec succès à l'adresse propriétaire ${maskEmail(ownerEmail)} pour le compte ${toEmail}`);
+        return {
+          success: true,
+          provider: "resend_sandbox",
+          messageId: sandboxRes.messageId,
+          devCode: otpCode,
+          warning: `Envoyé à votre boîte principale (${ownerEmail}). Pour envoyer directement à ${toEmail}, vérifiez un domaine sur resend.com/domains.`,
+        };
+      }
+    }
   }
 
   // 2. Transporteur SMTP classique
@@ -291,7 +322,6 @@ export async function sendOtpEmail(params: SendEmailOtpParams): Promise<EmailSen
       };
     } catch (err: any) {
       console.error("[Email SMTP] Erreur d'expédition réelle:", err.message);
-      // Si nous sommes en production avec SMTP configuré qui échoue, remonter l'erreur
       if (process.env.NODE_ENV === "production" && process.env.DEV_ALLOW_OTP_PREVIEW !== "true") {
         return {
           success: false,
