@@ -19,9 +19,13 @@ import {
   X,
   RefreshCw,
   ExternalLink,
+  ShieldAlert,
+  ArrowRight,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useToast } from "@/components/ui/Toast";
+import { useAuthStore } from "@/lib/auth-store";
+import { ROLE_NAVIGATIONS, Role } from "@/lib/permissions";
 import {
   useSupportStore,
   SupportTicket,
@@ -30,7 +34,11 @@ import {
 
 export default function DirecteurSupportConsolePage() {
   const { toast } = useToast();
+  const { user, isAuthenticated, isLoading } = useAuthStore();
   const { tickets, addReply, updateTicketStatus, markAdminTicketAsRead } = useSupportStore();
+
+  const userRole = (user?.role || "").toLowerCase() as Role;
+  const isAuthorized = userRole === "directeur";
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -110,6 +118,57 @@ export default function DirecteurSupportConsolePage() {
       if (fresh) setSelectedTicket(fresh);
     }
   }, [tickets]);
+
+  // Écran de chargement pendant la validation de la session Supabase
+  if (isLoading) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center p-8 text-center">
+        <div className="w-10 h-10 rounded-full border-2 border-school-primary border-t-transparent animate-spin mb-3" />
+        <p className="text-xs text-slate-500 font-medium">Vérification des autorisations auprès de Supabase...</p>
+      </div>
+    );
+  }
+
+  // Contrôle strict des autorisations : Seul le rôle Directeur a accès à cette console
+  if (!isAuthorized) {
+    const returnHref = ROLE_NAVIGATIONS[userRole]?.basePath || "/connexion";
+    const roleLabel = ROLE_NAVIGATIONS[userRole]?.roleLabel || user?.role || "Utilisateur";
+
+    return (
+      <div className="bg-white rounded-3xl border border-rose-200 p-8 md:p-12 text-center max-w-xl mx-auto shadow-sm space-y-4 my-12 animate-in fade-in">
+        <div className="w-16 h-16 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto border border-rose-100">
+          <ShieldAlert className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-extrabold text-slate-900">
+            Accès Réservé &mdash; Console Administrateur Support
+          </h2>
+          <p className="text-xs md:text-sm text-slate-600 leading-relaxed">
+            Cette console d&apos;administration technique est strictement réservée au profil{" "}
+            <strong className="text-school-primary uppercase font-mono">Directeur</strong>.
+            Votre profil actuel (<strong className="text-slate-900 uppercase font-mono">{user?.role || "non autorisé"}</strong>)
+            ne dispose pas des droits requis pour gérer les tickets de support de l&apos;établissement.
+          </p>
+        </div>
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link
+            href="/support"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition"
+          >
+            <LifeBuoy className="w-4 h-4 text-school-primary" />
+            <span>Centre d&apos;Aide Utilisateur</span>
+          </Link>
+          <Link
+            href={returnHref}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-school-primary text-white text-xs font-bold hover:bg-school-700 shadow-xs transition"
+          >
+            <span>Retourner à mon espace ({roleLabel})</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-6xl">

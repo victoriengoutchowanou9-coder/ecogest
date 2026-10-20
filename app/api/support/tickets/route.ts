@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSupabaseAdmin } from "@/lib/server/supabase-admin";
+import { getServerSupabaseAdmin, requireServerUserContext } from "@/lib/server/supabase-admin";
+import { requireDeveloperAuth } from "@/lib/server/dev-auth";
 
 const supabase = getServerSupabaseAdmin();
 
@@ -31,14 +32,40 @@ let globalServerTickets: ServerTicket[] = [];
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const schoolId = searchParams.get("schoolId");
+    const requestedSchoolId = searchParams.get("schoolId");
+
+    // Vérification de la session utilisateur dans Supabase
+    const userRes = await requireServerUserContext(request);
+    const devSession = await requireDeveloperAuth();
+
+    let authenticatedUser: any = null;
+    let isDirector = false;
+    let isDevAdmin = Boolean(devSession?.authenticated);
+
+    if (userRes.success) {
+      authenticatedUser = userRes.user;
+      isDirector = authenticatedUser.role?.toLowerCase() === "directeur";
+    }
+
+    const schoolId = isDirector || isDevAdmin ? requestedSchoolId || authenticatedUser?.schoolId : authenticatedUser?.schoolId;
 
     // Tentative de lecture Supabase si table existe
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("support_tickets")
         .select("*")
         .order("created_at", { ascending: false });
+
+      if (schoolId) {
+        query = query.eq("school_id", schoolId);
+      }
+
+      // Si l'utilisateur n'est NI Directeur NI Dev Admin, il ne peut voir que ses propres tickets
+      if (!isDirector && !isDevAdmin && authenticatedUser) {
+        query = query.or(`user_id.eq.${authenticatedUser.userId},user_email.eq.${authenticatedUser.email}`);
+      }
+
+      const { data, error } = await query;
 
       if (!error && Array.isArray(data)) {
         return NextResponse.json({
@@ -54,7 +81,14 @@ export async function GET(request: Request) {
 
     let tickets = globalServerTickets;
     if (schoolId) {
-      tickets = tickets.filter((t) => t.schoolId === schoolId);
+      tickets = tickets.filter((t) => !t.schoolId || t.schoolId === schoolId);
+    }
+    if (!isDirector && !isDevAdmin && authenticatedUser) {
+      tickets = tickets.filter(
+        (t) =>
+          t.userId === authenticatedUser.userId ||
+          t.userEmail?.toLowerCase() === authenticatedUser.email?.toLowerCase()
+      );
     }
 
     return NextResponse.json({
@@ -175,6 +209,12 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    const userRes = await requireServerUserContext(request);
+    const devSession = await requireDeveloperAuth();
+
+    const isDirector = userRes.success && userRes.user.role?.toLowerCase() === "directeur";
+    const isDevAdmin = Boolean(devSession?.authenticated);
+
     const body = await request.json();
     const { ticketId, status, replyMessage, senderName, senderRole, isStaff } = body;
 
@@ -182,6 +222,17 @@ export async function PATCH(request: Request) {
       return NextResponse.json(
         { success: false, error: "ticketId requis." },
         { status: 400 }
+      );
+    }
+
+    // Contrôle strict des permissions : Seul le Directeur ou le Dev Admin peut changer le statut ou répondre en tant que support
+    if ((status || isStaff) && !isDirector && !isDevAdmin) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Action non autorisée. Seule la Direction ou l'administrateur système est habilité à modifier le statut d'un ticket ou à répondre en qualité de support.",
+        },
+        { status: 403 }
       );
     }
 

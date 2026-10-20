@@ -193,7 +193,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
                 </div>
                 <div className="pt-2">
                   <Link
-                    href={ROLE_NAVIGATIONS[userRole]?.basePath || "/censeur"}
+                    href={ROLE_NAVIGATIONS[userRole]?.basePath || "/connexion"}
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-school-primary text-white text-xs font-bold hover:bg-school-700 shadow-xs transition"
                   >
                     <span>

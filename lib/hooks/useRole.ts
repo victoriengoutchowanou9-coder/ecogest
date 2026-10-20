@@ -12,9 +12,10 @@
 
 import { usePathname } from "next/navigation";
 import { Role, ROLE_NAVIGATIONS, RoleNavigation } from "@/lib/permissions";
+import { useAuthStore } from "@/lib/auth-store";
 
 export interface RoleContext {
-  /** Rôle actif détecté depuis l'URL */
+  /** Rôle actif détecté depuis l'URL ou le compte authentifié */
   role: Role;
   /** Entrée complète du registre de navigation pour ce rôle */
   nav: RoleNavigation;
@@ -25,13 +26,12 @@ export interface RoleContext {
 }
 
 /**
- * Extrait le rôle depuis le pathname.
- * Ex: "/directeur/classes" → "directeur"
- * Ex: "/parent/notes" → "parent"
- * Fallback : "directeur"
+ * Extrait le rôle depuis le pathname s'il a un préfixe explicite.
+ * Ex: "/censeur/notes" → "censeur"
+ * Ex: "/support" → null (route neutre partagée)
  */
-export function extractRoleFromPath(pathname: string | null): Role {
-  if (!pathname) return "directeur";
+export function extractRoleFromPath(pathname: string | null): Role | null {
+  if (!pathname) return null;
   if (pathname.startsWith("/parent")) return "parent";
   if (pathname.startsWith("/comptabilite")) return "comptabilite";
   if (pathname.startsWith("/censeur")) return "censeur";
@@ -39,22 +39,28 @@ export function extractRoleFromPath(pathname: string | null): Role {
   if (pathname.startsWith("/surveillant")) return "surveillant";
   if (pathname.startsWith("/enseignant")) return "enseignant";
   if (pathname.startsWith("/directeur")) return "directeur";
-  return "directeur";
+  return null;
 }
 
 /**
  * Hook principal — retourne le contexte rôle complet.
- *
- * @example
- * const { role, nav, basePath, roleLabel } = useRole();
- * // role = "directeur"
- * // nav.items = [...7 items]
- * // basePath = "/directeur"
+ * Privilégie le rôle authentifié de l'utilisateur sur les routes partagées (/support, etc.).
  */
 export function useRole(): RoleContext {
   const pathname = usePathname();
-  const role = extractRoleFromPath(pathname);
-  const nav = ROLE_NAVIGATIONS[role];
+  const { user } = useAuthStore();
+
+  const userRole = (user?.role || "").toLowerCase() as Role;
+  const pathRole = extractRoleFromPath(pathname);
+
+  // Si l'URL a un préfixe de rôle précis (/censeur, /directeur...), on prend le rôle de l'URL.
+  // Pour les pages partagées (/support, etc.), on prend TOUJOURS le rôle authentifié de l'utilisateur.
+  // Repli sécurisé : "directeur" uniquement si aucun utilisateur n'est identifié.
+  const role: Role =
+    pathRole ||
+    (userRole && ROLE_NAVIGATIONS[userRole] ? userRole : "directeur");
+
+  const nav = ROLE_NAVIGATIONS[role] || ROLE_NAVIGATIONS.directeur;
 
   return {
     role,

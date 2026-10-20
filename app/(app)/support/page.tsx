@@ -24,7 +24,9 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useToast } from "@/components/ui/Toast";
 import { useRoleContext } from "@/lib/context/RoleContext";
+import { useAuthStore } from "@/lib/auth-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
+import { Role } from "@/lib/permissions";
 import {
   useSupportStore,
   SupportTicket,
@@ -64,12 +66,16 @@ const FAQS = [
 export default function SupportCenterPage() {
   const { toast } = useToast();
   const { role } = useRoleContext();
+  const { user } = useAuthStore();
   const { activeSchool } = useSubscriptionStore();
   const { tickets, createTicket, addReply, markUserTicketAsRead } = useSupportStore();
 
   const [activeTab, setActiveTab] = useState<"TICKETS" | "NEW" | "FAQ">("TICKETS");
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
+
+  // Rôle réel issu de l'utilisateur authentifié (Supabase) ou du contexte
+  const currentRole: Role = (user?.role || role || "directeur").toLowerCase() as Role;
 
   // Formulaire nouveau ticket
   const [formSubject, setFormSubject] = useState("");
@@ -82,13 +88,34 @@ export default function SupportCenterPage() {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [faqSearch, setFaqSearch] = useState("");
 
-  const userRolesMap: Record<string, string> = {
+  const userRolesMap: Record<Role, string> = {
     directeur: "Directeur",
     censeur: "Censeur des études",
+    secretariat: "Secrétaire",
+    surveillant: "Surveillant général",
     enseignant: "Professeur",
     comptabilite: "Comptable",
     parent: "Parent d'élève",
   };
+
+  const userRoleLabel = userRolesMap[currentRole] || "Utilisateur";
+  const schoolDisplayName = user?.schoolName || activeSchool.name || "Établissement Scolaire";
+  const schoolCity = activeSchool.city || "";
+  const schoolCountry = activeSchool.country || "Bénin";
+  const schoolLocation = [schoolCity, schoolCountry].filter(Boolean).join(", ");
+
+  // Filtrage des tickets : Un utilisateur non-directeur voit uniquement ses propres demandes
+  const displayedTickets =
+    currentRole === "directeur"
+      ? tickets
+      : tickets.filter((t) => {
+          if (!user) return true;
+          return (
+            t.userId === user.id ||
+            t.userId === `user-${currentRole}` ||
+            (user.email && t.userEmail?.toLowerCase() === user.email.toLowerCase())
+          );
+        });
 
   const handleCreateTicket = (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,13 +130,13 @@ export default function SupportCenterPage() {
       priority: formPriority,
       description: formDescription,
       attachmentName: formAttachment || undefined,
-      userId: `user-${role}`,
-      userName: `Utilisateur (${userRolesMap[role]})`,
-      userRole: userRolesMap[role],
-      userEmail: `${role}@${activeSchool.slug}.bj`,
-      userPhone: activeSchool.phone,
-      schoolId: activeSchool.id,
-      schoolName: activeSchool.name,
+      userId: user?.id || `user-${currentRole}`,
+      userName: user?.fullName || `Utilisateur (${userRoleLabel})`,
+      userRole: userRoleLabel,
+      userEmail: user?.email || `${currentRole}@${activeSchool.slug || "ecogest"}.bj`,
+      userPhone: user?.phone || activeSchool.phone || "",
+      schoolId: user?.schoolId || activeSchool.id || "",
+      schoolName: schoolDisplayName,
     });
 
     toast(`Ticket « ${created.id} » transmis à l'équipe technique avec succès !`, "success");
@@ -126,8 +153,8 @@ export default function SupportCenterPage() {
 
     addReply(
       selectedTicket.id,
-      `Vous (${userRolesMap[role]})`,
-      userRolesMap[role],
+      user?.fullName || `Vous (${userRoleLabel})`,
+      userRoleLabel,
       replyMessage,
       false
     );
@@ -190,16 +217,16 @@ export default function SupportCenterPage() {
           </div>
           <div>
             <p className="font-bold text-slate-900 text-sm">
-              Espace Support connecté &bull; {userRolesMap[role]}
+              Espace Support connecté &bull; {userRoleLabel}
             </p>
             <p className="text-slate-500">
-              Établissement rattaché : <strong className="text-slate-700">{activeSchool.name}</strong> ({activeSchool.city}, {activeSchool.country})
+              Établissement rattaché : <strong className="text-slate-700">{schoolDisplayName}</strong> {schoolLocation ? `(${schoolLocation})` : ""}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          {role === "directeur" && (
+          {currentRole === "directeur" && (
             <Link
               href="/directeur/support"
               className="px-3 py-1.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 font-bold border border-purple-200 transition"
@@ -224,7 +251,7 @@ export default function SupportCenterPage() {
               : "text-slate-600 hover:bg-slate-100"
           }`}
         >
-          Mes Demandes ({tickets.length})
+          Mes Demandes ({displayedTickets.length})
         </button>
         <button
           type="button"
@@ -257,7 +284,7 @@ export default function SupportCenterPage() {
         <div className="space-y-4">
           {!selectedTicket ? (
             <div className="space-y-3">
-              {tickets.length === 0 ? (
+              {displayedTickets.length === 0 ? (
                 <div className="text-center py-12 bg-white rounded-3xl border border-slate-200 p-8 space-y-3">
                   <LifeBuoy className="w-12 h-12 text-slate-300 mx-auto" />
                   <h3 className="font-bold text-slate-800">Aucun ticket en cours</h3>
@@ -273,7 +300,7 @@ export default function SupportCenterPage() {
                   </button>
                 </div>
               ) : (
-                tickets.map((t) => (
+                displayedTickets.map((t) => (
                   <div
                     key={t.id}
                     onClick={() => {
