@@ -29,6 +29,44 @@ export async function POST(request: Request) {
       );
     }
 
+    // Rate Limiting anti-brute force (5 tentatives / 15 min par IP)
+    const clientIp =
+      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+      request.headers.get("x-real-ip") ||
+      "127.0.0.1";
+
+    const { checkAndIncrementRateLimit, createSecurityAlert, resetRateLimit, isOffHoursAccess } =
+      await import("@/lib/server/rate-limiter");
+
+    const rateResult = await checkAndIncrementRateLimit({
+      key: `login:${clientIp}`,
+      maxAttempts: 5,
+      windowSeconds: 15 * 60,
+      blockDurationSeconds: 15 * 60,
+    });
+
+    if (!rateResult.allowed) {
+      await createSecurityAlert({
+        severity: "HIGH",
+        alertType: "BRUTE_FORCE_LOGIN",
+        title: "Tentative répétée de force brute sur l'authentification",
+        description: `Blocage temporaire de 15 minutes déclenché suite à plus de 5 tentatives infructueuses depuis l'IP ${clientIp}.`,
+        ipAddress: clientIp,
+        metadata: { identifier: cleanQuery, retryAfterSeconds: rateResult.retryAfterSeconds },
+        req: request,
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Trop de tentatives de connexion échouées. Votre accès est temporairement bloqué pendant ${Math.ceil(
+            (rateResult.retryAfterSeconds || 900) / 60
+          )} minutes.`,
+        },
+        { status: 429 }
+      );
+    }
+
     let user: any = null;
 
     // 1. Recherche directe par email dans school_users
@@ -104,6 +142,12 @@ export async function POST(request: Request) {
       }
     }
 
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "127.0.0.1";
+    const userAgent = request.headers.get("user-agent") || "Inconnu";
+
     if (!user) {
       return NextResponse.json(
         { success: false, notFound: true, error: "Identifiant ou adresse e-mail introuvable." },
@@ -111,12 +155,29 @@ export async function POST(request: Request) {
       );
     }
 
-    if (user.status === "SUSPENDU") {
+    const rawStatus = (user.status || "ACTIF").toUpperCase();
+    if (rawStatus === "SUSPENDU" || rawStatus === "BANNI" || rawStatus === "BANNED") {
+      try {
+        const { logAuthEvent } = await import("@/lib/server/audit-logger");
+        await logAuthEvent({
+          schoolId: user.school_id,
+          userId: user.id,
+          role: user.role,
+          email: user.email,
+          action: "LOGIN_FAILED",
+          failureReason: `Compte ${rawStatus.toLowerCase()}`,
+          ip,
+          userAgent,
+        });
+      } catch {}
+
       return NextResponse.json(
         {
           success: false,
           error:
-            "Ce compte utilisateur est actuellement suspendu. Veuillez contacter la Direction de votre établissement.",
+            rawStatus === "BANNI" || rawStatus === "BANNED"
+              ? "Ce compte a été définitivement banni de la plateforme."
+              : "Ce compte utilisateur est actuellement suspendu. Veuillez contacter la Direction de votre établissement.",
         },
         { status: 403 }
       );
@@ -134,6 +195,20 @@ export async function POST(request: Request) {
     }
 
     if (!isPasswordValid) {
+      try {
+        const { logAuthEvent } = await import("@/lib/server/audit-logger");
+        await logAuthEvent({
+          schoolId: user.school_id,
+          userId: user.id,
+          role: user.role,
+          email: user.email,
+          action: "LOGIN_FAILED",
+          failureReason: "Mot de passe incorrect",
+          ip,
+          userAgent,
+        });
+      } catch {}
+
       return NextResponse.json(
         { success: false, error: "Mot de passe incorrect." },
         { status: 401 }
@@ -152,25 +227,39 @@ export async function POST(request: Request) {
       school = schoolData;
     }
 
-    // Journal d'audit de connexion
+    // Journal d'audit de connexion dans audit_logs
     try {
-      const { recordSystemAuditLog } = await import("@/lib/server/dev-auth");
-      await recordSystemAuditLog({
-        eventType: "CONNEXION",
-        severity: "INFO",
-        actionTitle: `Connexion réussie de ${user.full_name} (${user.role}) - ${school?.name || "Établissement"}`,
-        details: {
-          email: user.email,
-          role: user.role,
-          schoolId: user.school_id,
-          schoolCode: school?.code || "",
-        },
-        userEmail: user.email,
-        userRole: user.role,
-        schoolName: school?.name || "",
+      const { logAuthEvent } = await import("@/lib/server/audit-logger");
+      await logAuthEvent({
         schoolId: user.school_id,
+        userId: user.id,
+        role: user.role,
+        email: user.email,
+        action: "LOGIN",
+        ip,
+        userAgent,
       });
     } catch {}
+
+    // Réinitialisation du rate limiting après succès
+    resetRateLimit(`login:${clientIp}`);
+
+    // Détection d'accès hors horaires (23h à 5h)
+    if (isOffHoursAccess()) {
+      try {
+        await createSecurityAlert({
+          schoolId: user.school_id,
+          severity: "MEDIUM",
+          alertType: "ACCES_HORS_HORAIRES",
+          title: "Accès au système en dehors des heures scolaires",
+          description: `L'utilisateur ${user.full_name} (${user.role}) s'est connecté en période nocturne (entre 23h et 5h).`,
+          userId: user.id,
+          userEmail: user.email,
+          ipAddress: clientIp,
+          req: request,
+        });
+      } catch {}
+    }
 
     const permissions = Array.isArray(user.permissions) ? user.permissions : [];
     const storedIdentifier = permissions
@@ -219,6 +308,18 @@ export async function POST(request: Request) {
       path: "/",
       maxAge: SESSION_MAX_AGE_SECONDS,
     });
+
+    if (user.school_id) {
+      try {
+        const { registerSessionInDatabase } = await import("@/lib/server/session");
+        await registerSessionInDatabase({
+          schoolId: user.school_id,
+          userId: user.id,
+          sessionToken,
+          req: request,
+        });
+      } catch {}
+    }
 
     return response;
   } catch (err: any) {
