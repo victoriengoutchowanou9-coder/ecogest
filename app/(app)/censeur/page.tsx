@@ -27,7 +27,6 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { MOCK_TEACHER_ATTENDANCES } from "@/lib/mock-data";
 import { useCenseurStore } from "@/lib/censeur-store";
 import { useFinanceStore } from "@/lib/finance-store";
 
@@ -668,24 +667,34 @@ export default function CenseurDashboardPage() {
             </Link>
           </div>
 
-          <div className="divide-y divide-slate-100">
-            {MOCK_TEACHER_ATTENDANCES.slice(0, 4).map((att) => (
-              <div key={att.id} className="py-3 flex items-center justify-between gap-3">
-                <div>
-                  <h4 className="text-xs md:text-sm font-bold text-slate-900">{att.teacherName}</h4>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {att.subject} &middot; {att.className} &middot; {att.scheduledTime}
-                  </p>
+          {attendanceItems.length > 0 ? (
+            <div className="divide-y divide-slate-100">
+              {attendanceItems.slice(0, 4).map((att) => (
+                <div key={att.id} className="py-3 flex items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-xs md:text-sm font-bold text-slate-900">{att.studentName}</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {att.subject} &middot; {att.className} &middot; {att.sessionTime}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono text-slate-600 hidden sm:inline">
+                      {att.recordedByTeacher ? `Appel par ${att.recordedByTeacher}` : "-"}
+                    </span>
+                    <StatusBadge status={att.status} size="sm" />
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-mono text-slate-600 hidden sm:inline">
-                    {att.arrivalHour ? `Arrivé à ${att.arrivalHour}` : "-"}
-                  </span>
-                  <StatusBadge status={att.status} size="sm" />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+              <CheckSquare className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+              <p className="text-xs font-semibold text-slate-600">Aucun pointage en attente pour le moment</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Les fiches d&apos;appel saisies par les professeurs apparaîtront ici pour contrôle et validation.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Action / Urgent Alerts Panel */}

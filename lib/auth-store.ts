@@ -422,6 +422,8 @@ export function useAuthStore() {
     registerSchool: authStore.registerSchool,
     registerParent: authStore.registerParent,
     validatePayment: authStore.validatePayment,
+    setAuthenticated: authStore.setAuthenticated,
+    setUnauthenticated: authStore.setUnauthenticated,
   };
 }
 

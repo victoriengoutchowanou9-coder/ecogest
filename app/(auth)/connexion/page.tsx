@@ -282,55 +282,66 @@ export default function AuthPage() {
           id: effectiveSchoolId,
           name: effectiveSchoolName,
           code: effectiveSchoolCode,
-          shortName: effectiveSchoolName.slice(0, 15),
-          city: pendingRegistration.payload.city,
-          country: pendingRegistration.payload.country,
-          phone: pendingRegistration.phone,
-          email: pendingRegistration.email,
+          shortName: createdSchoolData?.short_name || effectiveSchoolName.slice(0, 15),
+          city: createdSchoolData?.city || pendingRegistration.payload.city,
+          country: createdSchoolData?.country || pendingRegistration.payload.country,
+          phone: createdSchoolData?.phone || pendingRegistration.phone,
+          email: createdSchoolData?.email || pendingRegistration.email,
         });
 
         changeSchoolPlan(pendingRegistration.payload.plan);
 
-        authStore.login({
-          id: data.user?.id,
-          identifier: effectiveIdentifier,
-          email: pendingRegistration.email,
-          fullName: pendingRegistration.fullName,
-          role: "directeur",
-          schoolId: effectiveSchoolId,
-          schoolName: effectiveSchoolName,
-          schoolCode: effectiveSchoolCode,
-          phone: pendingRegistration.phone,
-        });
+        authStore.setAuthenticated(
+          {
+            id: data.user?.id,
+            identifier: effectiveIdentifier,
+            email: pendingRegistration.email,
+            fullName: data.user?.fullName || pendingRegistration.fullName,
+            role: "directeur",
+            schoolId: effectiveSchoolId,
+            schoolName: effectiveSchoolName,
+            schoolCode: effectiveSchoolCode,
+            phone: pendingRegistration.phone,
+            permissions: data.user?.permissions,
+          },
+          createdSchoolData
+        );
 
         toast(
-          `Compte vérifié ! Établissement « ${effectiveSchoolName} » enregistré avec succès dans Supabase ! Votre identifiant Directeur est : ${effectiveIdentifier}.`,
+          `Compte créé avec succès ! Votre identifiant de connexion est : ${effectiveIdentifier}. Redirection vers votre tableau de bord Directeur...`,
           "success"
         );
         router.push("/directeur");
       } else {
-        const effectiveSchoolCode = data.user?.schoolCode || pendingRegistration.payload.schoolCode || "0000";
+        const matchedSchool = data.school;
+        const effectiveSchoolCode = data.user?.schoolCode || matchedSchool?.code || pendingRegistration.payload.schoolCode || "0000";
         const effectiveIdentifier = data.user?.identifier || `${effectiveSchoolCode}PAR01`;
+        const effectiveSchoolId = matchedSchool?.id || data.user?.schoolId || pendingRegistration.payload.schoolId;
+        const effectiveSchoolName = matchedSchool?.name || data.user?.schoolName || pendingRegistration.payload.schoolName;
 
         changeParentPlan(pendingRegistration.payload.chosenPlan);
 
-        authStore.login({
-          id: data.user?.id,
-          identifier: effectiveIdentifier,
-          email: pendingRegistration.email,
-          fullName: pendingRegistration.fullName,
-          role: "parent",
-          schoolId: pendingRegistration.payload.schoolId,
-          schoolName: pendingRegistration.payload.schoolName,
-          schoolCode: effectiveSchoolCode,
-          phone: pendingRegistration.phone,
-        });
+        authStore.setAuthenticated(
+          {
+            id: data.user?.id,
+            identifier: effectiveIdentifier,
+            email: pendingRegistration.email,
+            fullName: data.user?.fullName || pendingRegistration.fullName,
+            role: "parent",
+            schoolId: effectiveSchoolId,
+            schoolName: effectiveSchoolName,
+            schoolCode: effectiveSchoolCode,
+            phone: pendingRegistration.phone,
+            permissions: data.user?.permissions,
+          },
+          matchedSchool
+        );
 
         toast(
-          `Compte parent vérifié avec succès ! Votre identifiant de connexion est : ${effectiveIdentifier}.`,
+          `Compte parent créé avec succès ! Votre identifiant de connexion est : ${effectiveIdentifier}. Redirection vers votre espace...`,
           "success"
         );
-        router.push("/parent/abonnement?activation=required");
+        router.push("/parent");
       }
     } catch (err) {
       console.error("[connexion-register] Erreur requête :", err);

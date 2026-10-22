@@ -107,7 +107,22 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
   // Détection du rôle requis pour la route courante
   const isSupportRoute = pathname.startsWith("/support");
-  const userRole = (currentUser?.role || "").toLowerCase() as Role;
+  const rawRole = (currentUser?.role || "").trim().toLowerCase();
+  const userRole: Role = rawRole.includes("censeur")
+    ? "censeur"
+    : rawRole.includes("directeur") || rawRole.includes("admin")
+    ? "directeur"
+    : rawRole.includes("enseignant") || rawRole.includes("prof")
+    ? "enseignant"
+    : rawRole.includes("surveillant")
+    ? "surveillant"
+    : rawRole.includes("secretari")
+    ? "secretariat"
+    : rawRole.includes("comptab")
+    ? "comptabilite"
+    : rawRole.includes("parent")
+    ? "parent"
+    : (rawRole as Role) || "directeur";
 
   const requiredRole: Role | "shared" = isSupportRoute
     ? "shared"
@@ -167,7 +182,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 min-w-0 p-4 md:p-6 lg:p-8 pb-20 md:pb-8">
+        <main className="flex-1 min-w-0 p-4 md:p-6 lg:p-8 pb-28 md:pb-8">
           <div className="max-w-7xl mx-auto w-full">
             {/* Cas 1 : Rôle non autorisé (Tentative d'accéder à un autre espace) */}
             {isRoleMismatch ? (

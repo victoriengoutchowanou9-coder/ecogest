@@ -245,9 +245,42 @@ export async function POST(request: Request) {
 }
 
 /**
- * DELETE /api/auth/session — Déconnexion : suppression du cookie de session sécurisé.
+ * DELETE /api/auth/session — Déconnexion : traçabilité et suppression du cookie de session sécurisé.
  */
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  try {
+    const token = await getSessionTokenFromCookies();
+    if (token) {
+      const verified = verifySchoolUserSessionToken(token);
+      if (verified.valid && verified.userId) {
+        const { data: user } = await supabase
+          .from("school_users")
+          .select("id, full_name, email, role, school_id")
+          .eq("id", verified.userId)
+          .maybeSingle();
+
+        if (user) {
+          const { data: school } = await supabase
+            .from("schools")
+            .select("name")
+            .eq("id", user.school_id)
+            .maybeSingle();
+
+          const { logAuthEvent } = await import("@/lib/server/audit-logger");
+          await logAuthEvent({
+            schoolId: user.school_id,
+            schoolName: school?.name,
+            userId: user.id,
+            userName: user.full_name,
+            role: user.role,
+            email: user.email,
+            action: "LOGOUT",
+          });
+        }
+      }
+    }
+  } catch {}
+
   const response = NextResponse.json({
     success: true,
     message: "Session fermée avec succès.",

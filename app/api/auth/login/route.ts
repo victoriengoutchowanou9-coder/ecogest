@@ -202,6 +202,7 @@ export async function POST(request: Request) {
         await logAuthEvent({
           schoolId: user.school_id,
           userId: user.id,
+          userName: user.full_name,
           role: user.role,
           email: user.email,
           action: "LOGIN_FAILED",
@@ -234,7 +235,9 @@ export async function POST(request: Request) {
       const { logAuthEvent } = await import("@/lib/server/audit-logger");
       await logAuthEvent({
         schoolId: user.school_id,
+        schoolName: school?.name,
         userId: user.id,
+        userName: user.full_name,
         role: user.role,
         email: user.email,
         action: "LOGIN",

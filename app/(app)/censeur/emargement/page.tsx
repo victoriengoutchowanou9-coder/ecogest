@@ -7,7 +7,7 @@ import { DataTable, Column } from "@/components/ui/DataTable";
 import { RecordCard } from "@/components/ui/RecordCard";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { MOCK_TEACHER_ATTENDANCES, TeacherAttendance } from "@/lib/mock-data";
+import { TeacherAttendance } from "@/lib/mock-data";
 import { useToast } from "@/components/ui/Toast";
 import { getScopedStorageKey } from "@/lib/school-context";
 
@@ -16,12 +16,12 @@ const getStorageKey = () => getScopedStorageKey("educogest_teacher_attendances_v
 export default function EmargementPage() {
   const { toast } = useToast();
   const [attendances, setAttendances] = useState<TeacherAttendance[]>(() => {
-    if (typeof window === "undefined") return MOCK_TEACHER_ATTENDANCES;
+    if (typeof window === "undefined") return [];
     try {
       const stored = localStorage.getItem(getStorageKey());
-      return stored ? JSON.parse(stored) : MOCK_TEACHER_ATTENDANCES;
+      return stored ? JSON.parse(stored) : [];
     } catch {
-      return MOCK_TEACHER_ATTENDANCES;
+      return [];
     }
   });
   const [search, setSearch] = useState("");

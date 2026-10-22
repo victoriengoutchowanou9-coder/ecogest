@@ -108,7 +108,7 @@ export const BottomTabBar: React.FC = () => {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 z-30 flex items-center justify-around py-1 shadow-lg no-print"
+      className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 z-30 flex items-center justify-around py-1 pb-[max(0.25rem,env(safe-area-inset-bottom,0px))] shadow-lg no-print select-none touch-manipulation"
       aria-label="Barre d'actions mobiles"
     >
       {quickItems.map((item) => {
@@ -121,7 +121,7 @@ export const BottomTabBar: React.FC = () => {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-col items-center justify-center flex-1 py-1.5 touch-target min-h-[48px] text-[11px] font-medium transition-colors",
+              "flex flex-col items-center justify-center flex-1 py-1.5 touch-target min-h-[48px] text-[11px] font-medium transition-transform active:scale-95 touch-manipulation cursor-pointer",
               isActive ? "text-school-primary font-bold" : "text-slate-500 hover:text-slate-800"
             )}
           >
@@ -140,7 +140,7 @@ export const BottomTabBar: React.FC = () => {
       <Link
         href={profileHref}
         className={cn(
-          "flex flex-col items-center justify-center flex-1 py-1.5 touch-target min-h-[48px] text-[11px] font-medium transition-colors",
+          "flex flex-col items-center justify-center flex-1 py-1.5 touch-target min-h-[48px] text-[11px] font-medium transition-transform active:scale-95 touch-manipulation cursor-pointer",
           isProfileActive ? "text-school-primary font-bold" : "text-slate-500 hover:text-slate-800"
         )}
       >

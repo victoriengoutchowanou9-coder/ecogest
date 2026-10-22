@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     }
 
     if (school && school !== "ALL") {
-      query = query.ilike("school_name", `%${school}%`);
+      query = query.or(`school_name.ilike.%${school}%,school_id.eq.${school}`);
     }
 
     if (user && user.trim()) {

@@ -50,7 +50,23 @@ export function useRole(): RoleContext {
   const pathname = usePathname();
   const { user } = useAuthStore();
 
-  const userRole = (user?.role || "").toLowerCase() as Role;
+  const rawRole = (user?.role || "").trim().toLowerCase();
+  const userRole: Role = rawRole.includes("censeur")
+    ? "censeur"
+    : rawRole.includes("directeur") || rawRole.includes("admin")
+    ? "directeur"
+    : rawRole.includes("enseignant") || rawRole.includes("prof")
+    ? "enseignant"
+    : rawRole.includes("surveillant")
+    ? "surveillant"
+    : rawRole.includes("secretari")
+    ? "secretariat"
+    : rawRole.includes("comptab")
+    ? "comptabilite"
+    : rawRole.includes("parent")
+    ? "parent"
+    : (rawRole as Role) || "directeur";
+
   const pathRole = extractRoleFromPath(pathname);
 
   // Si l'URL a un préfixe de rôle précis (/censeur, /directeur...), on prend le rôle de l'URL.

@@ -184,18 +184,36 @@ export async function POST(request: Request) {
         .select()
         .single();
 
-      if (schoolInsertError) {
+      if (schoolInsertError || !schoolRow) {
         console.error("[register] Erreur insertion schools :", schoolInsertError);
         return NextResponse.json(
           {
             success: false,
-            error: "Erreur lors de l'enregistrement de l'établissement dans la base de données.",
+            error: "Erreur lors de l'enregistrement de l'établissement dans la base de données : " + (schoolInsertError?.message || "Échec d'insertion"),
           },
           { status: 500 }
         );
       }
 
       const createdSchoolId = schoolRow.id;
+
+      // Inscription automatique dans Supabase Auth (GoTrue)
+      try {
+        await supabase.auth.signUp({
+          email: normalizedEmail,
+          password: password,
+          options: {
+            data: {
+              full_name: finalDirectorName,
+              role: "directeur",
+              school_id: createdSchoolId,
+              school_name: cleanSchoolName,
+            },
+          },
+        });
+      } catch (authErr) {
+        console.warn("[register] Note Supabase GoTrue Auth signUp :", authErr);
+      }
 
       // Insertion du directeur dans school_users avec hash sécurisé
       let passwordHash = `hash_${Date.now()}`;
@@ -205,6 +223,18 @@ export async function POST(request: Request) {
       } catch (hashErr) {
         console.warn("[register] Note hash fallback :", hashErr);
       }
+
+      const userIdentifier = `${finalSchoolCode}DIR01`;
+      const userPermissions = [
+        "ALL",
+        "MANAGE_USERS",
+        "MANAGE_SETTINGS",
+        "MANAGE_CLASSES",
+        "MANAGE_FINANCE",
+        `CODE:${finalSchoolCode}`,
+        `IDENTIFIER:${userIdentifier}`,
+        `FONCTION:Direction Générale`,
+      ];
 
       const { data: userRow, error: userInsertError } = await supabase
         .from("school_users")
@@ -216,22 +246,22 @@ export async function POST(request: Request) {
           role: "directeur",
           phone: formattedPhone,
           status: "ACTIF",
-          permissions: [
-            "ALL",
-            "MANAGE_USERS",
-            "MANAGE_SETTINGS",
-            "MANAGE_CLASSES",
-            "MANAGE_FINANCE",
-            `CODE:${finalSchoolCode}`,
-            `IDENTIFIER:${finalSchoolCode}DIR01`,
-            `FONCTION:Direction Générale`,
-          ],
+          permissions: userPermissions,
         })
         .select()
         .single();
 
-      if (userInsertError) {
+      if (userInsertError || !userRow) {
         console.error("[register] Erreur insertion school_users directeur :", userInsertError);
+        // Rollback de l'établissement créé si l'utilisateur n'a pas pu être inséré
+        await supabase.from("schools").delete().eq("id", createdSchoolId);
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Erreur lors de la création du compte administrateur dans la base de données : " + (userInsertError?.message || "Échec insertion"),
+          },
+          { status: 500 }
+        );
       }
 
       // Initialisation abonnement établissement dans Supabase
@@ -248,7 +278,7 @@ export async function POST(request: Request) {
         });
       } catch {}
 
-      // Enregistrement dans le journal d'audit développeur
+      // Enregistrement dans le journal d'audit développeur (system_audit_logs)
       try {
         const { recordSystemAuditLog } = await import("@/lib/server/dev-auth");
         await recordSystemAuditLog({
@@ -258,6 +288,7 @@ export async function POST(request: Request) {
           details: {
             email: normalizedEmail,
             role: "directeur",
+            identifier: userIdentifier,
             plan: chosenPlan,
             country: selectedCountry,
             department: selectedDept,
@@ -268,23 +299,28 @@ export async function POST(request: Request) {
           userRole: "directeur",
           schoolName: cleanSchoolName,
           schoolId: createdSchoolId,
+          ipAddress: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || "127.0.0.1",
         });
       } catch {}
 
-      const registeredUserId = userRow?.id || createdSchoolId;
-      const sessionToken = createSchoolUserSessionToken(registeredUserId, normalizedEmail);
+      const sessionToken = createSchoolUserSessionToken(userRow.id, normalizedEmail);
 
       const response = NextResponse.json({
         success: true,
         message: "Établissement et compte directeur créés avec succès !",
         user: {
-          id: registeredUserId,
+          id: userRow.id,
+          identifier: userIdentifier,
           email: normalizedEmail,
           fullName: finalDirectorName,
           role: "directeur",
+          fonction: "Direction Générale",
           phone: formattedPhone,
           schoolId: createdSchoolId,
           schoolName: cleanSchoolName,
+          schoolCode: finalSchoolCode,
+          status: "ACTIF",
+          permissions: userPermissions,
         },
         school: schoolRow,
       });
@@ -296,6 +332,18 @@ export async function POST(request: Request) {
         path: "/",
         maxAge: SESSION_MAX_AGE_SECONDS,
       });
+
+      if (createdSchoolId) {
+        try {
+          const { registerSessionInDatabase } = await import("@/lib/server/session");
+          await registerSessionInDatabase({
+            schoolId: createdSchoolId,
+            userId: userRow.id,
+            sessionToken,
+            req: request,
+          });
+        } catch {}
+      }
 
       return response;
     }
@@ -365,7 +413,7 @@ export async function POST(request: Request) {
 
       const { data: matchedSchool, error: schoolMatchErr } = await supabase
         .from("schools")
-        .select("id, name")
+        .select("id, name, code")
         .eq("id", cleanSchoolId)
         .maybeSingle();
 
@@ -382,6 +430,24 @@ export async function POST(request: Request) {
 
       const finalParentName = `${finalParentLastName.toUpperCase()} ${finalParentFirstName}`;
 
+      // Inscription automatique dans Supabase Auth (GoTrue)
+      try {
+        await supabase.auth.signUp({
+          email: normalizedEmail,
+          password: password,
+          options: {
+            data: {
+              full_name: finalParentName,
+              role: "parent",
+              school_id: matchedSchool.id,
+              school_name: matchedSchool.name,
+            },
+          },
+        });
+      } catch (authErr) {
+        console.warn("[register] Note Supabase GoTrue Auth signUp parent :", authErr);
+      }
+
       let parentPasswordHash = `hash_${Date.now()}`;
       try {
         const { hashPasswordPbkdf2 } = await import("@/lib/server/dev-auth");
@@ -394,6 +460,16 @@ export async function POST(request: Request) {
       const { normalizePhoneE164 } = await import("@/lib/server/sms");
       const formattedParentPhone = normalizePhoneE164(phone || "", "+229");
 
+      const parentSchoolCode = (matchedSchool.code || "0000").replace(/\D/g, "").slice(0, 4) || "0000";
+      const parentIdentifier = `${parentSchoolCode}PAR01`;
+      const parentPermissions = [
+        "VIEW_CHILD_RECORDS",
+        `CODE:${parentSchoolCode}`,
+        `IDENTIFIER:${parentIdentifier}`,
+        `RELATION:${cleanRelationship}`,
+        `PLAN:${chosenPlan}`,
+      ];
+
       // Insertion du parent dans school_users
       const { data: userRow, error: userInsertError } = await supabase
         .from("school_users")
@@ -405,31 +481,23 @@ export async function POST(request: Request) {
           role: "parent",
           phone: formattedParentPhone || (phone || "").trim(),
           status: "ACTIF",
-          permissions: {
-            roles: ["VIEW_CHILD_RECORDS"],
-            relationship: cleanRelationship,
-            childMatricule: (childMatricule || "").trim(),
-            childClass: (childClass || "").trim(),
-            plan: chosenPlan,
-            lastName: finalParentLastName.toUpperCase(),
-            firstName: finalParentFirstName,
-          },
+          permissions: parentPermissions,
         })
         .select()
         .single();
 
-      if (userInsertError) {
+      if (userInsertError || !userRow) {
         console.error("[register] Erreur insertion school_users parent :", userInsertError);
         return NextResponse.json(
           {
             success: false,
-            error: "Erreur lors de la création du compte parent dans la base de données.",
+            error: "Erreur lors de la création du compte parent dans la base de données : " + (userInsertError?.message || "Échec d'insertion"),
           },
           { status: 500 }
         );
       }
 
-      // Enregistrement dans le journal d'audit développeur
+      // Enregistrement dans le journal d'audit développeur (system_audit_logs)
       try {
         const { recordSystemAuditLog } = await import("@/lib/server/dev-auth");
         await recordSystemAuditLog({
@@ -439,6 +507,7 @@ export async function POST(request: Request) {
           details: {
             email: normalizedEmail,
             role: "parent",
+            identifier: parentIdentifier,
             plan: chosenPlan,
             relationship: cleanRelationship,
             schoolId: matchedSchool.id,
@@ -450,23 +519,27 @@ export async function POST(request: Request) {
           userRole: "parent",
           schoolName: matchedSchool.name,
           schoolId: matchedSchool.id,
+          ipAddress: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || "127.0.0.1",
         });
       } catch {}
 
-      const registeredParentId = userRow?.id || `usr-${Date.now()}`;
-      const sessionToken = createSchoolUserSessionToken(registeredParentId, normalizedEmail);
+      const sessionToken = createSchoolUserSessionToken(userRow.id, normalizedEmail);
 
       const response = NextResponse.json({
         success: true,
         message: "Compte parent créé avec succès !",
         user: {
-          id: registeredParentId,
+          id: userRow.id,
+          identifier: parentIdentifier,
           email: normalizedEmail,
           fullName: finalParentName,
           role: "parent",
           phone: (phone || "").trim(),
           schoolId: matchedSchool.id,
           schoolName: matchedSchool.name,
+          schoolCode: parentSchoolCode,
+          status: "ACTIF",
+          permissions: parentPermissions,
           relationship: cleanRelationship,
         },
         school: matchedSchool,
@@ -479,6 +552,20 @@ export async function POST(request: Request) {
         path: "/",
         maxAge: SESSION_MAX_AGE_SECONDS,
       });
+
+      if (matchedSchool.id) {
+        try {
+          const { registerSessionInDatabase } = await import("@/lib/server/session");
+          await registerSessionInDatabase({
+            schoolId: matchedSchool.id,
+            userId: userRow.id,
+            sessionToken,
+            req: request,
+          });
+        } catch {}
+      }
+
+      return response;
 
       return response;
     }
