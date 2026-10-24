@@ -201,6 +201,7 @@ export default function DirecteurDashboardPage() {
           <div className="pt-2 flex justify-end">
             <Link
               href="/comptabilite"
+              prefetch={false}
               className="inline-flex items-center gap-1.5 text-xs font-bold text-school-primary hover:underline"
             >
               <span>Accéder à la comptabilité complète</span>
@@ -217,7 +218,20 @@ export default function DirecteurDashboardPage() {
 
           <div className="space-y-2">
             <Link
+              href="/censeur"
+              prefetch={false}
+              className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-school-accent hover:bg-school-50/50 transition-colors touch-target"
+            >
+              <div className="flex items-center gap-2.5">
+                <BookOpenCheck className="w-4 h-4 text-blue-600" />
+                <span className="text-xs font-semibold text-slate-800">Espace Censeur des Études</span>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+            </Link>
+
+            <Link
               href="/directeur/classes"
+              prefetch={false}
               className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-school-accent hover:bg-school-50/50 transition-colors touch-target"
             >
               <div className="flex items-center gap-2.5">
@@ -229,6 +243,7 @@ export default function DirecteurDashboardPage() {
 
             <Link
               href="/directeur/utilisateurs"
+              prefetch={false}
               className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-school-accent hover:bg-school-50/50 transition-colors touch-target"
             >
               <div className="flex items-center gap-2.5">
@@ -240,6 +255,7 @@ export default function DirecteurDashboardPage() {
 
             <Link
               href="/directeur/publications"
+              prefetch={false}
               className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-school-accent hover:bg-school-50/50 transition-colors touch-target"
             >
               <div className="flex items-center gap-2.5">
@@ -251,6 +267,7 @@ export default function DirecteurDashboardPage() {
 
             <Link
               href="/directeur/audit"
+              prefetch={false}
               className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-school-accent hover:bg-school-50/50 transition-colors touch-target"
             >
               <div className="flex items-center gap-2.5">

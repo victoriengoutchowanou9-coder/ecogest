@@ -93,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, className }) => {
   const pathname = usePathname();
   const router = useRouter();
   const { role: currentRole } = useRoleContext();
-  const currentNav = ROLE_NAVIGATIONS[currentRole];
+  const currentNav = ROLE_NAVIGATIONS[currentRole] || ROLE_NAVIGATIONS.directeur;
 
   const handleLogout = async () => {
     if (onNavigate) onNavigate();
@@ -130,6 +130,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, className }) => {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 onClick={onNavigate}
                 title={item.description}
                 className={cn(

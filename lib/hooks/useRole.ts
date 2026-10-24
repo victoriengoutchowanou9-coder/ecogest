@@ -11,7 +11,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Role, ROLE_NAVIGATIONS, RoleNavigation } from "@/lib/permissions";
+import { Role, ROLE_NAVIGATIONS, RoleNavigation, normalizeRole } from "@/lib/permissions";
 import { useAuthStore } from "@/lib/auth-store";
 
 export interface RoleContext {
@@ -50,26 +50,10 @@ export function useRole(): RoleContext {
   const pathname = usePathname();
   const { user } = useAuthStore();
 
-  const rawRole = (user?.role || "").trim().toLowerCase();
-  const userRole: Role = rawRole.includes("censeur")
-    ? "censeur"
-    : rawRole.includes("directeur") || rawRole.includes("admin")
-    ? "directeur"
-    : rawRole.includes("enseignant") || rawRole.includes("prof")
-    ? "enseignant"
-    : rawRole.includes("surveillant")
-    ? "surveillant"
-    : rawRole.includes("secretari")
-    ? "secretariat"
-    : rawRole.includes("comptab")
-    ? "comptabilite"
-    : rawRole.includes("parent")
-    ? "parent"
-    : (rawRole as Role) || "directeur";
-
+  const userRole: Role = normalizeRole(user?.role);
   const pathRole = extractRoleFromPath(pathname);
 
-  // Si l'URL a un préfixe de rôle précis (/censeur, /directeur...), on prend le rôle de l'URL.
+  // Si l'URL a un préfixe de rôle précis (/censeur, /comptabilite, /directeur...), on prend le rôle de l'URL.
   // Pour les pages partagées (/support, etc.), on prend TOUJOURS le rôle authentifié de l'utilisateur.
   // Repli sécurisé : "directeur" uniquement si aucun utilisateur n'est identifié.
   const role: Role =

@@ -116,6 +116,7 @@ export default function UtilisateursPage() {
         surveillant: "Surveillant",
         enseignant: "Enseignant",
         comptabilite: "Comptable",
+        comptable: "Comptable",
         parent: "Parent",
       };
       const mapped = fallbackList.map((u) => ({

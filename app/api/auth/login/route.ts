@@ -270,7 +270,8 @@ export async function POST(request: Request) {
     const storedIdentifier = permissions
       .find((p: string) => p.startsWith("IDENTIFIER:"))
       ?.replace("IDENTIFIER:", "");
-    const cleanRole = (user.role || "directeur").toLowerCase();
+    const rawRole = (user.role || "directeur").toLowerCase().trim();
+    const cleanRole = rawRole.includes("comptab") ? "comptabilite" : rawRole;
     const cleanCode = (school?.code || "").replace(/\D/g, "").slice(0, 4);
     const rolePrefixMap: Record<string, string> = {
       directeur: "DIR",
@@ -279,6 +280,7 @@ export async function POST(request: Request) {
       surveillant: "SUR",
       enseignant: "ENS",
       comptabilite: "CPT",
+      comptable: "CPT",
       parent: "PAR",
     };
     const fallbackPrefix = rolePrefixMap[cleanRole] || "USR";

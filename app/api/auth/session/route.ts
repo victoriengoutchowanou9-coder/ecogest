@@ -15,7 +15,8 @@ function formatUserData(user: any, school: any) {
   const storedIdentifier = permissions
     .find((p: string) => typeof p === "string" && p.startsWith("IDENTIFIER:"))
     ?.replace("IDENTIFIER:", "");
-  const cleanRole = (user.role || "directeur").toLowerCase();
+  const rawRole = (user.role || "directeur").toLowerCase().trim();
+  const cleanRole = rawRole.includes("comptab") ? "comptabilite" : rawRole;
   const cleanCode = (school?.code || "").replace(/\D/g, "").slice(0, 4);
   const rolePrefixMap: Record<string, string> = {
     directeur: "DIR",
@@ -24,6 +25,7 @@ function formatUserData(user: any, school: any) {
     surveillant: "SUR",
     enseignant: "ENS",
     comptabilite: "CPT",
+    comptable: "CPT",
     parent: "PAR",
   };
   const fallbackPrefix = rolePrefixMap[cleanRole] || "USR";

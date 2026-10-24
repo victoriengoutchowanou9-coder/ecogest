@@ -82,6 +82,19 @@ export const ROLE_PERMISSIONS_MATRIX: Record<
     settings: ["read"],
     subscriptions: ["read", "create", "update"],
   },
+  comptable: {
+    grades: [],
+    bulletins: [],
+    students: ["read"],
+    classes: ["read"],
+    subjects: [],
+    payments: ["read", "create", "update"],
+    users: ["read"],
+    audit_logs: ["read"],
+    sessions: ["read"],
+    settings: ["read"],
+    subscriptions: ["read", "create", "update"],
+  },
   secretariat: {
     grades: ["read"],
     bulletins: ["read"],
@@ -144,7 +157,8 @@ export function hasPermission(
   resource: Resource,
   action: Action
 ): boolean {
-  const normalizedRole = (role || "").toLowerCase();
+  let normalizedRole = (role || "").toLowerCase().trim();
+  if (normalizedRole === "comptable") normalizedRole = "comptabilite";
   const roleRules = ROLE_PERMISSIONS_MATRIX[normalizedRole];
   if (!roleRules) return false;
 

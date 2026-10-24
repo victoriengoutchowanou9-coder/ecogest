@@ -95,6 +95,7 @@ export default function SupportCenterPage() {
     surveillant: "Surveillant général",
     enseignant: "Professeur",
     comptabilite: "Comptable",
+    comptable: "Comptable",
     parent: "Parent d'élève",
   };
 

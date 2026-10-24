@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { Role } from "@/lib/permissions";
+import { Role, normalizeRole } from "@/lib/permissions";
 import { subscriptionStore, SchoolProfile, SchoolPlanCode, ParentPlanCode } from "./subscription-store";
 import { generateUserIdentifier, validateSchoolCode } from "./user-registry";
 import { supabase } from "./supabase";
@@ -168,7 +168,7 @@ export const authStore = {
       });
     }
 
-    const cleanRole = (userData.role || "directeur").toLowerCase() as Role;
+    const cleanRole = normalizeRole(userData.role);
     const identifier = userData.identifier || generateUserIdentifier(schoolCode || "0000", cleanRole);
 
     const user: AuthUser = {
@@ -234,28 +234,29 @@ export const authStore = {
     const rawCode = params.schoolCode || activeSchool.code || "";
     const schoolCode = rawCode === "ECO-001" ? "" : rawCode;
 
-    const identifier = params.identifier || generateUserIdentifier(schoolCode || "0000", params.role);
+    const cleanRole = normalizeRole(params.role);
+    const identifier = params.identifier || generateUserIdentifier(schoolCode || "0000", cleanRole);
 
     const user: AuthUser = {
       id: params.id || `usr-${Date.now()}`,
       identifier,
       email: params.email,
       fullName: params.fullName || (
-        params.role === "directeur" ? "Directeur" :
-        params.role === "censeur" ? "Censeur des Études" :
-        params.role === "secretariat" ? "Secrétaire Pédagogique" :
-        params.role === "surveillant" ? "Surveillant Général" :
-        params.role === "enseignant" ? "Professeur" :
-        params.role === "comptabilite" ? "Comptable" :
+        cleanRole === "directeur" ? "Directeur" :
+        cleanRole === "censeur" ? "Censeur des Études" :
+        cleanRole === "secretariat" ? "Secrétaire Pédagogique" :
+        cleanRole === "surveillant" ? "Surveillant Général" :
+        cleanRole === "enseignant" ? "Professeur" :
+        cleanRole === "comptabilite" || cleanRole === "comptable" ? "Comptable" :
         "Parent d'Élève"
       ),
-      role: params.role,
+      role: cleanRole,
       schoolId,
       schoolName,
       schoolCode,
       phone: params.phone,
       permissions: params.permissions,
-      isSubscriptionPaid: params.role === "parent" ? subscriptionStore.getSnapshot().parent.status === "ACTIVE" : isPaid,
+      isSubscriptionPaid: cleanRole === "parent" ? subscriptionStore.getSnapshot().parent.status === "ACTIVE" : isPaid,
     };
 
     memoryAuthState = {

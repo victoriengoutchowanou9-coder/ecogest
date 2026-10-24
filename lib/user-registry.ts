@@ -106,6 +106,7 @@ export function generateUserIdentifier(schoolCode: string, role: Role): string {
     surveillant: "SUR",
     secretariat: "SEC",
     comptabilite: "CPT",
+    comptable: "CPT",
     enseignant: "ENS",
     parent: "PAR",
   };

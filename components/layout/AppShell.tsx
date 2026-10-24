@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { ShieldAlert, CreditCard, Sparkles, ArrowRight, Lock } from "lucide-react";
-import { ROLE_NAVIGATIONS, CURRENT_SCHOOL, Role } from "@/lib/permissions";
+import { ROLE_NAVIGATIONS, CURRENT_SCHOOL, Role, normalizeRole } from "@/lib/permissions";
 import { RoleProvider, useRoleContext } from "@/lib/context/RoleContext";
 import { useAuthStore, authStore } from "@/lib/auth-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
@@ -102,27 +102,12 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   }
 
   const handleRoleChange = (newRole: Role) => {
-    router.push(ROLE_NAVIGATIONS[newRole].basePath);
+    router.push(ROLE_NAVIGATIONS[newRole]?.basePath || "/directeur");
   };
 
   // Détection du rôle requis pour la route courante
   const isSupportRoute = pathname.startsWith("/support");
-  const rawRole = (currentUser?.role || "").trim().toLowerCase();
-  const userRole: Role = rawRole.includes("censeur")
-    ? "censeur"
-    : rawRole.includes("directeur") || rawRole.includes("admin")
-    ? "directeur"
-    : rawRole.includes("enseignant") || rawRole.includes("prof")
-    ? "enseignant"
-    : rawRole.includes("surveillant")
-    ? "surveillant"
-    : rawRole.includes("secretari")
-    ? "secretariat"
-    : rawRole.includes("comptab")
-    ? "comptabilite"
-    : rawRole.includes("parent")
-    ? "parent"
-    : (rawRole as Role) || "directeur";
+  const userRole: Role = normalizeRole(currentUser?.role);
 
   const requiredRole: Role | "shared" = isSupportRoute
     ? "shared"

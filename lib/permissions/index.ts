@@ -5,7 +5,36 @@ export type Role =
   | "surveillant"
   | "enseignant"
   | "comptabilite"
+  | "comptable"
   | "parent";
+
+export const VALID_ROLES = [
+  "directeur",
+  "censeur",
+  "secretariat",
+  "surveillant",
+  "enseignant",
+  "comptabilite",
+  "comptable",
+  "parent",
+] as const;
+
+/**
+ * Normalise uniformément les noms de rôles à travers toute l'application
+ * (Base, Supabase, JWT, session, gardes et navigation).
+ */
+export function normalizeRole(raw?: string | null): Role {
+  if (!raw) return "directeur";
+  const r = raw.trim().toLowerCase();
+  if (r.includes("censeur")) return "censeur";
+  if (r.includes("directeur") || r.includes("admin")) return "directeur";
+  if (r.includes("secretari")) return "secretariat";
+  if (r.includes("surveillant")) return "surveillant";
+  if (r.includes("enseignant") || r.includes("prof")) return "enseignant";
+  if (r.includes("comptab")) return "comptabilite";
+  if (r.includes("parent")) return "parent";
+  return "directeur";
+}
 
 /**
  * Entrée du registre de modules — inspiré du moduleRegistry GESTIO 229.
@@ -496,6 +525,80 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
   },
   comptabilite: {
     role: "comptabilite",
+    roleLabel: "Comptabilité & Finances",
+    basePath: "/comptabilite",
+    items: [
+      {
+        title: "Tableau de bord financier",
+        href: "/comptabilite",
+        iconName: "DollarSign",
+        description: "Encaissements, indicateurs clés et solde disponible",
+        permission: "finance:read",
+        mobileTabPriority: 1,
+      },
+      {
+        title: "Suivi des élèves & frais",
+        href: "/comptabilite/eleves",
+        iconName: "Users2",
+        description: "Soldes de scolarité par classe, statuts et relances",
+        permission: "students:finance",
+        mobileTabPriority: 2,
+      },
+      {
+        title: "Encaisser un paiement",
+        href: "/comptabilite/paiement",
+        iconName: "Receipt",
+        description: "Encaissement en espèces et émission du reçu officiel",
+        permission: "payments:create",
+        mobileTabPriority: 3,
+      },
+      {
+        title: "Historique & Reçus",
+        href: "/comptabilite/recus",
+        iconName: "History",
+        description: "Consultation, impression et historique permanent des reçus",
+        permission: "receipts:read",
+        mobileTabPriority: 4,
+      },
+      {
+        title: "Gestion des Dépenses",
+        href: "/comptabilite/depenses",
+        iconName: "TrendingDown",
+        description: "Enregistrement, validation et suivi des dépenses d'établissement",
+        permission: "expenses:manage",
+      },
+      {
+        title: "Salaires & Paie",
+        href: "/comptabilite/salaires",
+        iconName: "Briefcase",
+        description: "Fiches de paie du personnel, validation et bulletins individuels",
+        permission: "payroll:manage",
+      },
+      {
+        title: "Trésorerie & Caisse",
+        href: "/comptabilite/tresorerie",
+        iconName: "Wallet",
+        description: "Livre de caisse sans doublon : entrées et sorties réelles",
+        permission: "treasury:read",
+      },
+      {
+        title: "Mon Profil & Compte",
+        href: "/comptabilite/profil",
+        iconName: "UserCircle",
+        description: "Informations du compte et modification du mot de passe",
+        permission: "dashboard:read",
+      },
+      {
+        title: "Centre de Support",
+        href: "/support",
+        iconName: "LifeBuoy",
+        description: "Assistance technique, FAQ et tickets",
+        permission: "support:read",
+      },
+    ],
+  },
+  comptable: {
+    role: "comptable",
     roleLabel: "Comptabilité & Finances",
     basePath: "/comptabilite",
     items: [

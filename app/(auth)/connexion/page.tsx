@@ -23,7 +23,7 @@ import {
   FileText,
   Clock,
 } from "lucide-react";
-import { Role } from "@/lib/permissions";
+import { Role, normalizeRole } from "@/lib/permissions";
 import {
   useSubscriptionStore,
   SCHOOL_PLANS,
@@ -141,6 +141,7 @@ export default function AuthPage() {
         surveillant: "/surveillant",
         enseignant: "/enseignant",
         comptabilite: "/comptabilite",
+        comptable: "/comptabilite",
         parent: "/parent",
       };
 
@@ -195,7 +196,7 @@ export default function AuthPage() {
         return;
       }
 
-      const userRole = (loggedInUser.role || "directeur").toLowerCase() as Role;
+      const userRole = normalizeRole(loggedInUser.role);
       const schoolName = loggedInSchool?.name || loggedInUser.schoolName || "Établissement";
       const rawSchoolCode = loggedInSchool?.code || loggedInUser.schoolCode || "";
       const schoolCode = rawSchoolCode === "ECO-001" ? "" : rawSchoolCode;
@@ -227,6 +228,7 @@ export default function AuthPage() {
 
       toast(`Connexion réussie ! Bienvenue ${loggedInUser.fullName || loggedInUser.full_name}.`, "success");
       router.push(targetPath[userRole] || "/directeur");
+      router.refresh();
     } finally {
       setLoginLoading(false);
     }

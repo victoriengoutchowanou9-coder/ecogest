@@ -83,7 +83,7 @@ const ICONS: Record<string, React.ReactNode> = {
 export const BottomTabBar: React.FC = () => {
   const pathname = usePathname();
   const { role: currentRole } = useRoleContext();
-  const currentNav = ROLE_NAVIGATIONS[currentRole];
+  const currentNav = ROLE_NAVIGATIONS[currentRole] || ROLE_NAVIGATIONS.directeur;
   // Sort items by mobileTabPriority (1 = most important), fallback to original order
   const profileHref =
     currentRole === "directeur"
@@ -94,7 +94,7 @@ export const BottomTabBar: React.FC = () => {
       ? "/secretariat/profil"
       : currentRole === "surveillant"
       ? "/surveillant/profil"
-      : currentRole === "comptabilite"
+      : currentRole === "comptabilite" || currentRole === "comptable"
       ? "/comptabilite/profil"
       : currentRole === "enseignant"
       ? "/enseignant/profil"
@@ -102,7 +102,7 @@ export const BottomTabBar: React.FC = () => {
 
   const isProfileActive = pathname === profileHref || pathname?.endsWith("/profil");
 
-  const quickItems = [...currentNav.items]
+  const quickItems = [...(currentNav?.items || [])]
     .sort((a, b) => (a.mobileTabPriority ?? 99) - (b.mobileTabPriority ?? 99))
     .slice(0, 4);
 
@@ -120,6 +120,7 @@ export const BottomTabBar: React.FC = () => {
           <Link
             key={item.href}
             href={item.href}
+            prefetch={false}
             className={cn(
               "flex flex-col items-center justify-center flex-1 py-1.5 touch-target min-h-[48px] text-[11px] font-medium transition-transform active:scale-95 touch-manipulation cursor-pointer",
               isActive ? "text-school-primary font-bold" : "text-slate-500 hover:text-slate-800"
@@ -139,6 +140,7 @@ export const BottomTabBar: React.FC = () => {
       {/* Bouton Profil aligné avec les autres fonctionnalités de navigation */}
       <Link
         href={profileHref}
+        prefetch={false}
         className={cn(
           "flex flex-col items-center justify-center flex-1 py-1.5 touch-target min-h-[48px] text-[11px] font-medium transition-transform active:scale-95 touch-manipulation cursor-pointer",
           isProfileActive ? "text-school-primary font-bold" : "text-slate-500 hover:text-slate-800"

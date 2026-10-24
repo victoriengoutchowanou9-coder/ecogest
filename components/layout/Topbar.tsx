@@ -37,7 +37,7 @@ export const Topbar: React.FC<TopbarProps> = ({
 }) => {
   const { role: currentRole } = useRoleContext();
   const { user: currentUser } = useAuthStore();
-  const currentNav = ROLE_NAVIGATIONS[currentRole];
+  const currentNav = ROLE_NAVIGATIONS[currentRole] || ROLE_NAVIGATIONS.directeur;
 
   const { activeSchool, schoolPlan, schoolPlanDef } = useSubscriptionStore();
 
@@ -58,6 +58,7 @@ export const Topbar: React.FC<TopbarProps> = ({
     surveillant: <Clock className="w-4 h-4 text-orange-600" />,
     enseignant: <GraduationCap className="w-4 h-4 text-emerald-600" />,
     comptabilite: <CreditCard className="w-4 h-4 text-amber-600" />,
+    comptable: <CreditCard className="w-4 h-4 text-amber-600" />,
     parent: <Home className="w-4 h-4 text-indigo-600" />,
   };
 
