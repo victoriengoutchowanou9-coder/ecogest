@@ -36,6 +36,7 @@ import {
 } from "./types/bulletin";
 import {
   computeClassBulletins,
+  computeClassAnnualBulletins,
   computePrimaryClassBulletins,
   roundToTwoDecimals,
 } from "./bulletin-utils";
@@ -480,10 +481,69 @@ export function useBulletinStore() {
 
   const isBulletinPublished = useCallback(
     (studentId: string, classId: string, periodId: string): boolean => {
+      const isPeriodDone = bulletinStatuses[`period-${periodId}`] === "PUBLIE";
+      if (isPeriodDone) return true;
       const studentStatus = bulletinStatuses[`${studentId}-${periodId}`];
       const classStatus = bulletinStatuses[`${classId}-${periodId}`];
       const effectiveStatus = studentStatus || classStatus || "BROUILLON";
       return effectiveStatus === "PUBLIE" || effectiveStatus === "MODIFIE_APRES_PUBLICATION";
+    },
+    [bulletinStatuses]
+  );
+
+  const closeAndPublishPeriod = useCallback(
+    (periodId: string, authorName: string = "Directeur de l'Établissement") => {
+      setBulletinStatuses((prev) => {
+        const next = { ...prev };
+        next[`period-${periodId}`] = "PUBLIE";
+        classrooms.forEach((c) => {
+          next[`${c.id}-${periodId}`] = "PUBLIE";
+        });
+        safeSetStorage(getStatusesKey(), next);
+        return next;
+      });
+
+      const periodName = periods.find((p) => p.id === periodId)?.name || periodId;
+      const logEntry: BulletinAuditLog = {
+        id: `aud-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        bulletinId: `period-${periodId}`,
+        date: new Date().toISOString(),
+        authorName,
+        authorRole: "directeur",
+        action: "CLOTURE_ET_PUBLICATION_SEMESTRE",
+        fieldName: "status",
+        previousValue: "EN_COURS",
+        newValue: "PUBLIE",
+        reason: `Clôture officielle et publication générale des bulletins pour le ${periodName}`,
+      };
+
+      setAuditLogs((prev) => {
+        const next = [logEntry, ...prev];
+        safeSetStorage(getAuditKey(), next);
+        return next;
+      });
+    },
+    [classrooms, periods]
+  );
+
+  const reopenPeriod = useCallback(
+    (periodId: string) => {
+      setBulletinStatuses((prev) => {
+        const next = { ...prev };
+        delete next[`period-${periodId}`];
+        classrooms.forEach((c) => {
+          delete next[`${c.id}-${periodId}`];
+        });
+        safeSetStorage(getStatusesKey(), next);
+        return next;
+      });
+    },
+    [classrooms]
+  );
+
+  const isPeriodClosed = useCallback(
+    (periodId: string): boolean => {
+      return bulletinStatuses[`period-${periodId}`] === "PUBLIE";
     },
     [bulletinStatuses]
   );
@@ -538,6 +598,42 @@ export function useBulletinStore() {
       );
     },
     [classrooms, periods, years, students, school, subjects, grades, teachers, auditLogs, bulletinStatuses]
+  );
+
+  /**
+   * 6.b Compute annual bulletins (BULLETIN DE PASSAGE) for a classroom
+   */
+  const getClassAnnualBulletins = useCallback(
+    (classId: string, passingThreshold: number = 10.0) => {
+      if (!classId) return new Map<string, ComputedBulletin>();
+      const activeClass = classrooms.find((c) => c.id === classId);
+      if (!activeClass) return new Map<string, ComputedBulletin>();
+
+      const activeYear = years[0];
+      const classStudents = students.filter((s) => s.classId === classId);
+      if (classStudents.length === 0) return new Map<string, ComputedBulletin>();
+
+      const auditMap = new Map<string, BulletinAuditLog[]>();
+      auditLogs.forEach((log) => {
+        const current = auditMap.get(log.bulletinId) || [];
+        current.push(log);
+        auditMap.set(log.bulletinId, current);
+      });
+
+      return computeClassAnnualBulletins(
+        school,
+        activeYear,
+        activeClass,
+        classStudents,
+        subjects,
+        grades,
+        periods,
+        passingThreshold,
+        teachers,
+        auditMap
+      );
+    },
+    [classrooms, years, students, school, subjects, grades, periods, teachers, auditLogs]
   );
 
   /**
@@ -717,7 +813,11 @@ export function useBulletinStore() {
     republishBulletin,
     unpublishBulletin,
     isBulletinPublished,
+    closeAndPublishPeriod,
+    reopenPeriod,
+    isPeriodClosed,
     getClassBulletins,
+    getClassAnnualBulletins,
     getStudentBulletin,
     getPrimaryClassBulletins,
     getPrimaryStudentBulletin,

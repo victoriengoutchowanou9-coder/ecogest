@@ -279,13 +279,16 @@ export interface GradeRecord {
   studentId: string;
   subjectId: string;
   periodId: string;
-  // 3 cases d'interrogations
+  // 3 cases d'interrogations (ou moyenne directe)
   interro1?: EvaluationGrade;
   interro2?: EvaluationGrade;
   interro3?: EvaluationGrade;
-  // 2 cases de devoirs
+  moyInterro?: EvaluationGrade;
+  // Devoir surveillé & Composition
   devoir1?: EvaluationGrade;
   devoir2?: EvaluationGrade;
+  devoir?: EvaluationGrade;
+  compo?: EvaluationGrade;
   // Conduite directe
   noteConduite?: EvaluationGrade;
   teacherAppreciation?: string | null;
@@ -304,9 +307,11 @@ export interface ComputedSubjectRow {
   interro2: EvaluationGrade;
   interro3: EvaluationGrade;
   moyInterro: number | null;
-  // 2 devoirs
+  // Devoir & Compo
   devoir1: EvaluationGrade;
   devoir2: EvaluationGrade;
+  devoir: number | null;
+  compo: number | null;
   moyenne20: number | null;
   noteCoef: number | null;
   rankInSubject: number | null;
@@ -323,8 +328,30 @@ export interface DecisionConseil {
   avertissement: boolean;
 }
 
+export interface PeriodPerformance {
+  periodId: string;
+  periodName: string;
+  average: number | null;
+  rank: number | null;
+  rankFormatted: string;
+}
+
+export interface AnnualSummary {
+  periods: PeriodPerformance[];
+  annualAverage: number;
+  annualAverageInWords: string;
+  annualRank: number;
+  annualRankFormatted: string;
+  highestAnnualAvg: number;
+  lowestAnnualAvg: number;
+  annualClassAvg: number;
+  passageDecision: "PASSE EN CLASSE SUPÉRIEURE" | "REDOUBLE" | "EXCLU";
+  passingThreshold: number; // Par défaut 10.00 / 20
+}
+
 export interface ComputedBulletin {
   id: string;
+  bulletinType?: "PERIODIQUE" | "ANNUEL";
   cycle?: EducationCycle;
   student: StudentProfile;
   classRoom: ClassRoom;
@@ -352,6 +379,7 @@ export interface ComputedBulletin {
     effectiveCount: number;
   };
   decisionConseil: DecisionConseil;
+  annualSummary?: AnnualSummary;
   titulaireAppreciation: string;
   barcodeValue: string;
   verificationUrl: string;

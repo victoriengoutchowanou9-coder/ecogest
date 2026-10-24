@@ -32,6 +32,7 @@ export default function ParentNotesPage() {
   const { user: currentUser } = useAuthStore();
   const {
     getClassBulletins,
+    getClassAnnualBulletins,
     getPrimaryStudentBulletin,
     subjects,
     grades,
@@ -77,6 +78,9 @@ export default function ParentNotesPage() {
   }, [myChildren, selectedChild]);
 
   const activePeriod = useMemo(() => {
+    if (selectedPeriodId === "ANNUEL") {
+      return { id: "ANNUEL", name: "Bilan Annuel (Passage)", isCurrent: false };
+    }
     return (
       MOCK_ACADEMIC_PERIODS.find((p) => p.id === selectedPeriodId) ||
       MOCK_ACADEMIC_PERIODS[0]
@@ -92,7 +96,17 @@ export default function ParentNotesPage() {
   }, [selectedChild]);
 
   const isPrimary = selectedChild ? (selectedChild.cycle === "PRIMAIRE" || selectedChild.classId === "ce2-b") : false;
-  const isPublished = selectedChild ? isBulletinPublished(selectedChild.id, selectedChild.classId, selectedPeriodId) : false;
+
+  const isPublished = useMemo(() => {
+    if (!selectedChild) return false;
+    if (selectedPeriodId === "ANNUEL") {
+      return (
+        isBulletinPublished(selectedChild.id, selectedChild.classId, "ANNUEL") ||
+        isBulletinPublished(selectedChild.id, selectedChild.classId, "T3")
+      );
+    }
+    return isBulletinPublished(selectedChild.id, selectedChild.classId, selectedPeriodId);
+  }, [selectedChild, selectedPeriodId, isBulletinPublished]);
 
   // Liste des notes individuelles de l'élève pour la période sélectionnée
   const studentSubjectGrades = useMemo(() => {
@@ -101,19 +115,49 @@ export default function ParentNotesPage() {
       const rec = grades.find(
         (g) => g.studentId === selectedChild.id && g.subjectId === sub.id && g.periodId === selectedPeriodId
       );
+
+      let moyInterro: number | null = null;
+      if (typeof rec?.moyInterro === "number") {
+        moyInterro = rec.moyInterro;
+      } else {
+        const interros = [rec?.interro1, rec?.interro2, rec?.interro3].filter(
+          (v): v is number => typeof v === "number" && !isNaN(v)
+        );
+        if (interros.length > 0) {
+          moyInterro = interros.reduce((a, b) => a + b, 0) / interros.length;
+        }
+      }
+      const devoir: number | null = typeof rec?.devoir === "number" ? rec.devoir : typeof rec?.devoir1 === "number" ? rec.devoir1 : null;
+      const compo: number | null = typeof rec?.compo === "number" ? rec.compo : null;
+
+      const components = [moyInterro, devoir, compo].filter(
+        (v): v is number => typeof v === "number" && !isNaN(v)
+      );
+      const moySur20 = components.length > 0
+        ? components.reduce((a, b) => a + b, 0) / components.length
+        : null;
+
       return {
         subject: sub,
         gradeRecord: rec,
+        moyInterro,
+        devoir,
+        compo,
+        moySur20,
       };
     });
   }, [selectedChild, subjects, grades, selectedPeriodId]);
 
-  // Secondary Bulletin calculation
+  // Secondary Bulletin calculation (Périodique ou Annuel)
   const secondaryBulletin = useMemo(() => {
     if (!selectedChild || isPrimary || !activeClass.id) return null;
+    if (selectedPeriodId === "ANNUEL") {
+      const annualMap = getClassAnnualBulletins(activeClass.id);
+      return annualMap.get(selectedChild.id) || null;
+    }
     const bulletinsMap = getClassBulletins(activeClass.id, selectedPeriodId);
     return bulletinsMap.get(selectedChild.id) || bulletinsMap.values().next().value;
-  }, [selectedChild, isPrimary, getClassBulletins, activeClass?.id, selectedPeriodId, subjects, grades]);
+  }, [selectedChild, isPrimary, getClassAnnualBulletins, getClassBulletins, activeClass?.id, selectedPeriodId, subjects, grades]);
 
   // Primary Competency Bulletin calculation
   const primaryBulletin = useMemo(() => {
@@ -240,6 +284,7 @@ export default function ParentNotesPage() {
                   {p.name} {p.isCurrent ? "(Trimestre Actuel)" : ""}
                 </option>
               ))}
+              <option value="ANNUEL">Bilan Annuel (Bulletin de passage)</option>
             </select>
           </div>
 
@@ -328,7 +373,7 @@ export default function ParentNotesPage() {
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
             <CheckCircle2 className="w-5 h-5 text-blue-700 shrink-0 mt-0.5" />
             <div className="text-xs text-blue-900 leading-relaxed">
-              <span className="font-bold">Contrôle de validation des notes :</span> Chaque note saisie par un enseignant passe par un contrôle préalable du Censeur avant d&apos;être considérée comme définitive. Les notes en attente restent provisoires jusqu&apos;à validation finale.
+              <span className="font-bold">Contrôle de validation des notes :</span> Les notes sont saisies par les enseignants et transmises pour validation administrative. Conformément aux règles de l&apos;établissement, <strong>seules les notes validées par la direction</strong> sont visibles en temps réel par les parents. Les notes en cours d&apos;examen restent confidentielles.
             </div>
           </div>
 
@@ -344,69 +389,94 @@ export default function ParentNotesPage() {
                     <tr>
                       <th className="py-3 px-4">Matière</th>
                       <th className="py-3 px-3 text-center">Coef</th>
-                      <th className="py-3 px-3 text-center">Interro 1</th>
-                      <th className="py-3 px-3 text-center">Interro 2</th>
-                      <th className="py-3 px-3 text-center">Interro 3</th>
-                      <th className="py-3 px-3 text-center font-bold">Devoir 1</th>
-                      <th className="py-3 px-3 text-center font-bold">Devoir 2</th>
-                      <th className="py-3 px-4 text-center">Statut Censeur</th>
+                      <th className="py-3 px-3 text-center">Moy. Interros</th>
+                      <th className="py-3 px-3 text-center font-bold">Devoir</th>
+                      <th className="py-3 px-3 text-center font-bold">Compo</th>
+                      <th className="py-3 px-3 text-center font-bold text-school-primary">Moy. sur 20</th>
+                      <th className="py-3 px-4 text-center">Statut de validation</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {studentSubjectGrades.map(({ subject, gradeRecord }) => {
-                      const hasAny =
-                        gradeRecord &&
-                        (gradeRecord.interro1 !== undefined ||
-                          gradeRecord.interro2 !== undefined ||
-                          gradeRecord.interro3 !== undefined ||
-                          gradeRecord.devoir1 !== undefined ||
-                          gradeRecord.devoir2 !== undefined);
+                    {studentSubjectGrades.map(({ subject, gradeRecord, moyInterro, devoir, compo, moySur20 }) => {
+                      const hasNotes = moyInterro !== null || devoir !== null || compo !== null;
+                      const isValidated = Boolean(gradeRecord?.isValidated);
 
                       return (
                         <tr key={subject.id} className="hover:bg-slate-50/60 transition-colors">
                           <td className="py-3.5 px-4 font-semibold text-slate-800">
                             {subject.name}
                           </td>
-                          <td className="py-3.5 px-3 text-center text-slate-500">
+                          <td className="py-3.5 px-3 text-center text-slate-500 font-semibold">
                             {subject.coef}
                           </td>
+
+                          {/* Moy. Interros */}
                           <td className="py-3.5 px-3 text-center font-mono">
-                            {gradeRecord?.interro1 !== undefined && gradeRecord?.interro1 !== null
-                              ? `${gradeRecord.interro1}/20`
-                              : <span className="text-slate-300">-</span>}
+                            {!hasNotes ? (
+                              <span className="text-slate-300">-</span>
+                            ) : !isValidated ? (
+                              <span className="text-[11px] text-amber-600 italic">En attente</span>
+                            ) : moyInterro !== null ? (
+                              <span className="font-semibold text-slate-800">{moyInterro.toFixed(2)}/20</span>
+                            ) : (
+                              <span className="text-slate-300">-</span>
+                            )}
                           </td>
+
+                          {/* Devoir */}
                           <td className="py-3.5 px-3 text-center font-mono">
-                            {gradeRecord?.interro2 !== undefined && gradeRecord?.interro2 !== null
-                              ? `${gradeRecord.interro2}/20`
-                              : <span className="text-slate-300">-</span>}
+                            {!hasNotes ? (
+                              <span className="text-slate-300">-</span>
+                            ) : !isValidated ? (
+                              <span className="text-[11px] text-amber-600 italic">En attente</span>
+                            ) : devoir !== null ? (
+                              <span className="font-bold text-slate-900">{devoir.toFixed(2)}/20</span>
+                            ) : (
+                              <span className="text-slate-300">-</span>
+                            )}
                           </td>
+
+                          {/* Compo */}
                           <td className="py-3.5 px-3 text-center font-mono">
-                            {gradeRecord?.interro3 !== undefined && gradeRecord?.interro3 !== null
-                              ? `${gradeRecord.interro3}/20`
-                              : <span className="text-slate-300">-</span>}
+                            {!hasNotes ? (
+                              <span className="text-slate-300">-</span>
+                            ) : !isValidated ? (
+                              <span className="text-[11px] text-amber-600 italic">En attente</span>
+                            ) : compo !== null ? (
+                              <span className="font-bold text-slate-900">{compo.toFixed(2)}/20</span>
+                            ) : (
+                              <span className="text-slate-300">-</span>
+                            )}
                           </td>
-                          <td className="py-3.5 px-3 text-center font-mono font-bold text-slate-900">
-                            {gradeRecord?.devoir1 !== undefined && gradeRecord?.devoir1 !== null
-                              ? `${gradeRecord.devoir1}/20`
-                              : <span className="text-slate-300">-</span>}
+
+                          {/* Moy. sur 20 */}
+                          <td className="py-3.5 px-3 text-center font-mono">
+                            {!hasNotes ? (
+                              <span className="text-slate-300">-</span>
+                            ) : !isValidated ? (
+                              <span className="text-xs text-amber-700 italic font-medium">Non publiée</span>
+                            ) : moySur20 !== null ? (
+                              <span className="font-black text-school-primary px-2 py-0.5 rounded bg-school-50 border border-school-200">
+                                {moySur20.toFixed(2)}/20
+                              </span>
+                            ) : (
+                              <span className="text-slate-300">-</span>
+                            )}
                           </td>
-                          <td className="py-3.5 px-3 text-center font-mono font-bold text-slate-900">
-                            {gradeRecord?.devoir2 !== undefined && gradeRecord?.devoir2 !== null
-                              ? `${gradeRecord.devoir2}/20`
-                              : <span className="text-slate-300">-</span>}
-                          </td>
+
+                          {/* Statut validation */}
                           <td className="py-3.5 px-4 text-center">
-                            {!hasAny ? (
+                            {!hasNotes ? (
                               <span className="text-xs text-slate-400 italic">Non renseignée</span>
-                            ) : gradeRecord?.isValidated ? (
+                            ) : isValidated ? (
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                 <CheckCircle2 className="w-3.5 h-3.5" />
-                                Validée par le Censeur
+                                Validée &amp; Publiée
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
                                 <Clock className="w-3.5 h-3.5" />
-                                En cours de validation
+                                En attente de validation
                               </span>
                             )}
                           </td>
@@ -421,7 +491,7 @@ export default function ParentNotesPage() {
         </div>
       )}
 
-      {/* SECTION 2: BULLETIN TRIMESTRIEL OFFICIEL */}
+      {/* SECTION 2: BULLETIN TRIMESTRIEL OU ANNUEL OFFICIEL */}
       {activeSection === "BULLETIN" && (
         <>
           {!isPublished ? (
@@ -431,22 +501,24 @@ export default function ParentNotesPage() {
               </div>
               <div className="max-w-lg mx-auto">
                 <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                  Bulletin en cours de délibération &amp; validation officielle
+                  Bulletin en cours de délibération &amp; clôture officielle
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
-                  Les notes et évaluations de <strong>{selectedChild.firstName}</strong> pour le {activePeriod.name} sont actuellement en cours d&apos;examen par le Censeur des études.
+                  Le bulletin officiel de <strong>{selectedChild.firstName}</strong> pour le <strong>{activePeriod.name}</strong> sera accessible dès que le <strong>Directeur de l&apos;établissement aura officiellement clôturé le semestre/trimestre</strong> via son espace de direction.
                 </p>
                 <p className="text-xs text-slate-500 mt-1">
-                  Conformément à la réglementation de l&apos;établissement, le bulletin officiel récapitulatif reste confidentiel et indisponible jusqu&apos;à sa validation définitive et publication par l&apos;administration.
+                  Les notes d&apos;évaluations déjà validées restent consultables dans l&apos;onglet &laquo; Notes &amp; Évaluations individuelles &raquo;.
                 </p>
               </div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-[11px] text-slate-600 font-medium">
-                <span>Workflow :</span>
-                <span className="font-semibold text-slate-700">Enseignant (Saisie)</span>
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 font-medium">
+                <span>Workflow officiel :</span>
+                <span className="font-semibold text-slate-700">1. Saisie des notes (Enseignant)</span>
                 <span>&rarr;</span>
-                <span className="font-bold text-amber-700">Censeur (Validation en cours)</span>
+                <span className="font-semibold text-blue-700">2. Validation &amp; délibérations (Censeur)</span>
                 <span>&rarr;</span>
-                <span className="text-slate-400">Parents (Publication du Bulletin)</span>
+                <span className="font-bold text-amber-800">3. Bouton de Clôture du semestre (Directeur)</span>
+                <span>&rarr;</span>
+                <span className="font-bold text-emerald-700">4. Consultation (Parents)</span>
               </div>
             </div>
           ) : (

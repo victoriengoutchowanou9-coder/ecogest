@@ -280,6 +280,8 @@ export function computeClassBulletins(
           moyInterro: null,
           devoir1: null,
           devoir2: null,
+          devoir: null,
+          compo: null,
           moyenne20: moy,
           noteCoef: nCoef,
           rankInSubject: null,
@@ -290,74 +292,73 @@ export function computeClassBulletins(
         };
       }
 
-      // Regular subject: 3 interrogations, 2 devoirs
+      // Regular subject: 3 interrogations, devoirs & compo
+      // 1. Moyenne Interro (directe ou calculée)
+      let moyInterro: number | null = null;
       const i1 = normalizeGradeToBase20(g?.interro1 ?? null, originalScale);
       const i2 = normalizeGradeToBase20(g?.interro2 ?? null, originalScale);
       const i3 = normalizeGradeToBase20(g?.interro3 ?? null, originalScale);
 
-      const d1 = normalizeGradeToBase20(g?.devoir1 ?? null, originalScale);
-      const d2 = normalizeGradeToBase20(g?.devoir2 ?? null, originalScale);
+      if (typeof g?.moyInterro === "number") {
+        moyInterro = roundToTwoDecimals(normalizeGradeToBase20(g.moyInterro, originalScale) as number);
+      } else {
+        const rI1 = resolveEvaluationNumeric(i1);
+        const rI2 = resolveEvaluationNumeric(i2);
+        const rI3 = resolveEvaluationNumeric(i3);
+        const countedInterros = [rI1, rI2, rI3]
+          .filter((r) => r.isCounted && r.value !== null)
+          .map((r) => r.value!);
+        if (countedInterros.length > 0) {
+          moyInterro = roundToTwoDecimals(
+            countedInterros.reduce((acc, v) => acc + v, 0) / countedInterros.length
+          );
+        }
+      }
 
-      const rI1 = resolveEvaluationNumeric(i1);
-      const rI2 = resolveEvaluationNumeric(i2);
-      const rI3 = resolveEvaluationNumeric(i3);
+      // 2. Devoir
+      let devoir: number | null = null;
+      const rawDevoir = g?.devoir ?? g?.devoir1 ?? null;
+      const normDevoir = normalizeGradeToBase20(rawDevoir, originalScale);
+      const rDevoir = resolveEvaluationNumeric(normDevoir);
+      if (rDevoir.isCounted && rDevoir.value !== null) {
+        devoir = roundToTwoDecimals(rDevoir.value);
+      }
 
-      const rD1 = resolveEvaluationNumeric(d1);
-      const rD2 = resolveEvaluationNumeric(d2);
+      // 3. Compo
+      let compo: number | null = null;
+      const rawCompo = g?.compo ?? g?.devoir2 ?? null;
+      const normCompo = normalizeGradeToBase20(rawCompo, originalScale);
+      const rCompo = resolveEvaluationNumeric(normCompo);
+      if (rCompo.isCounted && rCompo.value !== null) {
+        compo = roundToTwoDecimals(rCompo.value);
+      }
 
-      // Check if at least some evaluations are filled
-      const hasAnyInterro = rI1.isCounted || rI2.isCounted || rI3.isCounted;
-      const hasAnyDevoir = rD1.isCounted || rD2.isCounted;
+      // Évaluations réellement saisies pour cette matière
+      const components: number[] = [];
+      if (moyInterro !== null) components.push(moyInterro);
+      if (devoir !== null) components.push(devoir);
+      if (compo !== null) components.push(compo);
 
-      let moyInterro: number | null = null;
+      const hasGrade = components.length > 0;
       let moy: number | null = null;
       let nCoef: number | null = null;
-      const hasGrade = hasAnyInterro && hasAnyDevoir;
 
       if (hasGrade) {
-        // Interrogations : moyenne des interrogations réellement évaluées (règle explicite contre les zéros arbitraires)
-        const countedInterroVals = [rI1, rI2, rI3]
-          .filter((r) => r.isCounted && r.value !== null)
-          .map((r) => r.value!);
+        // Formule officielle Bénin : Moy. sur 20 = moyenne de (Moy. interro, Devoir, Compo) en ne comptant que les notes saisies
+        moy = roundToTwoDecimals(components.reduce((acc, v) => acc + v, 0) / components.length);
+        nCoef = roundToTwoDecimals(moy * subj.coef);
+        totalCoef += subj.coef;
+        totalNoteCoef += nCoef;
 
-        moyInterro =
-          countedInterroVals.length > 0
-            ? roundToTwoDecimals(
-                countedInterroVals.reduce((acc, v) => acc + v, 0) / countedInterroVals.length
-              )
-            : null;
-
-        // Devoirs : devoirs surveillés réellement évalués
-        const countedDevoirVals = [rD1, rD2]
-          .filter((r) => r.isCounted && r.value !== null)
-          .map((r) => r.value!);
-
-        if (moyInterro !== null && countedDevoirVals.length > 0) {
-          // Formule officielle Bénin secondaire adaptée aux devoirs réalisés :
-          // Si 2 devoirs : (MoyInterro + Dev1 + Dev2) / 3
-          // Si 1 devoir : (MoyInterro + Dev1) / 2
-          const totalDevoirSum = countedDevoirVals.reduce((acc, v) => acc + v, 0);
-          const divisor = 1 + countedDevoirVals.length;
-          moy = roundToTwoDecimals((moyInterro + totalDevoirSum) / divisor);
+        if (subj.category === "LITTÉRAIRE") {
+          littCoef += subj.coef;
+          littNoteCoef += nCoef;
+        } else if (subj.category === "SCIENTIFIQUE") {
+          sciCoef += subj.coef;
+          sciNoteCoef += nCoef;
         } else {
-          moy = moyInterro;
-        }
-
-        if (moy !== null) {
-          nCoef = roundToTwoDecimals(moy * subj.coef);
-          totalCoef += subj.coef;
-          totalNoteCoef += nCoef;
-
-          if (subj.category === "LITTÉRAIRE") {
-            littCoef += subj.coef;
-            littNoteCoef += nCoef;
-          } else if (subj.category === "SCIENTIFIQUE") {
-            sciCoef += subj.coef;
-            sciNoteCoef += nCoef;
-          } else {
-            autreCoef += subj.coef;
-            autreNoteCoef += nCoef;
-          }
+          autreCoef += subj.coef;
+          autreNoteCoef += nCoef;
         }
       }
 
@@ -374,8 +375,10 @@ export function computeClassBulletins(
         interro2: i2,
         interro3: i3,
         moyInterro,
-        devoir1: d1,
-        devoir2: d2,
+        devoir1: normDevoir,
+        devoir2: normCompo,
+        devoir,
+        compo,
         moyenne20: moy,
         noteCoef: nCoef,
         rankInSubject: null,
@@ -482,10 +485,11 @@ export function computeClassBulletins(
     const mention = getAppreciationFromGrade(item.generalAverage);
     const avgInWords = numberToFrenchWords(item.generalAverage);
 
+    // Décision du Conseil des enseignants (une case cochée selon le barème officiel)
     const decisionConseil: DecisionConseil = {
       felicitation: item.generalAverage >= 16,
       encouragement: item.generalAverage >= 14 && item.generalAverage < 16,
-      tableauHonneur: item.generalAverage >= 12,
+      tableauHonneur: item.generalAverage >= 12 && item.generalAverage < 14,
       avertissement: item.generalAverage < 10,
     };
 
@@ -507,6 +511,7 @@ export function computeClassBulletins(
 
     const computed: ComputedBulletin = {
       id: `blt-${item.student.id}-${period.id}`,
+      bulletinType: "PERIODIQUE",
       student: item.student,
       classRoom,
       school,
@@ -542,6 +547,192 @@ export function computeClassBulletins(
   });
 
   return resultMap;
+}
+
+/**
+ * Calcule les bulletins annuels (BULLETIN DE PASSAGE) pour toute la classe
+ * Fait la synthèse des périodes T1, T2, T3 (ou S1, S2) avec moyennes, rangs et décision de passage.
+ */
+export function computeClassAnnualBulletins(
+  school: SchoolSettings,
+  academicYear: AcademicYear,
+  classRoom: ClassRoom,
+  students: StudentProfile[],
+  subjects: SubjectConfig[],
+  grades: GradeRecord[],
+  periods: AcademicPeriod[],
+  passingThreshold: number = 10.0,
+  teachers: TeacherInfo[] = [],
+  auditLogsMap: Map<string, BulletinAuditLog[]> = new Map(),
+  statusMap?: Map<string, BulletinStatus>
+): Map<string, ComputedBulletin> {
+  const annualMap = new Map<string, ComputedBulletin>();
+  if (!students || students.length === 0) return annualMap;
+
+  // 1. Calcul des bulletins périodiques pour chaque trimestre/semestre
+  const periodBulletins = new Map<string, Map<string, ComputedBulletin>>();
+  periods.forEach((p) => {
+    periodBulletins.set(
+      p.id,
+      computeClassBulletins(
+        school,
+        academicYear,
+        p,
+        classRoom,
+        students,
+        subjects,
+        grades,
+        teachers,
+        auditLogsMap,
+        statusMap
+      )
+    );
+  });
+
+  // Période de référence pour le tableau des matières (dernière période T3 par défaut)
+  const lastPeriod = periods[periods.length - 1] || periods[0];
+  const lastPeriodMap = periodBulletins.get(lastPeriod.id) || new Map<string, ComputedBulletin>();
+
+  interface StudentAnnualInterim {
+    student: StudentProfile;
+    referenceBulletin: ComputedBulletin;
+    periodPerformances: {
+      periodId: string;
+      periodName: string;
+      average: number | null;
+      rank: number | null;
+      rankFormatted: string;
+    }[];
+    annualAverage: number;
+  }
+
+  const interimList: StudentAnnualInterim[] = [];
+
+  students.forEach((std) => {
+    const refBulletin =
+      lastPeriodMap.get(std.id) ||
+      computeClassBulletins(
+        school,
+        academicYear,
+        lastPeriod,
+        classRoom,
+        [std],
+        subjects,
+        grades,
+        teachers,
+        auditLogsMap,
+        statusMap
+      ).get(std.id);
+
+    if (!refBulletin) return;
+
+    const perfs = periods.map((p) => {
+      const b = periodBulletins.get(p.id)?.get(std.id);
+      return {
+        periodId: p.id,
+        periodName: p.name,
+        average: b && b.totalCoef > 0 ? b.generalAverage : null,
+        rank: b?.rank || null,
+        rankFormatted: b?.rankFormatted || "…",
+      };
+    });
+
+    const validAvgs = perfs.filter((p) => p.average !== null && p.average > 0).map((p) => p.average!);
+    const annualAvg =
+      validAvgs.length > 0
+        ? roundToTwoDecimals(validAvgs.reduce((a, b) => a + b, 0) / validAvgs.length)
+        : refBulletin.generalAverage;
+
+    interimList.push({
+      student: std,
+      referenceBulletin: refBulletin,
+      periodPerformances: perfs,
+      annualAverage: annualAvg,
+    });
+  });
+
+  // Classement annuel de la classe avec gestion des ex æquo
+  interimList.sort((a, b) => b.annualAverage - a.annualAverage);
+  const annualRankMap = new Map<string, { rank: number; isEx: boolean; formatted: string }>();
+
+  let currRank = 1;
+  for (let i = 0; i < interimList.length; i++) {
+    if (i > 0 && interimList[i].annualAverage === interimList[i - 1].annualAverage) {
+      // Ex æquo
+    } else {
+      currRank = i + 1;
+    }
+    const isEx =
+      (i > 0 && interimList[i].annualAverage === interimList[i - 1].annualAverage) ||
+      (i < interimList.length - 1 && interimList[i].annualAverage === interimList[i + 1].annualAverage);
+
+    annualRankMap.set(interimList[i].student.id, {
+      rank: currRank,
+      isEx,
+      formatted: formatRank(currRank, isEx),
+    });
+  }
+
+  // Statistiques annuelles de la classe
+  const validAnnualAvgs = interimList.map((i) => i.annualAverage).filter((a) => a > 0);
+  const highestAnnualAvg = validAnnualAvgs.length > 0 ? Math.max(...validAnnualAvgs) : 0;
+  const lowestAnnualAvg = validAnnualAvgs.length > 0 ? Math.min(...validAnnualAvgs) : 0;
+  const annualClassAvg =
+    validAnnualAvgs.length > 0
+      ? roundToTwoDecimals(validAnnualAvgs.reduce((a, b) => a + b, 0) / validAnnualAvgs.length)
+      : 0;
+
+  // Construction du bulletin de passage annuel final
+  interimList.forEach((item) => {
+    const rankInfo = annualRankMap.get(item.student.id) || { rank: 1, isEx: false, formatted: "1er" };
+    const avgInWords = numberToFrenchWords(item.annualAverage);
+
+    // Décision finale officielle selon seuil de passage configurable
+    let passageDecision: "PASSE EN CLASSE SUPÉRIEURE" | "REDOUBLE" | "EXCLU" = "REDOUBLE";
+    if (item.annualAverage >= passingThreshold) {
+      passageDecision = "PASSE EN CLASSE SUPÉRIEURE";
+    } else if (item.annualAverage >= passingThreshold - 1.0) {
+      passageDecision = "REDOUBLE";
+    } else {
+      passageDecision = "EXCLU";
+    }
+
+    const annualSummary = {
+      periods: item.periodPerformances,
+      annualAverage: item.annualAverage,
+      annualAverageInWords: avgInWords,
+      annualRank: rankInfo.rank,
+      annualRankFormatted: rankInfo.formatted,
+      highestAnnualAvg,
+      lowestAnnualAvg,
+      annualClassAvg,
+      passageDecision,
+      passingThreshold,
+    };
+
+    const annualBulletin: ComputedBulletin = {
+      ...item.referenceBulletin,
+      id: `blt-annuel-${item.student.id}`,
+      bulletinType: "ANNUEL",
+      annualSummary,
+      generalAverage: item.annualAverage,
+      generalAverageInWords: avgInWords,
+      rank: rankInfo.rank,
+      isRankExAequo: rankInfo.isEx,
+      rankFormatted: rankInfo.formatted,
+      mention: getAppreciationFromGrade(item.annualAverage),
+      decisionConseil: {
+        felicitation: item.annualAverage >= 16,
+        encouragement: item.annualAverage >= 14 && item.annualAverage < 16,
+        tableauHonneur: item.annualAverage >= 12 && item.annualAverage < 14,
+        avertissement: item.annualAverage < 10,
+      },
+    };
+
+    annualMap.set(item.student.id, annualBulletin);
+  });
+
+  return annualMap;
 }
 
 /**

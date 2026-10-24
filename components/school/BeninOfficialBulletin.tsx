@@ -170,10 +170,10 @@ export const BeninOfficialBulletin: React.FC<BeninOfficialBulletinProps> = ({
         </div>
       </div>
 
-      {/* 2) TITRE : BULLETIN DE NOTES centré, grand, gras, dans un cadre */}
-      <div className="border border-black bg-gray-100 py-0.5 px-4 text-center mb-1.5">
+      {/* 2) TITRE : BULLETIN DE NOTES ou BULLETIN DE PASSAGE centré, grand, gras, dans un cadre */}
+      <div className="border border-black bg-gray-100 py-1 px-4 text-center mb-1.5">
         <h2 className="text-xs sm:text-sm print:text-xs font-black tracking-widest uppercase text-black">
-          BULLETIN DE NOTES
+          {bulletin.bulletinType === "ANNUEL" ? "BULLETIN DE PASSAGE" : "BULLETIN DE NOTES"}
         </h2>
       </div>
 
@@ -210,40 +210,34 @@ export const BeninOfficialBulletin: React.FC<BeninOfficialBulletinProps> = ({
         </div>
       </div>
 
-      {/* 4) TABLEAU DES NOTES (avec 3 cases Interro + Moyenne Interro + 2 cases Devoir) */}
+      {/* 4) TABLEAU DES NOTES (Format officiel béninois 9 colonnes : Matières | Coef | Moy. Interro | Devoir | Compo | Moy. sur 20 | Note Coef. | Rang | Appréciation) */}
       <div className="border border-black mb-1.5 overflow-hidden">
         <table className="w-full border-collapse text-center text-[9px] print:text-[7.8px]">
           <thead>
-            {/* Double header for Interrogations and Devoirs */}
             <tr className="bg-gray-200 border-b border-black font-bold uppercase text-[7.5px] print:text-[6.8px] text-black">
-              <th rowSpan={2} className="border-r border-black p-1 text-left w-[23%]">Matières</th>
-              <th rowSpan={2} className="border-r border-black p-0.5 w-[4%]">Coef</th>
-              <th colSpan={4} className="border-r border-black p-0.5 text-center bg-gray-300/80">
-                (Int 1 + Int 2 + Int 3) &divide; 3 = Moy. Interro
+              <th className="border-r border-black p-1 text-left w-[22%]">Matières</th>
+              <th className="border-r border-black p-0.5 w-[5%]">Coef</th>
+              <th className="border-r border-black p-0.5 w-[10%] bg-gray-300/60" title="Moyenne des interrogations">
+                Moy. Interro
               </th>
-              <th colSpan={2} className="border-r border-black p-0.5 text-center bg-gray-200">
-                Devoirs
+              <th className="border-r border-black p-0.5 w-[9%]" title="Devoir surveillé">
+                Devoir
               </th>
-              <th rowSpan={2} className="border-r border-black p-0.5 w-[9%] bg-gray-100" title="(Moy. Interro + Devoir 1 + Devoir 2) ÷ 3">
-                Moy. / 20
+              <th className="border-r border-black p-0.5 w-[9%]" title="Composition trimestrielle">
+                Compo
               </th>
-              <th rowSpan={2} className="border-r border-black p-0.5 w-[8%]" title="Moyenne / 20 × Coef">
+              <th className="border-r border-black p-0.5 w-[10%] bg-gray-100 font-black" title="Moyenne des notes saisies">
+                Moy. sur 20
+              </th>
+              <th className="border-r border-black p-0.5 w-[9%]" title="Moyenne sur 20 × Coef">
                 Note Coef.
               </th>
-              <th rowSpan={2} className="border-r border-black p-0.5 w-[6%]">
+              <th className="border-r border-black p-0.5 w-[7%]">
                 Rang
               </th>
-              <th rowSpan={2} className="p-1 text-left w-[18%]">
-                Appréciations
+              <th className="p-1 text-left w-[19%]">
+                Appréciation de l&apos;enseignant
               </th>
-            </tr>
-            <tr className="bg-gray-100 border-b border-black font-semibold text-[7.5px] print:text-[6.5px]">
-              <th className="border-r border-black p-0.5 w-[5%]">Int 1</th>
-              <th className="border-r border-black p-0.5 w-[5%]">Int 2</th>
-              <th className="border-r border-black p-0.5 w-[5%]">Int 3</th>
-              <th className="border-r border-black p-0.5 w-[6%] font-bold bg-gray-200">Moy.</th>
-              <th className="border-r border-black p-0.5 w-[5%]">Dev 1</th>
-              <th className="border-r border-black p-0.5 w-[5%]">Dev 2</th>
             </tr>
           </thead>
 
@@ -251,41 +245,7 @@ export const BeninOfficialBulletin: React.FC<BeninOfficialBulletinProps> = ({
             {rows.map((row, idx) => {
               const isEditable = Boolean(editableSubjectId && row.subjectId === editableSubjectId);
 
-              // Helper for rendering an evaluation input or read-only text
-              const renderEvaluationInput = (
-                field: "interro1" | "interro2" | "interro3" | "devoir1" | "devoir2",
-                currentVal: EvaluationGrade | undefined
-              ) => {
-                if (!isEditable || !onGradeChange) {
-                  return renderGradeCell(currentVal);
-                }
-
-                const numVal = typeof currentVal === "number" ? currentVal : "";
-                return (
-                  <input
-                    type="number"
-                    step="0.25"
-                    min="0"
-                    max="20"
-                    value={numVal}
-                    placeholder="-"
-                    onChange={(e) => {
-                      const raw = e.target.value.trim();
-                      if (raw === "") {
-                        onGradeChange(student.id, row.subjectId, field, null);
-                      } else {
-                        const parsed = parseFloat(raw.replace(",", "."));
-                        if (!isNaN(parsed) && parsed >= 0 && parsed <= 20) {
-                          onGradeChange(student.id, row.subjectId, field, parsed);
-                        }
-                      }
-                    }}
-                    className="w-10 text-center font-bold border border-blue-500 bg-white rounded text-[8.5px] py-0.5 focus:ring-1 focus:ring-blue-600 focus:outline-none print:border-none print:bg-transparent print:p-0"
-                  />
-                );
-              };
-
-              // Conduite rule: Direct grade, no interro nor devoir
+              // Conduite : 1 seule note directe sur 20
               if (row.isConduite) {
                 return (
                   <tr
@@ -294,58 +254,15 @@ export const BeninOfficialBulletin: React.FC<BeninOfficialBulletinProps> = ({
                   >
                     <td className="border-r border-black p-1 text-left font-bold truncate">
                       <span>{row.subjectName}</span>
-                      {isEditable && (
-                        <span className="no-print ml-1 px-1 py-0.5 rounded bg-blue-600 text-white text-[6.5px] font-bold inline-block">
-                          Ma Matière
-                        </span>
-                      )}
                     </td>
                     <td className="border-r border-black p-0.5 font-semibold">
-                      {isEditable && onCoefChange ? (
-                        <input
-                          type="number"
-                          min="1"
-                          max="10"
-                          value={row.coef}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value, 10);
-                            if (!isNaN(val) && val >= 1 && val <= 10) {
-                              onCoefChange(row.subjectId, val);
-                            }
-                          }}
-                          className="w-8 text-center font-black border border-blue-500 bg-white rounded text-[8.5px] py-0.5 focus:outline-none print:border-none print:p-0"
-                        />
-                      ) : (
-                        row.coef
-                      )}
+                      {row.coef}
                     </td>
-                    <td colSpan={6} className="border-r border-black p-0.5 text-gray-500 font-mono text-[7.5px] italic bg-gray-50/50">
-                      Note de conduite directe (sans interrogation ni devoir)
-                    </td>
+                    <td className="border-r border-black p-0.5 text-gray-400 font-mono text-[8px]">—</td>
+                    <td className="border-r border-black p-0.5 text-gray-400 font-mono text-[8px]">—</td>
+                    <td className="border-r border-black p-0.5 text-gray-400 font-mono text-[8px]">—</td>
                     <td className="border-r border-black p-0.5 font-black bg-gray-100 font-mono">
-                      {isEditable && onGradeChange ? (
-                        <input
-                          type="number"
-                          step="0.25"
-                          min="0"
-                          max="20"
-                          value={typeof row.moyenne20 === "number" ? row.moyenne20 : ""}
-                          onChange={(e) => {
-                            const raw = e.target.value.trim();
-                            if (raw === "") {
-                              onGradeChange(student.id, row.subjectId, "noteConduite", null);
-                            } else {
-                              const parsed = parseFloat(raw.replace(",", "."));
-                              if (!isNaN(parsed) && parsed >= 0 && parsed <= 20) {
-                                onGradeChange(student.id, row.subjectId, "noteConduite", parsed);
-                              }
-                            }
-                          }}
-                          className="w-10 text-center font-black border border-blue-500 bg-white rounded text-[8.5px] py-0.5 focus:ring-1 focus:ring-blue-600 focus:outline-none print:border-none print:bg-transparent print:p-0"
-                        />
-                      ) : (
-                        row.moyenne20 !== null ? row.moyenne20.toFixed(2) : "…"
-                      )}
+                      {row.moyenne20 !== null ? row.moyenne20.toFixed(2) : "…"}
                     </td>
                     <td className="border-r border-black p-0.5 font-bold font-mono">
                       {row.noteCoef !== null ? row.noteCoef.toFixed(2) : "…"}
@@ -354,36 +271,23 @@ export const BeninOfficialBulletin: React.FC<BeninOfficialBulletinProps> = ({
                       {row.rankFormatted}
                     </td>
                     <td className="p-1 text-left text-[8px] text-gray-800">
-                      {isEditable && onAppreciationChange ? (
-                        <input
-                          type="text"
-                          value={row.appreciation === "…" ? "" : row.appreciation}
-                          onChange={(e) => onAppreciationChange(student.id, row.subjectId, e.target.value)}
-                          placeholder="Appréciation conduite..."
-                          className="w-full text-[8px] border border-blue-500 bg-white rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-600 print:border-none print:p-0"
-                        />
-                      ) : (
-                        <span className="italic truncate block">{row.appreciation}</span>
-                      )}
+                      <span className="italic truncate block">{row.appreciation}</span>
                     </td>
                   </tr>
                 );
               }
 
-              // Missing grade / unnoted subject (and not current editable subject)
-              if (!row.hasGrade && !isEditable) {
+              // Matière sans note saisie (ex: ECE) : ligne affichée vide, exclue des totaux
+              if (!row.hasGrade) {
                 return (
                   <tr key={row.subjectId || idx} className="hover:bg-gray-50 text-gray-400">
                     <td className="border-r border-black p-1 text-left font-medium text-gray-600 truncate">
                       {row.subjectName}
                     </td>
-                    <td className="border-r border-black p-0.5">
+                    <td className="border-r border-black p-0.5 text-gray-400">
                       {row.coef}
                     </td>
                     <td className="border-r border-black p-0.5 font-mono"></td>
-                    <td className="border-r border-black p-0.5 font-mono"></td>
-                    <td className="border-r border-black p-0.5 font-mono"></td>
-                    <td className="border-r border-black p-0.5 font-mono bg-gray-50"></td>
                     <td className="border-r border-black p-0.5 font-mono"></td>
                     <td className="border-r border-black p-0.5 font-mono"></td>
                     <td className="border-r border-black p-0.5 font-mono bg-gray-50"></td>
@@ -405,48 +309,18 @@ export const BeninOfficialBulletin: React.FC<BeninOfficialBulletinProps> = ({
                 >
                   <td className="border-r border-black p-1 text-left font-bold truncate">
                     <span>{row.subjectName}</span>
-                    {isEditable && (
-                      <span className="no-print ml-1.5 px-1 py-0.5 rounded bg-blue-600 text-white text-[6.5px] font-bold inline-block">
-                        Ma Matière
-                      </span>
-                    )}
                   </td>
                   <td className="border-r border-black p-0.5 font-semibold">
-                    {isEditable && onCoefChange ? (
-                      <input
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={row.coef}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value, 10);
-                          if (!isNaN(val) && val >= 1 && val <= 10) {
-                            onCoefChange(row.subjectId, val);
-                          }
-                        }}
-                        className="w-8 text-center font-black border border-blue-500 bg-white rounded text-[8.5px] py-0.5 focus:outline-none print:border-none print:p-0"
-                      />
-                    ) : (
-                      row.coef
-                    )}
+                    {row.coef}
                   </td>
-                  <td className="border-r border-black p-0.5 font-mono">
-                    {renderEvaluationInput("interro1", row.interro1)}
-                  </td>
-                  <td className="border-r border-black p-0.5 font-mono">
-                    {renderEvaluationInput("interro2", row.interro2)}
-                  </td>
-                  <td className="border-r border-black p-0.5 font-mono">
-                    {renderEvaluationInput("interro3", row.interro3)}
-                  </td>
-                  <td className="border-r border-black p-0.5 font-mono font-bold bg-gray-100">
+                  <td className="border-r border-black p-0.5 font-mono bg-gray-50 font-medium">
                     {row.moyInterro !== null ? row.moyInterro.toFixed(2) : "-"}
                   </td>
                   <td className="border-r border-black p-0.5 font-mono">
-                    {renderEvaluationInput("devoir1", row.devoir1)}
+                    {row.devoir !== null ? row.devoir.toFixed(2) : "-"}
                   </td>
                   <td className="border-r border-black p-0.5 font-mono">
-                    {renderEvaluationInput("devoir2", row.devoir2)}
+                    {row.compo !== null ? row.compo.toFixed(2) : "-"}
                   </td>
                   <td className="border-r border-black p-0.5 font-black bg-gray-100 font-mono">
                     {row.moyenne20 !== null ? row.moyenne20.toFixed(2) : "-"}
@@ -458,17 +332,7 @@ export const BeninOfficialBulletin: React.FC<BeninOfficialBulletinProps> = ({
                     {row.rankFormatted}
                   </td>
                   <td className="p-1 text-left text-[8px] text-gray-800">
-                    {isEditable && onAppreciationChange ? (
-                      <input
-                        type="text"
-                        value={row.appreciation === "…" ? "" : row.appreciation}
-                        onChange={(e) => onAppreciationChange(student.id, row.subjectId, e.target.value)}
-                        placeholder="Rédiger appréciation..."
-                        className="w-full text-[8px] border border-blue-500 bg-white rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-600 print:border-none print:p-0"
-                      />
-                    ) : (
-                      <span className="italic truncate block">{row.appreciation}</span>
-                    )}
+                    <span className="italic truncate block">{row.appreciation}</span>
                   </td>
                 </tr>
               );
@@ -484,7 +348,7 @@ export const BeninOfficialBulletin: React.FC<BeninOfficialBulletinProps> = ({
               <td className="border-r border-black p-0.5 font-black text-center">
                 {totalCoef}
               </td>
-              <td colSpan={7} className="border-r border-black p-0.5 text-right pr-2">
+              <td colSpan={4} className="border-r border-black p-0.5 text-right pr-2">
                 TOTAL DES NOTES COEFFICIENTÉES :
               </td>
               <td className="border-r border-black p-0.5 font-black text-center bg-gray-200 font-mono">
@@ -638,34 +502,131 @@ export const BeninOfficialBulletin: React.FC<BeninOfficialBulletinProps> = ({
         </div>
       </div>
 
-      {/* 8) VALIDATION ADMINISTRATIVE & SIGNATURE DE LA DIRECTION */}
-      <div className="border border-black mb-1.5 text-center text-[9px] print:text-[8px] bg-white">
+      {/* 7.1) BLOC « BILAN ANNUEL » (UNIQUEMENT SUR BULLETIN ANNUEL / BULLETIN DE PASSAGE) */}
+      {bulletin.bulletinType === "ANNUEL" && bulletin.annualSummary && (
+        <div className="border border-black mb-1.5 p-1.5 bg-slate-50 text-[9px] print:text-[8px] space-y-1">
+          <div className="border-b border-black pb-0.5 text-center font-black uppercase tracking-wider bg-gray-200 py-0.5 text-[8.5px]">
+            BILAN ANNUEL DE L&apos;APPRENANT
+          </div>
+
+          <div className="grid grid-cols-3 divide-x divide-black border border-black bg-white text-center">
+            {bulletin.annualSummary.periods.map((p) => (
+              <div key={p.periodId} className="p-1">
+                <span className="font-bold text-[8px] uppercase text-gray-700 block">
+                  {p.periodName}
+                </span>
+                <p className="text-[10px] font-black font-mono mt-0.5">
+                  {p.average !== null ? `${p.average.toFixed(2)} / 20` : "—"}
+                </p>
+                <p className="text-[7.5px] text-gray-500 font-medium">
+                  Rang : <strong>{p.rankFormatted}</strong>
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 divide-x divide-black border border-black bg-white">
+            <div className="p-1.5 flex flex-col justify-center items-center text-center">
+              <span className="text-[7.5px] uppercase font-bold text-gray-600">Moyenne Annuelle</span>
+              <span className="text-base font-black font-mono my-0.5 text-black">
+                {bulletin.annualSummary.annualAverage.toFixed(2)} <span className="text-[9px] font-normal">/ 20</span>
+              </span>
+              <p className="text-[7.5px] italic text-gray-700 capitalize">
+                &laquo; {bulletin.annualSummary.annualAverageInWords} &raquo;
+              </p>
+              <p className="text-[8px] font-bold text-gray-800 mt-1">
+                Rang annuel : {bulletin.annualSummary.annualRankFormatted} sur {classStats.effectiveCount}
+              </p>
+            </div>
+
+            <div className="p-1.5 flex flex-col justify-center space-y-0.5 text-[8px]">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Plus forte moyenne annuelle :</span>
+                <strong className="font-mono font-bold">{bulletin.annualSummary.highestAnnualAvg.toFixed(2)}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Plus faible moyenne annuelle :</span>
+                <strong className="font-mono font-bold">{bulletin.annualSummary.lowestAnnualAvg.toFixed(2)}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Moyenne annuelle de la classe :</span>
+                <strong className="font-mono font-bold">{bulletin.annualSummary.annualClassAvg.toFixed(2)} / 20</strong>
+              </div>
+              <div className="flex justify-between border-t border-dotted border-gray-400 pt-0.5">
+                <span className="text-gray-600">Seuil officiel de passage :</span>
+                <strong className="font-mono font-bold">{bulletin.annualSummary.passingThreshold.toFixed(2)} / 20</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7.2) DÉCISION DU CONSEIL DE FIN D'ANNÉE (SI BULLETIN ANNUEL) */}
+      {bulletin.bulletinType === "ANNUEL" && bulletin.annualSummary && (
+        <div className="border-2 border-black bg-yellow-50 p-2 text-center mb-1.5">
+          <p className="text-[8px] font-bold uppercase tracking-wider text-gray-700">
+            DÉCISION DU CONSEIL DE FIN D&apos;ANNÉE
+          </p>
+          <p className="text-sm font-black uppercase tracking-widest text-black mt-0.5">
+            {bulletin.annualSummary.passageDecision}
+          </p>
+        </div>
+      )}
+
+      {/* 8) PIED DE PAGE : LE TITULAIRE ET LE DIRECTEUR */}
+      <div className="border border-black mb-1.5 text-center text-[9px] print:text-[8px] bg-white grid grid-cols-2 divide-x divide-black">
+        {/* Colonne gauche : Le Titulaire (avec mention) */}
         <div className="p-2 flex flex-col justify-between items-center min-h-[75px] print:min-h-[65px]">
           <div>
             <p className="font-bold uppercase text-[9px] tracking-wide text-black">
-              Le Chef d&apos;Établissement / Directeur
+              Le Titulaire
             </p>
             <p className="text-[7.5px] text-gray-500 italic">
-              Validation officielle &bull; République du Bénin
+              Appréciation &bull; Mention du conseil
             </p>
           </div>
 
-          <div className="my-1 flex flex-col items-center justify-center min-h-[32px]">
+          <div className="my-1 text-center">
+            <span className="text-[9px] font-bold text-gray-800 italic block">
+              &laquo; {titulaireAppreciation} &raquo;
+            </span>
+          </div>
+
+          <div>
+            <span className="text-[8.5px] font-semibold text-gray-600 block">
+              Visa du Titulaire
+            </span>
+          </div>
+        </div>
+
+        {/* Colonne droite : Le Directeur (nom + signature/cachet image) */}
+        <div className="p-2 flex flex-col justify-between items-center min-h-[75px] print:min-h-[65px]">
+          <div>
+            <p className="font-bold uppercase text-[9px] tracking-wide text-black">
+              Le Directeur
+            </p>
+            <p className="text-[7.5px] text-gray-500 italic">
+              Validation administrative officielle
+            </p>
+          </div>
+
+          <div className="my-0.5 flex flex-col items-center justify-center min-h-[30px]">
             {school.directorSignatureUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={school.directorSignatureUrl}
                 alt={`Signature ${school.directorName}`}
-                className="h-10 max-w-[180px] object-contain"
+                className="h-9 max-w-[170px] object-contain"
               />
             ) : (
               <p className="text-[7.5px] text-gray-400 italic">
-                (Emplacement réservé au cachet officiel et à la signature)
+                (Cachet officiel et signature)
               </p>
             )}
           </div>
 
           <div>
-            <span className="text-[9.5px] font-black uppercase text-black block tracking-wider">
+            <span className="text-[9px] font-black uppercase text-black block tracking-wider">
               {school.directorName || "Direction de l'Établissement"}
             </span>
           </div>

@@ -87,6 +87,14 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
         mobileTabPriority: 2,
       },
       {
+        title: "Bulletins scolaires",
+        href: "/directeur/bulletins",
+        iconName: "Award",
+        description: "Génération, publication et impression des bulletins périodiques et de passage",
+        permission: "bulletins:manage",
+        mobileTabPriority: 3,
+      },
+      {
         title: "Personnel & Utilisateurs",
         href: "/directeur/utilisateurs",
         iconName: "Users",
@@ -207,6 +215,14 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
         permission: "notes:validate",
       },
       {
+        title: "Bulletins scolaires",
+        href: "/censeur/bulletins",
+        iconName: "Award",
+        description: "Consultation, délibérations et impression des bulletins officiels par classe",
+        permission: "notes:validate",
+        mobileTabPriority: 5,
+      },
+      {
         title: "Examens & Calendrier",
         href: "/censeur/examens",
         iconName: "CalendarDays",
@@ -322,6 +338,13 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
         iconName: "BookOpenCheck",
         description: "Consultation des calendriers, résultats validés et impression des bulletins",
         permission: "exams:read",
+      },
+      {
+        title: "Bulletins scolaires",
+        href: "/secretariat/bulletins",
+        iconName: "Award",
+        description: "Impression et export des bulletins individuels et par classe (PDF)",
+        permission: "documents:manage",
       },
       {
         title: "Gestion Administrative",
