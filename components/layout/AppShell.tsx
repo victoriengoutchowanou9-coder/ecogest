@@ -100,15 +100,12 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     ? "comptabilite"
     : "directeur";
 
-  // 1. Contrôle de cloisonnement strict des profils
-  // - Les routes partagées (/support) sont accessibles par tous les profils
-  // - Le Directeur ("directeur") supervise l'ensemble des modules de l'établissement
-  // - Pour chaque rôle, l'accès à son espace dédié est garanti
+  // 1. Contrôle de cloisonnement : les parents ne peuvent pas accéder aux espaces administratifs
   const isRoleMismatch =
     currentUser &&
     requiredRole !== "shared" &&
-    userRole !== requiredRole &&
-    userRole !== "directeur";
+    ((userRole === "parent" && requiredRole !== "parent") ||
+     (requiredRole === "parent" && userRole !== "parent" && userRole !== "directeur"));
 
   // 2. Contrôle du statut d'abonnement (non bloquant sur les actions)
   const isSchoolPending = false;

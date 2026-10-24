@@ -112,9 +112,10 @@ export function useBulletinStore() {
     safeGetStorage(getSubjectsKey(), MOCK_SUBJECTS)
   );
 
-  const [grades, setGrades] = useState<GradeRecord[]>(() =>
-    safeGetStorage(getGradesKey(), [])
-  );
+  const [grades, setGrades] = useState<GradeRecord[]>(() => {
+    const stored = safeGetStorage(getGradesKey(), []);
+    return stored.length > 0 ? stored : MOCK_GRADE_RECORDS;
+  });
 
   const [primaryGrades, setPrimaryGrades] = useState<CompetencyGradeRecord[]>(() =>
     safeGetStorage(getPrimaryGradesKey(), [])
@@ -124,17 +125,19 @@ export function useBulletinStore() {
     safeGetStorage(getAuditKey(), [])
   );
 
-  const [classrooms, setClassrooms] = useState<ClassRoom[]>(() =>
-    safeGetStorage(getClassesKey(), [])
-  );
+  const [classrooms, setClassrooms] = useState<ClassRoom[]>(() => {
+    const stored = safeGetStorage(getClassesKey(), []);
+    return stored.length > 0 ? stored : MOCK_CLASSROOMS;
+  });
 
   const [bulletinStatuses, setBulletinStatuses] = useState<Record<string, BulletinStatus>>(() =>
     safeGetStorage(getStatusesKey(), INITIAL_BULLETIN_STATUSES)
   );
 
-  const [students, setStudents] = useState<StudentProfile[]>(() =>
-    safeGetStorage(getStudentsKey(), [])
-  );
+  const [students, setStudents] = useState<StudentProfile[]>(() => {
+    const stored = safeGetStorage(getStudentsKey(), []);
+    return stored.length > 0 ? stored : MOCK_BULLETIN_STUDENTS;
+  });
 
   const [school, setSchool] = useState<SchoolSettings>(() => getDynamicSchoolSettings());
   const years = MOCK_ACADEMIC_YEARS;

@@ -289,6 +289,150 @@ export default function ComptabiliteDashboardPage() {
         </div>
       </div>
 
+      {/* Modules de Gestion Financière — Accès Direct */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-slate-900">
+            Fonctionnalités & Modules Financiers
+          </h3>
+          <span className="text-xs text-slate-500 font-medium">Accès interactifs prioritaires</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+          {/* Module 1: Encaisser */}
+          <Link
+            href="/comptabilite/paiement"
+            className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Plus className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-school-primary transition-colors">
+                Encaisser Scolarité
+              </h4>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Encaissement en espèces et émission immédiate de reçu légal.
+              </p>
+            </div>
+            <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
+              <span>Guichet caisse</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* Module 2: Suivi élèves */}
+          <Link
+            href="/comptabilite/eleves"
+            className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Users2 className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-school-primary transition-colors">
+                Suivi des Élèves
+              </h4>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Soldes, tranches échues, relances et autorisations d'examen.
+              </p>
+            </div>
+            <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
+              <span>{stats.totalStudents} élèves</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* Module 3: Dépenses */}
+          <Link
+            href="/comptabilite/depenses"
+            className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <TrendingDown className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-school-primary transition-colors">
+                Dépenses & Achats
+              </h4>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Enregistrement, validation préalable et règlement en espèces.
+              </p>
+            </div>
+            <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
+              <span>Gérer les sorties</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* Module 4: Salaires */}
+          <Link
+            href="/comptabilite/salaires"
+            className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Briefcase className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-school-primary transition-colors">
+                Salaires & Paie
+              </h4>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Fiches de paie, visa Direction, primes et bulletins de paie.
+              </p>
+            </div>
+            <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
+              <span>{payroll.length} fiches</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* Module 5: Trésorerie */}
+          <Link
+            href="/comptabilite/tresorerie"
+            className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-school-primary transition-colors">
+                Livre de Caisse
+              </h4>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Solde réel sans doublon, historique des entrées et sorties.
+              </p>
+            </div>
+            <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
+              <span>Trésorerie</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* Module 6: Reçus */}
+          <Link
+            href="/comptabilite/recus"
+            className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:border-school-300 hover:shadow-md transition flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Receipt className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900 group-hover:text-school-primary transition-colors">
+                Reçus & Audit
+              </h4>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Journal permanent des reçus émis, consultation et réimpression.
+              </p>
+            </div>
+            <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-semibold text-school-primary">
+              <span>{receipts.length} reçus</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+        </div>
+      </div>
+
       {/* Grid: Financial Evolution & Recent Cash Receipts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Monthly Recettes vs Dépenses Comparison */}

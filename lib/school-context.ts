@@ -10,7 +10,9 @@ export function getActiveSchoolId(): string {
   if (typeof window === "undefined") return "default";
   try {
     // 1. Priorité absolue : Session active de l'utilisateur connecté
-    const authRaw = localStorage.getItem("ecogest_auth_session_v2");
+    const authRaw =
+      localStorage.getItem("educogest_auth_session_v3") ||
+      localStorage.getItem("ecogest_auth_session_v2");
     if (authRaw) {
       const auth = JSON.parse(authRaw);
       if (auth?.user?.schoolId) return String(auth.user.schoolId).trim();
@@ -39,7 +41,9 @@ export function getActiveSchoolDetails(): { id: string; name: string; code: stri
     return { id: "default", name: "Établissement Scolaire", code: "0000" };
   }
   try {
-    const authRaw = localStorage.getItem("ecogest_auth_session_v2");
+    const authRaw =
+      localStorage.getItem("educogest_auth_session_v3") ||
+      localStorage.getItem("ecogest_auth_session_v2");
     if (authRaw) {
       const auth = JSON.parse(authRaw);
       if (auth?.user?.schoolId) {

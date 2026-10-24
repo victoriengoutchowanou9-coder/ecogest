@@ -104,6 +104,27 @@ export const Topbar: React.FC<TopbarProps> = ({
 
       {/* Right Controls: Subscription Plan Badge + School Year + User Profile Menu */}
       <div className="flex items-center gap-2 md:gap-3 shrink-0">
+        {/* Sélecteur d'espace rapide (Direction, Censeur, Comptabilité, etc.) */}
+        <div className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/70 border border-slate-200 rounded-xl px-2.5 py-1.5 transition">
+          <div className="shrink-0">
+            {roleIcons[currentRole] || <Shield className="w-4 h-4 text-purple-600" />}
+          </div>
+          <select
+            value={currentRole === "comptable" ? "comptabilite" : currentRole}
+            onChange={(e) => onRoleChange(e.target.value as Role)}
+            className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer pr-1"
+            aria-label="Changer d'espace"
+            title="Basculer vers un autre espace"
+          >
+            <option value="directeur">Direction</option>
+            <option value="censeur">Censeur</option>
+            <option value="comptabilite">Comptabilité</option>
+            <option value="secretariat">Secrétariat</option>
+            <option value="surveillant">Surveillant Général</option>
+            <option value="enseignant">Enseignant</option>
+          </select>
+        </div>
+
         {/* Bouton PWA Installer ECOGEST */}
         <PWAInstallButton />
 

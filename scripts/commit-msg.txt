@@ -1,0 +1,1 @@
+fix: retablir fonctionnement interactif complet des boutons censeur et comptabilite
