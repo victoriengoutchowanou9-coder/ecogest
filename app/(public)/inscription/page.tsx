@@ -275,6 +275,7 @@ export default function InscriptionPage() {
         const effectiveSchoolName = createdSchoolData?.name || data.user?.schoolName || pendingRegistration.payload.schoolName;
         const effectiveSchoolCode = createdSchoolData?.code || data.user?.schoolCode || pendingRegistration.payload.schoolCode;
         const effectiveIdentifier = data.user?.identifier || `${effectiveSchoolCode}DIR01`;
+        const selectedPlan = pendingRegistration.payload.chosenPlan || "STANDARD";
 
         subscriptionStore.syncSchoolWithUser({
           id: effectiveSchoolId,
@@ -285,6 +286,9 @@ export default function InscriptionPage() {
           phone: pendingRegistration.phone,
           email: pendingRegistration.email,
         });
+
+        subscriptionStore.changeSchoolPlan(selectedPlan);
+        subscriptionStore.setSchoolStatus("PENDING_PAYMENT");
 
         authStore.login({
           id: data.user?.id,
@@ -299,17 +303,50 @@ export default function InscriptionPage() {
         });
 
         toast(
-          `Compte vérifié avec succès ! Bienvenue sur ECOGEST. Établissement « ${effectiveSchoolName} » enregistré dans Supabase.`,
-          "success"
+          `Compte créé avec succès ! Initialisation du paiement SasPay pour la formule ${selectedPlan}...`,
+          "info"
         );
-        router.push("/directeur");
+
+        // Option B : Redirection obligatoire et immédiate vers SasPay Checkout
+        try {
+          const checkoutRes = await fetch("/api/subscriptions/saspay/checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              entityType: "SCHOOL",
+              planCode: selectedPlan,
+              schoolId: effectiveSchoolId,
+              userId: data.user?.id,
+              customerEmail: pendingRegistration.email,
+              customerName: pendingRegistration.fullName,
+              customerPhone: pendingRegistration.phone,
+            }),
+          });
+          const checkoutData = await checkoutRes.json().catch(() => ({}));
+
+          if (checkoutRes.ok && checkoutData.success && checkoutData.checkoutUrl) {
+            toast("Redirection sécurisée vers SasPay en cours...", "success");
+            window.location.href = checkoutData.checkoutUrl;
+            return;
+          } else {
+            console.warn("[SasPay checkout warning] :", checkoutData);
+            toast("Compte enregistré. Redirection vers la finalisation du paiement SasPay...", "info");
+            router.push("/directeur/abonnement");
+            return;
+          }
+        } catch (payErr) {
+          console.error("[SasPay checkout exception] :", payErr);
+          router.push("/directeur/abonnement");
+          return;
+        }
       } else {
         const effectiveSchoolCode = data.user?.schoolCode || pendingRegistration.payload.schoolCode || "0000";
         const effectiveIdentifier = data.user?.identifier || `${effectiveSchoolCode}PAR01`;
         const matchedSchool = data.school;
+        const selectedParentPlan = pendingRegistration.payload.chosenPlan || "PARENT_1";
 
-        subscriptionStore.changeParentPlan(pendingRegistration.payload.chosenPlan || "PARENT_1");
-        subscriptionStore.setParentStatus("ACTIVE");
+        subscriptionStore.changeParentPlan(selectedParentPlan);
+        subscriptionStore.setParentStatus("PENDING_PAYMENT");
 
         authStore.setAuthenticated(
           {
@@ -328,10 +365,42 @@ export default function InscriptionPage() {
         );
 
         toast(
-          `Compte Parent créé et vérifié avec succès ! Bienvenue ${pendingRegistration.fullName}. Redirection vers votre espace...`,
-          "success"
+          `Compte Parent créé avec succès ! Initialisation du paiement SasPay...`,
+          "info"
         );
-        router.push("/parent");
+
+        // Option B : Redirection obligatoire et immédiate vers SasPay Checkout pour le Parent
+        try {
+          const checkoutRes = await fetch("/api/subscriptions/saspay/checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              entityType: "PARENT",
+              planCode: selectedParentPlan,
+              schoolId: pendingRegistration.payload.schoolId,
+              userId: data.user?.id,
+              customerEmail: pendingRegistration.email,
+              customerName: pendingRegistration.fullName,
+              customerPhone: pendingRegistration.phone,
+            }),
+          });
+          const checkoutData = await checkoutRes.json().catch(() => ({}));
+
+          if (checkoutRes.ok && checkoutData.success && checkoutData.checkoutUrl) {
+            toast("Redirection sécurisée vers SasPay en cours...", "success");
+            window.location.href = checkoutData.checkoutUrl;
+            return;
+          } else {
+            console.warn("[SasPay checkout warning] :", checkoutData);
+            toast("Compte enregistré. Redirection vers la finalisation du paiement SasPay...", "info");
+            router.push("/parent/abonnement");
+            return;
+          }
+        } catch (payErr) {
+          console.error("[SasPay checkout exception] :", payErr);
+          router.push("/parent/abonnement");
+          return;
+        }
       }
     } catch (err: any) {
       console.error("[finalize-registration] Erreur :", err);
@@ -788,6 +857,19 @@ export default function InscriptionPage() {
                 </div>
               </div>
 
+              {/* Bannière d'information SasPay Option B */}
+              <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-3.5 flex items-start gap-3 text-xs text-emerald-950">
+                <Shield className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-bold block text-emerald-900">
+                    💳 Paiement d&apos;abonnement immédiat par SasPay
+                  </span>
+                  <p className="text-[11px] text-emerald-800 leading-relaxed">
+                    À la validation de votre inscription, vous serez redirigé vers l&apos;interface sécurisée <strong>SasPay</strong> pour régler votre forfait (Mobile Money MTN MoMo, Moov Money, Wave, Celtiis ou Carte bancaire) et activer votre établissement.
+                  </p>
+                </div>
+              </div>
+
               <div className="pt-2">
                 <button
                   type="submit"
@@ -795,7 +877,11 @@ export default function InscriptionPage() {
                   className="w-full py-3.5 rounded-2xl bg-school-primary hover:bg-school-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 touch-target"
                 >
                   <Building2 className="w-4 h-4" />
-                  <span>{loading ? "Création en cours..." : "Créer l'établissement & Poursuivre la configuration"}</span>
+                  <span>
+                    {loading
+                      ? "Initialisation du paiement SasPay..."
+                      : `Créer l'établissement & Payer via SasPay (${(chosenPlan === "BASIC" ? 6000 : chosenPlan === "PREMIUM" ? 25000 : 10000).toLocaleString()} FCFA)`}
+                  </span>
                 </button>
               </div>
             </form>
@@ -1092,6 +1178,19 @@ export default function InscriptionPage() {
                   </div>
                 </div>
 
+                {/* Bannière d'information SasPay Parent Option B */}
+                <div className="bg-indigo-50/80 border border-indigo-200 rounded-2xl p-3.5 flex items-start gap-3 text-xs text-indigo-950">
+                  <Shield className="w-5 h-5 text-indigo-700 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <span className="font-bold block text-indigo-900">
+                      💳 Paiement d&apos;abonnement immédiat par SasPay
+                    </span>
+                    <p className="text-[11px] text-indigo-800 leading-relaxed">
+                      L&apos;activation du suivi scolaire de votre enfant s&apos;effectue par règlement sécurisé via <strong>SasPay</strong> (Mobile Money ou Carte bancaire).
+                    </p>
+                  </div>
+                </div>
+
                 <div className="pt-2">
                   <button
                     type="submit"
@@ -1099,7 +1198,11 @@ export default function InscriptionPage() {
                     className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 touch-target"
                   >
                     <Home className="w-4 h-4" />
-                    <span>{loading ? "Création en cours..." : "Créer mon Compte Parent"}</span>
+                    <span>
+                      {loading
+                        ? "Initialisation du paiement SasPay..."
+                        : `Créer mon compte Parent & Payer via SasPay (${(parentPlan === "PARENT_2" ? 300 : 200).toLocaleString()} FCFA)`}
+                    </span>
                   </button>
                 </div>
               </form>
