@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Shield,
   CheckCircle2,
@@ -30,6 +30,7 @@ import { useAuthStore } from "@/lib/auth-store";
 
 export default function DirecteurAbonnementPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const {
     schoolPlan,
@@ -46,41 +47,146 @@ export default function DirecteurAbonnementPage() {
 
   const [confirmModalPlan, setConfirmModalPlan] = useState<SchoolPlanCode | null>(null);
 
-  // Paiement Mobile Money & Carte
+  // Paiement Mobile Money & Carte SasPay
   const [paymentMethod, setPaymentMethod] = useState<"MTN" | "MOOV" | "CARTE">("MTN");
   const [paymentPhone, setPaymentPhone] = useState("+229 ");
   const [paymentRef, setPaymentRef] = useState("");
   const [payingLoading, setPayingLoading] = useState(false);
 
-  const handlePayAndActivate = (e: React.FormEvent) => {
+  // Vérification automatique au retour de SasPay
+  const referenceParam = searchParams.get("reference");
+  const sessionIdParam = searchParams.get("session_id") || searchParams.get("sessionId");
+  const statusParam = searchParams.get("status");
+
+  useEffect(() => {
+    if ((referenceParam || sessionIdParam) && statusParam === "success") {
+      fetch(
+        `/api/subscriptions/saspay/verify?reference=${encodeURIComponent(
+          referenceParam || ""
+        )}&sessionId=${encodeURIComponent(sessionIdParam || "")}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.status === "PAID") {
+            validatePayment("SCHOOL");
+            if (data.planCode) {
+              changeSchoolPlan(data.planCode);
+            }
+            toast(
+              `Paiement SasPay validé avec succès (${(
+                data.amount || schoolPlanDef.priceFcfa
+              ).toLocaleString()} FCFA) ! Votre établissement est actif.`,
+              "success"
+            );
+            router.replace("/directeur/abonnement");
+          }
+        })
+        .catch(() => {});
+    }
+  }, [referenceParam, sessionIdParam, statusParam]);
+
+  const handlePayAndActivate = async (e: React.FormEvent) => {
     e.preventDefault();
     setPayingLoading(true);
-    setTimeout(() => {
+
+    try {
+      const activeSchool = schools[0];
+      const res = await fetch("/api/subscriptions/saspay/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          entityType: "SCHOOL",
+          planCode: schoolPlan,
+          schoolId: activeSchool?.id || "school-1",
+          customerEmail: activeSchool?.email,
+          customerName: activeSchool?.name,
+          customerPhone: paymentPhone,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.checkoutUrl) {
+        toast("Redirection sécurisée vers la page de paiement SasPay...", "info");
+        window.location.href = data.checkoutUrl;
+        return;
+      } else {
+        toast(data.error || "Impossible d'initialiser le paiement SasPay.", "error");
+      }
+    } catch (err: any) {
+      toast("Erreur de connexion au serveur de paiement SasPay.", "error");
+    } finally {
       setPayingLoading(false);
-      validatePayment("SCHOOL");
-      toast(
-        `Paiement de ${schoolPlanDef.priceFcfa.toLocaleString()} FCFA validé avec succès ! Votre établissement est désormais actif et déverrouillé. Redirection vers votre tableau de bord...`,
-        "success"
-      );
-      router.push("/directeur");
-    }, 900);
+    }
   };
 
-  const handleApplyPlan = (code: SchoolPlanCode) => {
+  const handleApplyPlan = async (code: SchoolPlanCode) => {
+    const targetPlan = SCHOOL_PLANS[code];
+    if (targetPlan.priceFcfa > 0) {
+      try {
+        const activeSchool = schools[0];
+        const res = await fetch("/api/subscriptions/saspay/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            entityType: "SCHOOL",
+            planCode: code,
+            schoolId: activeSchool?.id || "school-1",
+            customerEmail: activeSchool?.email,
+            customerName: activeSchool?.name,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success && data.checkoutUrl) {
+          toast(
+            `Redirection vers SasPay pour le règlement de la formule ${targetPlan.name}...`,
+            "info"
+          );
+          window.location.href = data.checkoutUrl;
+          return;
+        }
+      } catch (err) {}
+    }
+
     changeSchoolPlan(code);
     validatePayment("SCHOOL");
     setConfirmModalPlan(null);
     const priceText =
-      SCHOOL_PLANS[code].priceFcfa === 0
+      targetPlan.priceFcfa === 0
         ? "Gratuit 1 mois"
-        : `${SCHOOL_PLANS[code].priceFcfa.toLocaleString()} FCFA/mois`;
+        : `${targetPlan.priceFcfa.toLocaleString()} FCFA/mois`;
     toast(
-      `Félicitations ! Votre établissement est désormais sous la ${SCHOOL_PLANS[code].name} (${priceText}).`,
+      `Félicitations ! Votre établissement est désormais sous la ${targetPlan.name} (${priceText}).`,
       "success"
     );
   };
 
-  const handleRenew = () => {
+  const handleRenew = async () => {
+    if (schoolPlanDef.priceFcfa > 0) {
+      try {
+        const activeSchool = schools[0];
+        const res = await fetch("/api/subscriptions/saspay/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            entityType: "SCHOOL",
+            planCode: schoolPlan,
+            schoolId: activeSchool?.id || "school-1",
+            customerEmail: activeSchool?.email,
+            customerName: activeSchool?.name,
+            customerPhone: activeSchool?.phone,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success && data.checkoutUrl) {
+          toast("Redirection vers SasPay pour le renouvellement...", "info");
+          window.location.href = data.checkoutUrl;
+          return;
+        }
+      } catch (e) {}
+    }
+
     renewSchoolSubscription();
     validatePayment("SCHOOL");
     toast(

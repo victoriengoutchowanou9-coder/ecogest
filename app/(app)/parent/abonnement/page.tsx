@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Home,
   CheckCircle2,
@@ -31,6 +31,7 @@ import { useAuthStore } from "@/lib/auth-store";
 
 export default function ParentAbonnementPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const {
     parentPlan,
@@ -51,31 +52,135 @@ export default function ParentAbonnementPage() {
   const [paymentPhone, setPaymentPhone] = useState("+229 ");
   const [payingLoading, setPayingLoading] = useState(false);
 
-  const handlePayAndActivate = (e: React.FormEvent) => {
+  // Vérification automatique au retour de SasPay
+  const referenceParam = searchParams.get("reference");
+  const sessionIdParam = searchParams.get("session_id") || searchParams.get("sessionId");
+  const statusParam = searchParams.get("status");
+
+  useEffect(() => {
+    if ((referenceParam || sessionIdParam) && statusParam === "success") {
+      fetch(
+        `/api/subscriptions/saspay/verify?reference=${encodeURIComponent(
+          referenceParam || ""
+        )}&sessionId=${encodeURIComponent(sessionIdParam || "")}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.status === "PAID") {
+            validatePayment("PARENT");
+            if (data.planCode) {
+              changeParentPlan(data.planCode);
+            }
+            toast(
+              `Paiement SasPay validé avec succès (${(
+                data.amount || parentPlanDef.priceFcfa
+              ).toLocaleString()} FCFA) ! Votre compte parent est activé.`,
+              "success"
+            );
+            router.replace("/parent/abonnement");
+          }
+        })
+        .catch(() => {});
+    }
+  }, [referenceParam, sessionIdParam, statusParam]);
+
+  const handlePayAndActivate = async (e: React.FormEvent) => {
     e.preventDefault();
     setPayingLoading(true);
-    setTimeout(() => {
+
+    try {
+      const res = await fetch("/api/subscriptions/saspay/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          entityType: "PARENT",
+          planCode: parentPlan,
+          parentId: currentUser?.id || "parent-1",
+          customerEmail: currentUser?.email,
+          customerName: currentUser?.fullName || "Parent Éducatif",
+          customerPhone: paymentPhone,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.checkoutUrl) {
+        toast("Redirection sécurisée vers la page de paiement SasPay...", "info");
+        window.location.href = data.checkoutUrl;
+        return;
+      } else {
+        toast(data.error || "Impossible d'initialiser le paiement SasPay.", "error");
+      }
+    } catch (err: any) {
+      toast("Erreur de connexion au serveur de paiement SasPay.", "error");
+    } finally {
       setPayingLoading(false);
-      validatePayment("PARENT");
-      toast(
-        `Forfait ${parentPlanDef.name} (${parentPlanDef.priceFcfa} FCFA) activé avec succès ! Redirection vers votre espace d'accueil parent...`,
-        "success"
-      );
-      router.push("/parent");
-    }, 900);
+    }
   };
 
-  const handleApplyPlan = (code: ParentPlanCode) => {
+  const handleApplyPlan = async (code: ParentPlanCode) => {
+    const targetPlan = PARENT_PLANS[code];
+    if (targetPlan.priceFcfa > 0) {
+      try {
+        const res = await fetch("/api/subscriptions/saspay/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            entityType: "PARENT",
+            planCode: code,
+            parentId: currentUser?.id || "parent-1",
+            customerEmail: currentUser?.email,
+            customerName: currentUser?.fullName || "Parent Éducatif",
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success && data.checkoutUrl) {
+          toast(
+            `Redirection vers SasPay pour le règlement du forfait ${targetPlan.name}...`,
+            "info"
+          );
+          window.location.href = data.checkoutUrl;
+          return;
+        }
+      } catch (err) {}
+    }
+
     changeParentPlan(code);
     validatePayment("PARENT");
     setConfirmModalPlan(null);
     toast(
-      `Votre compte est désormais sous la formule ${PARENT_PLANS[code].name} (${PARENT_PLANS[code].priceFcfa} FCFA/mois).`,
+      `Votre compte est désormais sous la formule ${targetPlan.name} (${targetPlan.priceFcfa} FCFA/mois).`,
       "success"
     );
   };
 
-  const handleRenew = () => {
+  const handleRenew = async () => {
+    if (parentPlanDef.priceFcfa > 0) {
+      try {
+        const res = await fetch("/api/subscriptions/saspay/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            entityType: "PARENT",
+            planCode: parentPlan,
+            parentId: currentUser?.id || "parent-1",
+            customerEmail: currentUser?.email,
+            customerName: currentUser?.fullName || "Parent Éducatif",
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success && data.checkoutUrl) {
+          toast(
+            `Redirection vers SasPay pour renouveler ${parentPlanDef.name} (${parentPlanDef.priceFcfa} FCFA)...`,
+            "info"
+          );
+          window.location.href = data.checkoutUrl;
+          return;
+        }
+      } catch (err) {}
+    }
+
     renewParentSubscription();
     validatePayment("PARENT");
     toast(
