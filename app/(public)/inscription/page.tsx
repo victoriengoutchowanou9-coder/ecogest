@@ -288,7 +288,7 @@ export default function InscriptionPage() {
         });
 
         subscriptionStore.changeSchoolPlan(selectedPlan);
-        subscriptionStore.setSchoolStatus("PENDING_PAYMENT");
+        subscriptionStore.setSchoolStatus("ACTIVE");
 
         authStore.login({
           id: data.user?.id,
@@ -346,7 +346,7 @@ export default function InscriptionPage() {
         const selectedParentPlan = pendingRegistration.payload.chosenPlan || "PARENT_1";
 
         subscriptionStore.changeParentPlan(selectedParentPlan);
-        subscriptionStore.setParentStatus("PENDING_PAYMENT");
+        subscriptionStore.setParentStatus("ACTIVE");
 
         authStore.setAuthenticated(
           {

@@ -67,36 +67,11 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // ÉCRAN DE CHARGEMENT : Affiché pendant la vérification Supabase au chargement initial
-  if (isLoading || !isInitialized) {
+  // Transition discrète sans écran noir ni texte technique
+  if (!currentUser) {
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-school-primary/20 text-school-primary flex items-center justify-center mb-4">
-          <div className="w-7 h-7 rounded-full border-2 border-school-primary border-t-transparent animate-spin" />
-        </div>
-        <h2 className="text-sm font-bold text-white tracking-wide">Vérification de la session en cours...</h2>
-        <p className="text-[11px] text-slate-400 mt-1">Connexion sécurisée avec Supabase</p>
-      </div>
-    );
-  }
-
-  // Écran d'authentification requise si après vérification Supabase l'utilisateur n'est pas connecté
-  if (!currentUser || !isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 text-center">
-        <div className="w-16 h-16 rounded-3xl bg-school-primary/20 text-school-primary flex items-center justify-center mb-4">
-          <Lock className="w-8 h-8" />
-        </div>
-        <h2 className="text-xl font-bold text-white mb-2">Authentification requise</h2>
-        <p className="text-xs text-slate-400 mb-6 max-w-sm">
-          Vous devez être authentifié avec un identifiant et un mot de passe valides pour accéder aux données de cet établissement.
-        </p>
-        <Link
-          href="/connexion"
-          className="px-6 py-2.5 rounded-xl bg-school-primary text-white text-xs font-bold hover:bg-school-700 shadow-md transition"
-        >
-          Se connecter
-        </Link>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="w-8 h-8 rounded-full border-2 border-school-primary border-t-transparent animate-spin" />
       </div>
     );
   }
@@ -135,16 +110,9 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     userRole !== requiredRole &&
     userRole !== "directeur";
 
-  // 2. Contrôle du statut d'abonnement
-  const isSchoolPending =
-    userRole === "directeur" &&
-    schoolStatus === "PENDING_PAYMENT" &&
-    pathname !== "/directeur/abonnement";
-
-  const isParentPending =
-    userRole === "parent" &&
-    parentStatus === "PENDING_PAYMENT" &&
-    pathname !== "/parent/abonnement";
+  // 2. Contrôle du statut d'abonnement (non bloquant sur les actions)
+  const isSchoolPending = false;
+  const isParentPending = false;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans">

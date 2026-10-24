@@ -28,7 +28,6 @@ export interface AuthState {
   isInitialized: boolean;
 }
 
-// État initial par défaut : EN COURS DE VÉRIFICATION AVEC SUPABASE
 const DEFAULT_AUTH_STATE: AuthState = {
   user: null,
   isAuthenticated: false,
@@ -36,7 +35,28 @@ const DEFAULT_AUTH_STATE: AuthState = {
   isInitialized: false,
 };
 
-let memoryAuthState: AuthState = DEFAULT_AUTH_STATE;
+const STORAGE_KEY_AUTH = "educogest_auth_session_v3";
+
+function getInitialAuthState(): AuthState {
+  if (typeof window === "undefined") return DEFAULT_AUTH_STATE;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_AUTH);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.user && parsed.isAuthenticated) {
+        return {
+          user: parsed.user,
+          isAuthenticated: true,
+          isLoading: false,
+          isInitialized: true,
+        };
+      }
+    }
+  } catch (_) {}
+  return DEFAULT_AUTH_STATE;
+}
+
+let memoryAuthState: AuthState = getInitialAuthState();
 let listeners: Array<() => void> = [];
 
 function notify() {
@@ -191,6 +211,11 @@ export const authStore = {
       isLoading: false,
       isInitialized: true,
     };
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(memoryAuthState));
+      } catch (_) {}
+    }
     notify();
     return user;
   },
@@ -202,6 +227,11 @@ export const authStore = {
       isLoading: false,
       isInitialized: true,
     };
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem(STORAGE_KEY_AUTH);
+      } catch (_) {}
+    }
     notify();
   },
 
@@ -265,6 +295,11 @@ export const authStore = {
       isLoading: false,
       isInitialized: true,
     };
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(memoryAuthState));
+      } catch (_) {}
+    }
     notify();
     return user;
   },

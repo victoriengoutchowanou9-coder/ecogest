@@ -129,6 +129,9 @@ function loadStateFromStorage() {
         memorySchoolState = { ...DEFAULT_SCHOOL_STATE, ...parsed };
       }
     }
+    if (memorySchoolState.status === "PENDING_PAYMENT") {
+      memorySchoolState.status = "ACTIVE";
+    }
     const rawParent = localStorage.getItem(STORAGE_KEY_PARENT);
     if (rawParent) {
       memoryParentState = { ...DEFAULT_PARENT_STATE, ...JSON.parse(rawParent) };
