@@ -176,11 +176,6 @@ export const BeninPrimaryBulletin: React.FC<BeninPrimaryBulletinProps> = ({
           </div>
 
           <div>
-            <span className="text-slate-500 text-[8px] uppercase font-bold block">Maître(sse) Titulaire :</span>
-            <span className="font-semibold">{classRoom.mainTeacher || "Non assigné"}</span>
-          </div>
-
-          <div>
             <span className="text-slate-500 text-[8px] uppercase font-bold block">Effectif de la classe :</span>
             <span className="font-bold">{classRoom.size} élèves</span>
           </div>
@@ -365,12 +360,12 @@ export const BeninPrimaryBulletin: React.FC<BeninPrimaryBulletinProps> = ({
         </div>
       </div>
 
-      {/* ─── APPRÉCIATIONS & SIGNATURES ──────────────────────────────────── */}
-      <div className="border border-black p-2 mb-2 rounded-sm">
+      {/* ─── APPRÉCIATIONS & OBSERVATIONS ───────────────────────────────── */}
+      <div className="border border-black p-2 mb-2 rounded-sm bg-white">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[9px] print:text-[7.5px]">
           <div>
             <p className="font-bold uppercase text-slate-800 mb-1">
-              Appréciation de l&apos;Enseignant(e) Titulaire :
+              Observations Pédagogiques &amp; Conseils :
             </p>
             <div className="p-2 border border-slate-300 rounded bg-slate-50 min-h-[42px] italic text-slate-800">
               {titulaireAppreciation ||
@@ -380,7 +375,7 @@ export const BeninPrimaryBulletin: React.FC<BeninPrimaryBulletinProps> = ({
 
           <div>
             <p className="font-bold uppercase text-slate-800 mb-1">
-              Observations de la Direction de l&apos;École :
+              Décision &amp; Avis de la Direction de l&apos;École :
             </p>
             <div className="p-2 border border-slate-300 rounded bg-slate-50 min-h-[42px] italic text-slate-800">
               {directorAppreciation ||
@@ -391,21 +386,32 @@ export const BeninPrimaryBulletin: React.FC<BeninPrimaryBulletinProps> = ({
       </div>
 
       {/* ─── SIGNATURES OFFICIELLES ──────────────────────────────────────── */}
-      <div className="grid grid-cols-3 border border-black text-center text-[9px] print:text-[7.5px] p-2">
-        <div className="border-r border-black pr-2">
-          <p className="font-bold uppercase text-slate-800 mb-8">Le Maître / La Maîtresse</p>
-          <p className="text-[8px] text-slate-500 italic">Signature &amp; Date</p>
+      <div className="grid grid-cols-2 border border-black text-center text-[9px] print:text-[7.5px] p-2 bg-white">
+        <div className="border-r border-black pr-2 flex flex-col justify-between min-h-[70px]">
+          <p className="font-bold uppercase text-slate-800">Le Parent ou Tuteur Légal</p>
+          <div className="h-10 flex items-center justify-center">
+            <p className="text-[8px] text-slate-400 italic">Signature &amp; Date</p>
+          </div>
+          <p className="text-[7.5px] text-slate-400">Pris connaissance le : ____/____/2026</p>
         </div>
 
-        <div className="border-r border-black px-2">
-          <p className="font-bold uppercase text-slate-800 mb-8">Le Directeur de l&apos;École</p>
-          <p className="text-[8px] font-bold text-slate-900">{school.directorName}</p>
-          <p className="text-[7.5px] text-slate-500 uppercase">(Cachet Officiel)</p>
-        </div>
-
-        <div className="pl-2">
-          <p className="font-bold uppercase text-slate-800 mb-8">Le Parent ou Tuteur Légal</p>
-          <p className="text-[8px] text-slate-500 italic">Signature &amp; Date</p>
+        <div className="pl-2 flex flex-col justify-between min-h-[70px]">
+          <p className="font-bold uppercase text-slate-800">Le Directeur de l&apos;École</p>
+          <div className="min-h-[30px] my-1 flex items-center justify-center">
+            {school.directorSignatureUrl ? (
+              <img
+                src={school.directorSignatureUrl}
+                alt={`Signature ${school.directorName}`}
+                className="h-9 max-w-[150px] object-contain"
+              />
+            ) : (
+              <p className="text-[7.5px] text-slate-400 italic">(Emplacement du sceau &amp; de la signature)</p>
+            )}
+          </div>
+          <div>
+            <p className="text-[8.5px] font-black uppercase text-slate-900 tracking-wide">{school.directorName || "La Direction"}</p>
+            <p className="text-[7px] text-slate-500 uppercase">(Cachet Officiel)</p>
+          </div>
         </div>
       </div>
 

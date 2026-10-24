@@ -638,32 +638,35 @@ export const BeninOfficialBulletin: React.FC<BeninOfficialBulletinProps> = ({
         </div>
       </div>
 
-      {/* 8) SIGNATURES */}
-      <div className="border border-black grid grid-cols-2 divide-x divide-black mb-1.5 text-center text-[9px] print:text-[8px]">
-        {/* Le Titulaire */}
-        <div className="p-1.5 flex flex-col justify-between min-h-[75px] print:min-h-[65px]">
+      {/* 8) VALIDATION ADMINISTRATIVE & SIGNATURE DE LA DIRECTION */}
+      <div className="border border-black mb-1.5 text-center text-[9px] print:text-[8px] bg-white">
+        <div className="p-2 flex flex-col justify-between items-center min-h-[75px] print:min-h-[65px]">
           <div>
-            <p className="font-bold uppercase text-[8.5px]">Le Titulaire</p>
-            <p className="text-[8px] italic text-gray-700 mt-0.5">
-              Appréciation générale : <strong className="font-semibold text-black">&laquo; {titulaireAppreciation} &raquo;</strong>
+            <p className="font-bold uppercase text-[9px] tracking-wide text-black">
+              Le Chef d&apos;Établissement / Directeur
             </p>
-          </div>
-          <div className="text-[8px] text-gray-500 italic mt-3">
-            Signature :
-          </div>
-        </div>
-
-        {/* Le Directeur */}
-        <div className="p-1.5 flex flex-col justify-between min-h-[75px] print:min-h-[65px]">
-          <div>
-            <p className="font-bold uppercase text-[8.5px]">Le Chef d&apos;Établissement</p>
             <p className="text-[7.5px] text-gray-500 italic">
-              (Emplacement du cachet et de la signature)
+              Validation officielle &bull; République du Bénin
             </p>
           </div>
-          <div className="mt-2">
-            <span className="text-[9px] font-black uppercase text-black block">
-              {school.directorName}
+
+          <div className="my-1 flex flex-col items-center justify-center min-h-[32px]">
+            {school.directorSignatureUrl ? (
+              <img
+                src={school.directorSignatureUrl}
+                alt={`Signature ${school.directorName}`}
+                className="h-10 max-w-[180px] object-contain"
+              />
+            ) : (
+              <p className="text-[7.5px] text-gray-400 italic">
+                (Emplacement réservé au cachet officiel et à la signature)
+              </p>
+            )}
+          </div>
+
+          <div>
+            <span className="text-[9.5px] font-black uppercase text-black block tracking-wider">
+              {school.directorName || "Direction de l'Établissement"}
             </span>
           </div>
         </div>

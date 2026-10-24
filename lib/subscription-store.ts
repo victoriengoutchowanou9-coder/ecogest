@@ -68,6 +68,8 @@ const INITIAL_SCHOOLS: SchoolProfile[] = [
     currency: "FCFA",
     activeYear: "2026-2027",
     teachingType: "PRIMAIRE_SECONDAIRE",
+    directorName: "Direction de l'Établissement",
+    directorSignatureUrl: "",
   },
 ];
 

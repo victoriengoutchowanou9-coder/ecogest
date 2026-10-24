@@ -174,4 +174,6 @@ export interface SchoolProfile {
   currency: string;
   activeYear: string;
   teachingType?: TeachingType;
+  directorName?: string;
+  directorSignatureUrl?: string;
 }

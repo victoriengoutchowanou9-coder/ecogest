@@ -16,6 +16,9 @@ import {
   AlertCircle,
   ExternalLink,
   Edit,
+  UserCheck,
+  PenTool,
+  X,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useToast } from "@/components/ui/Toast";
@@ -23,6 +26,7 @@ import {
   useSubscriptionStore,
   SchoolProfile,
 } from "@/lib/subscription-store";
+import { useBulletinStore } from "@/lib/bulletin-store";
 
 export default function ParametresEtablissementPage() {
   const { toast } = useToast();
@@ -30,20 +34,62 @@ export default function ParametresEtablissementPage() {
     activeSchool,
     updateSchoolProfile,
   } = useSubscriptionStore();
+  const { updateSchoolSettings } = useBulletinStore();
 
-  const [formData, setFormData] = useState<SchoolProfile>(activeSchool);
+  const [formData, setFormData] = useState<SchoolProfile>({
+    ...activeSchool,
+    directorName: activeSchool.directorName || "Direction de l'Établissement",
+    directorSignatureUrl: activeSchool.directorSignatureUrl || "",
+  });
   const [isEditing, setIsEditing] = useState(false);
 
   // Synchroniser quand l'école active change
   useEffect(() => {
-    setFormData(activeSchool);
-  }, [activeSchool.id, activeSchool.name, activeSchool.code]);
+    setFormData({
+      ...activeSchool,
+      directorName: activeSchool.directorName || "Direction de l'Établissement",
+      directorSignatureUrl: activeSchool.directorSignatureUrl || "",
+    });
+  }, [activeSchool.id, activeSchool.name, activeSchool.code, activeSchool.directorName, activeSchool.directorSignatureUrl]);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     updateSchoolProfile(activeSchool.id, formData);
+    updateSchoolSettings({
+      name: formData.name,
+      motto: formData.devise,
+      directorName: formData.directorName || "Direction de l'Établissement",
+      directorSignatureUrl: formData.directorSignatureUrl || "",
+      district: formData.city || formData.region || "",
+      phoneNumbers: formData.phone || "",
+      teachingType: formData.teachingType,
+    });
+
+    try {
+      await fetch("/api/schools", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: activeSchool.id,
+          name: formData.name,
+          shortName: formData.shortName,
+          directorName: formData.directorName,
+          directorSignatureUrl: formData.directorSignatureUrl,
+          devise: formData.devise,
+          address: formData.address,
+          phone: formData.phone,
+          email: formData.email,
+          country: formData.country,
+          region: formData.region,
+          city: formData.city,
+        }),
+      });
+    } catch (err) {
+      console.warn("Échec synchronisation distante de l'établissement :", err);
+    }
+
     setIsEditing(false);
-    toast(`Profil de « ${formData.name} » enregistré avec succès !`, "success");
+    toast(`Paramètres de « ${formData.name} » enregistrés avec succès !`, "success");
   };
   return (
     <div className="space-y-8 max-w-5xl">
@@ -173,6 +219,43 @@ export default function ParametresEtablissementPage() {
             </div>
           </div>
 
+          {/* Direction de l'Établissement & Signature Administrative */}
+          <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200/80 space-y-3">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <UserCheck className="w-4 h-4 text-school-primary" />
+              <span>Direction de l&apos;Établissement &amp; Signature Administrative</span>
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+              <div>
+                <span className="text-slate-400 block text-[11px]">Directeur / Chef d&apos;Établissement :</span>
+                <span className="font-black text-slate-900 text-sm">{activeSchool.directorName || "Direction de l'Établissement"}</span>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Ce nom officiel est apposé sur les bulletins, attestations et certificats de scolarité délivrés.
+                </p>
+              </div>
+              <div className="flex flex-col sm:items-end">
+                <span className="text-slate-400 block text-[11px] mb-1">Signature administrative numérisée :</span>
+                {activeSchool.directorSignatureUrl ? (
+                  <div className="p-2 bg-white rounded-xl border border-slate-200 inline-block shadow-xs text-center">
+                    <img
+                      src={activeSchool.directorSignatureUrl}
+                      alt="Signature officielle"
+                      className="h-12 max-w-[170px] object-contain mx-auto"
+                    />
+                    <span className="text-[10px] text-emerald-700 font-semibold block mt-1">
+                      ✓ Signature active sur les documents
+                    </span>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-white rounded-xl border border-dashed border-slate-300 text-center">
+                    <span className="text-xs text-slate-500 italic block">Aucune signature numérisée</span>
+                    <span className="text-[10px] text-slate-400 block">Les documents prévoient l&apos;espace pour signature manuelle</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Photo de couverture si disponible */}
           {activeSchool.coverImage && (
             <div className="rounded-2xl overflow-hidden border border-slate-200">
@@ -260,6 +343,117 @@ export default function ParametresEtablissementPage() {
                     placeholder="/images/pexels-tosin-olowoleni-2148141635-34162713.jpg"
                     className="w-full rounded-xl border border-slate-300 py-2.5 px-3.5 text-xs font-mono focus:border-school-primary focus:ring-2 focus:ring-school-primary/20"
                   />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section Direction de l'Établissement & Signature Officielle */}
+          <div className="space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-school-primary" />
+                <span>Direction de l&apos;Établissement &amp; Signature Administrative</span>
+              </h3>
+              <p className="text-xs text-slate-500">
+                Informations officielles imprimées sur les relevés de notes, bulletins scolaires, attestations et certificats.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-xs font-semibold text-slate-700">
+                  Nom et prénom du Directeur / Chef d&apos;Établissement
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.directorName || ""}
+                  onChange={(e) => setFormData({ ...formData, directorName: e.target.value })}
+                  placeholder="Ex: Dr. Marcellin HOUNGBO ou Direction de l'Établissement"
+                  className="w-full rounded-xl border border-slate-300 py-2.5 px-3.5 text-sm focus:border-school-primary focus:ring-2 focus:ring-school-primary/20 touch-target font-bold text-slate-900"
+                />
+                <p className="text-[11px] text-slate-500">
+                  Responsable administratif officiel chargé de signer et certifier les documents scolaires.
+                </p>
+              </div>
+
+              {/* Signature numérisée */}
+              <div className="space-y-2 sm:col-span-2 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800">
+                    Signature officielle du Directeur (Image)
+                  </span>
+                  <span className="text-[11px] text-slate-500">PNG / JPG (fond blanc ou transparent)</span>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  {formData.directorSignatureUrl ? (
+                    <div className="relative p-2.5 bg-white rounded-xl border border-slate-300 shadow-xs shrink-0 text-center">
+                      <img
+                        src={formData.directorSignatureUrl}
+                        alt="Signature Directeur"
+                        className="h-16 w-36 object-contain mx-auto"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, directorSignatureUrl: "" })}
+                        className="absolute -top-2 -right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 shadow-sm"
+                        title="Supprimer la signature"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="h-16 w-36 rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center text-xs text-slate-400 bg-white shrink-0">
+                      Aucune signature
+                    </div>
+                  )}
+
+                  <div className="space-y-2 flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      id="director-signature-file"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 2 * 1024 * 1024) {
+                            toast("L'image de signature ne doit pas dépasser 2 Mo.", "error");
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            const result = event.target?.result as string;
+                            setFormData({ ...formData, directorSignatureUrl: result });
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <label
+                        htmlFor="director-signature-file"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer shadow-xs transition"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-school-primary" />
+                        <span>{formData.directorSignatureUrl ? "Remplacer l'image de signature" : "Importer l'image de la signature"}</span>
+                      </label>
+                      {formData.directorSignatureUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, directorSignatureUrl: "" })}
+                          className="px-3 py-1.5 text-xs font-semibold text-rose-600 hover:text-rose-800"
+                        >
+                          Supprimer
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Uniquement la signature fournie par l&apos;établissement sera affichée. En l&apos;absence d&apos;image, un espace vierge dédié à la signature manuelle sera imprimé.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

@@ -60,6 +60,8 @@ CREATE TABLE IF NOT EXISTS schools (
     devise VARCHAR(255),
     currency VARCHAR(10) NOT NULL DEFAULT 'FCFA',
     active_year VARCHAR(20) NOT NULL DEFAULT '2026-2027',
+    director_name VARCHAR(255) DEFAULT 'Direction de l''Établissement',
+    director_signature_url TEXT,
     owner_user_id UUID, -- Directeur / Propriétaire du compte
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -176,6 +178,7 @@ CREATE TABLE IF NOT EXISTS classrooms (
     stream VARCHAR(50) DEFAULT 'Général',
     size INTEGER NOT NULL DEFAULT 0,
     main_teacher_id UUID,
+    tuition_fee INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

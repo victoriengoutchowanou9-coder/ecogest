@@ -163,8 +163,10 @@ export const ClassRegisterPDF: React.FC<ClassRegisterPDFProps> = ({
               <span className="font-bold text-slate-900 text-sm">{classroom.level} ({classroom.stream})</span>
             </div>
             <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-              <span className="text-[10px] text-slate-500 uppercase block font-semibold">Professeur Principal</span>
-              <span className="font-bold text-slate-900 text-sm truncate block">{classroom.mainTeacher || "Non assigné"}</span>
+              <span className="text-[10px] text-slate-500 uppercase block font-semibold">Scolarité Annuelle</span>
+              <span className="font-bold text-slate-900 text-sm truncate block">
+                {classroom.tuitionFee ? `${classroom.tuitionFee.toLocaleString()} FCFA` : "Selon tarif officiel"}
+              </span>
             </div>
             <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
               <span className="text-[10px] text-slate-500 uppercase block font-semibold">Effectif Inscrit</span>
@@ -338,32 +340,31 @@ export const ClassRegisterPDF: React.FC<ClassRegisterPDFProps> = ({
         </div>
 
         {/* Pied de page et signatures certifiées */}
-        <div className="mt-8 pt-4 border-t-2 border-slate-900 grid grid-cols-1 md:grid-cols-3 gap-4 text-center text-xs print:grid-cols-3">
-          <div className="p-2 sm:p-0">
-            <p className="font-bold text-slate-900 uppercase">Le Professeur Principal</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">Attestation de conformité des effectifs</p>
-            <div className="h-14 mt-2 flex items-center justify-center italic text-slate-400 text-[10px]">
-              (Signature)
-            </div>
-            <p className="font-semibold text-slate-800">{classroom.mainTeacher || "—"}</p>
-          </div>
-
-          <div className="p-2 sm:p-0">
+        <div className="mt-8 pt-4 border-t-2 border-slate-900 grid grid-cols-1 md:grid-cols-2 gap-8 text-center text-xs print:grid-cols-2">
+          <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-200">
             <p className="font-bold text-slate-900 uppercase">Le Censeur des Études</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">Contrôle pédagogique & vérification</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">Contrôle pédagogique &amp; vérification</p>
             <div className="h-14 mt-2 flex items-center justify-center italic text-slate-400 text-[10px]">
-              (Sceau & Signature)
+              (Sceau officiel &amp; Signature)
             </div>
-            <p className="font-semibold text-slate-800">Censeur des Études</p>
+            <p className="font-semibold text-slate-800">Censorat des Études</p>
           </div>
 
-          <div className="p-2 sm:p-0">
-            <p className="font-bold text-slate-900 uppercase">Le Chef d'Établissement</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">Visa d'approbation officiel</p>
-            <div className="h-14 mt-2 flex items-center justify-center italic text-slate-400 text-[10px]">
-              (Cachet officiel & Signature)
+          <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-200">
+            <p className="font-bold text-slate-900 uppercase">Le Chef d&apos;Établissement / Directeur</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">Visa d&apos;approbation officiel &bull; Décision administrative</p>
+            <div className="min-h-14 mt-2 flex items-center justify-center">
+              {schoolSettings.directorSignatureUrl ? (
+                <img
+                  src={schoolSettings.directorSignatureUrl}
+                  alt={`Signature ${schoolSettings.directorName}`}
+                  className="h-12 max-w-[160px] object-contain"
+                />
+              ) : (
+                <span className="italic text-slate-400 text-[10px]">(Cachet officiel &amp; Signature)</span>
+              )}
             </div>
-            <p className="font-semibold text-slate-800">{schoolSettings.directorName}</p>
+            <p className="font-bold text-slate-900 uppercase tracking-wide">{schoolSettings.directorName || "Direction de l'Établissement"}</p>
           </div>
         </div>
 

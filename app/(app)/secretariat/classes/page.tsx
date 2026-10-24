@@ -143,7 +143,7 @@ export default function SecretariatClassesPage() {
                   </span>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Professeur Principal / Titulaire : <strong>{currentClass.mainTeacher || "Non assigné"}</strong> &bull; Année Scolaire : 2026-2027
+                  Scolarité annuelle : <strong>{currentClass.tuitionFee ? `${currentClass.tuitionFee.toLocaleString()} FCFA` : "Tarif officiel"}</strong> &bull; Année Scolaire : 2026-2027
                 </p>
               </div>
 

@@ -60,6 +60,7 @@ export const OfficialDocumentModal: React.FC<OfficialDocumentModalProps> = ({
   const parentName = student?.parentName || "Parent / Tuteur légal";
   const parentPhone = student?.parentPhone || "+229 ";
   const directorName = (activeSchool as any)?.directorName || "Direction de l'Établissement";
+  const directorSignatureUrl = (activeSchool as any)?.directorSignatureUrl || "";
 
   const docTitle = document.title || "DOCUMENT ADMINISTRATIF OFFICIEL";
 
@@ -448,7 +449,7 @@ export const OfficialDocumentModal: React.FC<OfficialDocumentModalProps> = ({
                 </div>
 
                 {/* Signature Chef d'Établissement */}
-                <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-200 space-y-12">
+                <div className="p-3 bg-slate-50/50 rounded-xl border border-slate-200 flex flex-col justify-between min-h-[140px]">
                   <div>
                     <p className="font-black text-slate-900 uppercase tracking-wide">
                       Le Chef d&apos;Établissement / Directeur
@@ -456,9 +457,20 @@ export const OfficialDocumentModal: React.FC<OfficialDocumentModalProps> = ({
                     <p className="text-[10px] text-slate-500">Direction Générale de l&apos;Établissement</p>
                   </div>
 
+                  <div className="my-2 flex items-center justify-center min-h-[44px]">
+                    {directorSignatureUrl ? (
+                      <img
+                        src={directorSignatureUrl}
+                        alt={`Signature ${directorName}`}
+                        className="h-12 max-w-[170px] object-contain"
+                      />
+                    ) : (
+                      <p className="text-[10px] text-slate-400 italic">[Sceau officiel de l&apos;École &amp; Signature]</p>
+                    )}
+                  </div>
+
                   <div className="text-[11px] text-slate-600">
-                    <p className="font-bold text-slate-900">{directorName}</p>
-                    <p className="text-[10px] text-slate-400 italic mt-0.5">[Sceau officiel de l&apos;École &amp; Signature]</p>
+                    <p className="font-black text-slate-900 uppercase tracking-wider">{directorName}</p>
                   </div>
                 </div>
               </div>

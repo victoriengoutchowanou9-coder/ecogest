@@ -48,6 +48,33 @@ const getPrimaryGradesKey = () => getScopedStorageKey("educogest_bulletin_primar
 const getClassesKey = () => getScopedStorageKey("educogest_school_classes_v3");
 const getStatusesKey = () => getScopedStorageKey("educogest_bulletin_statuses_v3");
 const getStudentsKey = () => getScopedStorageKey("educogest_censeur_students_v2");
+const getSchoolSettingsKey = () => getScopedStorageKey("educogest_school_settings_v3");
+
+function getDynamicSchoolSettings(): SchoolSettings {
+  let subSchool: any = null;
+  if (typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem("educogest_school_subscription_v2");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const activeId = parsed.activeSchoolId;
+        subSchool = parsed.schools?.find((s: any) => s.id === activeId) || parsed.schools?.[0];
+      }
+    } catch {}
+  }
+  const customSettings = safeGetStorage<Partial<SchoolSettings>>(getSchoolSettingsKey(), {});
+  return {
+    ...MOCK_SCHOOL_SETTINGS,
+    name: subSchool?.name || customSettings.name || MOCK_SCHOOL_SETTINGS.name,
+    motto: subSchool?.devise || customSettings.motto || MOCK_SCHOOL_SETTINGS.motto,
+    district: subSchool?.city || subSchool?.region || customSettings.district || "",
+    phoneNumbers: subSchool?.phone || customSettings.phoneNumbers || "",
+    directorName: subSchool?.directorName || customSettings.directorName || MOCK_SCHOOL_SETTINGS.directorName || "Direction de l'Établissement",
+    directorSignatureUrl: subSchool?.directorSignatureUrl || customSettings.directorSignatureUrl || "",
+    logoUrl: subSchool?.logo || customSettings.logoUrl || "",
+    teachingType: subSchool?.teachingType || customSettings.teachingType || "PRIMAIRE_SECONDAIRE",
+  };
+}
 
 const STORAGE_EVENT = "educogest_bulletin_storage_update";
 
@@ -108,7 +135,7 @@ export function useBulletinStore() {
     safeGetStorage(getStudentsKey(), [])
   );
 
-  const school = MOCK_SCHOOL_SETTINGS;
+  const [school, setSchool] = useState<SchoolSettings>(() => getDynamicSchoolSettings());
   const years = MOCK_ACADEMIC_YEARS;
   const periods = MOCK_ACADEMIC_PERIODS;
   const teachers = MOCK_TEACHERS;
@@ -126,6 +153,7 @@ export function useBulletinStore() {
       setClassrooms(safeGetStorage(getClassesKey(), []));
       setBulletinStatuses(safeGetStorage(getStatusesKey(), INITIAL_BULLETIN_STATUSES));
       setStudents(safeGetStorage(getStudentsKey(), []));
+      setSchool(getDynamicSchoolSettings());
     };
 
     window.addEventListener(STORAGE_EVENT, handleStorageUpdate);
@@ -652,6 +680,14 @@ export function useBulletinStore() {
     setBulletinStatuses({});
   }, []);
 
+  const updateSchoolSettings = useCallback((updates: Partial<SchoolSettings>) => {
+    setSchool((prev) => {
+      const next = { ...prev, ...updates };
+      safeSetStorage(getSchoolSettingsKey(), next);
+      return next;
+    });
+  }, []);
+
   return {
     subjects,
     grades,
@@ -669,6 +705,7 @@ export function useBulletinStore() {
     bulletinStatuses,
     saveClassroom,
     deleteClassroom,
+    updateSchoolSettings,
     updateSubjectCoef,
     updateStudentGrade,
     deleteStudentGrade,

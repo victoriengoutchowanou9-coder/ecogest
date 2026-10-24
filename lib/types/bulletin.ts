@@ -34,6 +34,7 @@ export interface SchoolSettings {
   postalBox: string;
   phoneNumbers: string;
   directorName: string;
+  directorSignatureUrl?: string;
   logoUrl?: string;
   platformName: string;
   teachingType?: "PRIMAIRE" | "SECONDAIRE" | "PRIMAIRE_SECONDAIRE";
@@ -132,7 +133,8 @@ export interface ClassRoom {
   level: string;
   stream: string;
   size: number;
-  mainTeacher: string;
+  mainTeacher?: string;
+  tuitionFee?: number;
   academicYearId: string;
 }
 

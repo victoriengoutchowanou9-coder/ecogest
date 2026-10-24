@@ -47,6 +47,7 @@ function safeSetStorage<T>(key: string, value: T): void {
 }
 
 const getSchoolStudentsKey = () => getScopedStorageKey("educogest_censeur_students_v2");
+const getSchoolClassesKey = () => getScopedStorageKey("educogest_school_classes_v3");
 
 function getMergedFinanceStudents(): StudentTuitionRecord[] {
   const existingFinance = safeGetStorage<StudentTuitionRecord[]>(
@@ -54,6 +55,7 @@ function getMergedFinanceStudents(): StudentTuitionRecord[] {
     INITIAL_STUDENTS_TUITION
   );
   const schoolStudents = safeGetStorage<any[]>(getSchoolStudentsKey(), []);
+  const schoolClasses = safeGetStorage<any[]>(getSchoolClassesKey(), []);
 
   if (!schoolStudents || schoolStudents.length === 0) {
     return existingFinance;
@@ -68,7 +70,15 @@ function getMergedFinanceStudents(): StudentTuitionRecord[] {
       const isPrimaire =
         st.cycle === "PRIMAIRE" ||
         (st.className && /CI|CP|CE1|CE2|CM1|CM2/i.test(st.className));
-      const defaultTuition = isPrimaire ? 90000 : 150000;
+      
+      // Trouver le tarif défini sur la classe si disponible
+      const matchingClass = schoolClasses.find(
+        (c) => (st.classId && c.id === st.classId) || (st.className && c.name && c.name.toLowerCase() === st.className.toLowerCase())
+      );
+      const defaultTuition = (matchingClass && typeof matchingClass.tuitionFee === "number" && matchingClass.tuitionFee > 0)
+        ? matchingClass.tuitionFee
+        : isPrimaire ? 90000 : 150000;
+
       newTuitions.push({
         id: `st-${st.id}`,
         studentId: st.id,
@@ -654,6 +664,29 @@ export function useFinanceStore() {
     );
   };
 
+  const updateClassTuition = (classId: string, className: string, newTuition: number) => {
+    setStudents((prev) =>
+      prev.map((s) => {
+        const match =
+          (classId && s.classId === classId) ||
+          (className && s.className && s.className.toLowerCase() === className.toLowerCase());
+        if (!match) return s;
+        const totalTuition = Math.max(0, newTuition);
+        const remainingTuition = Math.max(0, totalTuition - s.paidTuition);
+        let tuitionStatus: "PAID" | "PARTIAL" | "LATE" | "UNPAID" = "UNPAID";
+        if (remainingTuition === 0) tuitionStatus = "PAID";
+        else if (s.paidTuition > 0) tuitionStatus = "PARTIAL";
+        else if (s.tuitionStatus === "LATE") tuitionStatus = "LATE";
+        return {
+          ...s,
+          totalTuition,
+          remainingTuition,
+          tuitionStatus,
+        };
+      })
+    );
+  };
+
   const deleteStudentTuition = (studentId: string) => {
     setStudents((prev) => prev.filter((st) => st.studentId !== studentId && st.id !== studentId));
   };
@@ -679,6 +712,7 @@ export function useFinanceStore() {
     deleteStaffMember,
     addStudentTuition,
     updateStudentTuition,
+    updateClassTuition,
     deleteStudentTuition,
     getTreasuryLedger,
     getFinancialStats,
