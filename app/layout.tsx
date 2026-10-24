@@ -1,15 +1,18 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "@/styles/globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
 import { PWAProvider } from "@/components/pwa/PWAProvider";
 import { PWAInstallBanner } from "@/components/pwa/PWAInstallBanner";
+
+export const viewport: Viewport = {
+  themeColor: "#0f2b5c",
+};
 
 export const metadata: Metadata = {
   title: "ECOGEST | Gestion scolaire tout en un",
   description:
     "Solution logicielle moderne de gestion pour établissements scolaires (collèges, lycées et complexes scolaires) : direction administrative, pédagogie, bulletins scolaires normalisés, comptabilité et suivi parental.",
   manifest: "/manifest.json",
-  themeColor: "#0f2b5c",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
