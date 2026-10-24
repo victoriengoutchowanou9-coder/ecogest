@@ -91,16 +91,30 @@ export default function DirecteurAbonnementPage() {
 
     try {
       const activeSchool = schools[0];
+      const effectivePlanCode: SchoolPlanCode =
+        schoolPlan === "STARTER" ? "BASIC" : schoolPlan;
+
+      const emailToSend =
+        currentUser?.email && currentUser.email.includes("@")
+          ? currentUser.email
+          : activeSchool?.email && activeSchool.email.includes("@")
+          ? activeSchool.email
+          : "direction@ecogest.app";
+
+      const nameToSend =
+        currentUser?.fullName || activeSchool?.name || "Direction Établissement";
+
       const res = await fetch("/api/subscriptions/saspay/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           entityType: "SCHOOL",
-          planCode: schoolPlan,
-          schoolId: activeSchool?.id || "school-1",
-          customerEmail: activeSchool?.email,
-          customerName: activeSchool?.name,
-          customerPhone: paymentPhone,
+          planCode: effectivePlanCode,
+          schoolId: activeSchool?.id || currentUser?.schoolId || "school-1",
+          userId: currentUser?.id,
+          customerEmail: emailToSend,
+          customerName: nameToSend,
+          customerPhone: paymentPhone || currentUser?.phone || activeSchool?.phone || "",
         }),
       });
 
@@ -110,7 +124,9 @@ export default function DirecteurAbonnementPage() {
         window.location.href = data.checkoutUrl;
         return;
       } else {
-        toast(data.error || "Impossible d'initialiser le paiement SasPay.", "error");
+        const errDetail =
+          typeof data.error === "object" ? JSON.stringify(data.error) : data.error;
+        toast(errDetail || "Impossible d'initialiser le paiement SasPay.", "error");
       }
     } catch (err: any) {
       toast("Erreur de connexion au serveur de paiement SasPay.", "error");
@@ -124,15 +140,27 @@ export default function DirecteurAbonnementPage() {
     if (targetPlan.priceFcfa > 0) {
       try {
         const activeSchool = schools[0];
+        const emailToSend =
+          currentUser?.email && currentUser.email.includes("@")
+            ? currentUser.email
+            : activeSchool?.email && activeSchool.email.includes("@")
+            ? activeSchool.email
+            : "direction@ecogest.app";
+
+        const nameToSend =
+          currentUser?.fullName || activeSchool?.name || "Direction Établissement";
+
         const res = await fetch("/api/subscriptions/saspay/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             entityType: "SCHOOL",
             planCode: code,
-            schoolId: activeSchool?.id || "school-1",
-            customerEmail: activeSchool?.email,
-            customerName: activeSchool?.name,
+            schoolId: activeSchool?.id || currentUser?.schoolId || "school-1",
+            userId: currentUser?.id,
+            customerEmail: emailToSend,
+            customerName: nameToSend,
+            customerPhone: currentUser?.phone || activeSchool?.phone || "",
           }),
         });
 
@@ -144,8 +172,16 @@ export default function DirecteurAbonnementPage() {
           );
           window.location.href = data.checkoutUrl;
           return;
+        } else {
+          const errDetail =
+            typeof data.error === "object" ? JSON.stringify(data.error) : data.error;
+          toast(errDetail || "Erreur lors de l'initialisation du paiement.", "error");
+          return;
         }
-      } catch (err) {}
+      } catch (err) {
+        toast("Erreur de connexion avec la passerelle SasPay.", "error");
+        return;
+      }
     }
 
     changeSchoolPlan(code);
@@ -165,16 +201,27 @@ export default function DirecteurAbonnementPage() {
     if (schoolPlanDef.priceFcfa > 0) {
       try {
         const activeSchool = schools[0];
+        const emailToSend =
+          currentUser?.email && currentUser.email.includes("@")
+            ? currentUser.email
+            : activeSchool?.email && activeSchool.email.includes("@")
+            ? activeSchool.email
+            : "direction@ecogest.app";
+
+        const nameToSend =
+          currentUser?.fullName || activeSchool?.name || "Direction Établissement";
+
         const res = await fetch("/api/subscriptions/saspay/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             entityType: "SCHOOL",
             planCode: schoolPlan,
-            schoolId: activeSchool?.id || "school-1",
-            customerEmail: activeSchool?.email,
-            customerName: activeSchool?.name,
-            customerPhone: activeSchool?.phone,
+            schoolId: activeSchool?.id || currentUser?.schoolId || "school-1",
+            userId: currentUser?.id,
+            customerEmail: emailToSend,
+            customerName: nameToSend,
+            customerPhone: activeSchool?.phone || currentUser?.phone || paymentPhone || "",
           }),
         });
 
@@ -183,8 +230,16 @@ export default function DirecteurAbonnementPage() {
           toast("Redirection vers SasPay pour le renouvellement...", "info");
           window.location.href = data.checkoutUrl;
           return;
+        } else {
+          const errDetail =
+            typeof data.error === "object" ? JSON.stringify(data.error) : data.error;
+          toast(errDetail || "Impossible d'initialiser le renouvellement.", "error");
+          return;
         }
-      } catch (e) {}
+      } catch (e) {
+        toast("Erreur de communication avec le serveur SasPay.", "error");
+        return;
+      }
     }
 
     renewSchoolSubscription();

@@ -89,6 +89,13 @@ export default function ParentAbonnementPage() {
     setPayingLoading(true);
 
     try {
+      const emailToSend =
+        currentUser?.email && currentUser.email.includes("@")
+          ? currentUser.email
+          : "parent@ecogest.app";
+
+      const nameToSend = currentUser?.fullName || "Parent d'Élève";
+
       const res = await fetch("/api/subscriptions/saspay/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -96,9 +103,9 @@ export default function ParentAbonnementPage() {
           entityType: "PARENT",
           planCode: parentPlan,
           parentId: currentUser?.id || "parent-1",
-          customerEmail: currentUser?.email,
-          customerName: currentUser?.fullName || "Parent Éducatif",
-          customerPhone: paymentPhone,
+          customerEmail: emailToSend,
+          customerName: nameToSend,
+          customerPhone: paymentPhone || currentUser?.phone || "",
         }),
       });
 
@@ -108,7 +115,9 @@ export default function ParentAbonnementPage() {
         window.location.href = data.checkoutUrl;
         return;
       } else {
-        toast(data.error || "Impossible d'initialiser le paiement SasPay.", "error");
+        const errDetail =
+          typeof data.error === "object" ? JSON.stringify(data.error) : data.error;
+        toast(errDetail || "Impossible d'initialiser le paiement SasPay.", "error");
       }
     } catch (err: any) {
       toast("Erreur de connexion au serveur de paiement SasPay.", "error");
@@ -121,6 +130,13 @@ export default function ParentAbonnementPage() {
     const targetPlan = PARENT_PLANS[code];
     if (targetPlan.priceFcfa > 0) {
       try {
+        const emailToSend =
+          currentUser?.email && currentUser.email.includes("@")
+            ? currentUser.email
+            : "parent@ecogest.app";
+
+        const nameToSend = currentUser?.fullName || "Parent d'Élève";
+
         const res = await fetch("/api/subscriptions/saspay/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -128,8 +144,9 @@ export default function ParentAbonnementPage() {
             entityType: "PARENT",
             planCode: code,
             parentId: currentUser?.id || "parent-1",
-            customerEmail: currentUser?.email,
-            customerName: currentUser?.fullName || "Parent Éducatif",
+            customerEmail: emailToSend,
+            customerName: nameToSend,
+            customerPhone: currentUser?.phone || "",
           }),
         });
 
@@ -141,8 +158,16 @@ export default function ParentAbonnementPage() {
           );
           window.location.href = data.checkoutUrl;
           return;
+        } else {
+          const errDetail =
+            typeof data.error === "object" ? JSON.stringify(data.error) : data.error;
+          toast(errDetail || "Impossible d'initialiser le paiement du forfait.", "error");
+          return;
         }
-      } catch (err) {}
+      } catch (err) {
+        toast("Erreur de connexion avec la passerelle SasPay.", "error");
+        return;
+      }
     }
 
     changeParentPlan(code);
@@ -157,6 +182,13 @@ export default function ParentAbonnementPage() {
   const handleRenew = async () => {
     if (parentPlanDef.priceFcfa > 0) {
       try {
+        const emailToSend =
+          currentUser?.email && currentUser.email.includes("@")
+            ? currentUser.email
+            : "parent@ecogest.app";
+
+        const nameToSend = currentUser?.fullName || "Parent d'Élève";
+
         const res = await fetch("/api/subscriptions/saspay/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -164,8 +196,9 @@ export default function ParentAbonnementPage() {
             entityType: "PARENT",
             planCode: parentPlan,
             parentId: currentUser?.id || "parent-1",
-            customerEmail: currentUser?.email,
-            customerName: currentUser?.fullName || "Parent Éducatif",
+            customerEmail: emailToSend,
+            customerName: nameToSend,
+            customerPhone: currentUser?.phone || paymentPhone || "",
           }),
         });
 
@@ -177,8 +210,16 @@ export default function ParentAbonnementPage() {
           );
           window.location.href = data.checkoutUrl;
           return;
+        } else {
+          const errDetail =
+            typeof data.error === "object" ? JSON.stringify(data.error) : data.error;
+          toast(errDetail || "Impossible d'initialiser le renouvellement.", "error");
+          return;
         }
-      } catch (err) {}
+      } catch (err) {
+        toast("Erreur de communication avec le serveur SasPay.", "error");
+        return;
+      }
     }
 
     renewParentSubscription();

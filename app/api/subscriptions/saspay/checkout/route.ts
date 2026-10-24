@@ -73,11 +73,15 @@ export async function POST(request: Request) {
     const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
     const paymentReference = `SAS-${entityType === "SCHOOL" ? "SCH" : "PAR"}-${datePart}-${randPart}`;
 
-    // Construction de l'URL de retour client
-    const appBaseUrl =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      request.headers.get("origin") ||
-      "http://localhost:3000";
+    // Détection dynamique de l'URL de base (hôte réel client ou variable d'environnement)
+    const origin = request.headers.get("origin") || request.headers.get("referer");
+    let appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    if (origin) {
+      try {
+        const parsed = new URL(origin);
+        appBaseUrl = `${parsed.protocol}//${parsed.host}`;
+      } catch (_) {}
+    }
 
     const returnUrl =
       entityType === "SCHOOL"
@@ -86,14 +90,29 @@ export async function POST(request: Request) {
 
     const description = `Abonnement ${entityType === "SCHOOL" ? "Établissement" : "Parent"} : ${planName} (${priceFcfa} FCFA)`;
 
+    // SasPay requiert impérativement un e-mail et un nom valides
+    const finalEmail =
+      typeof customerEmail === "string" && customerEmail.trim().includes("@")
+        ? customerEmail.trim()
+        : entityType === "SCHOOL"
+        ? "direction@ecogest.app"
+        : "parent@ecogest.app";
+
+    const finalName =
+      typeof customerName === "string" && customerName.trim().length > 1
+        ? customerName.trim()
+        : entityType === "SCHOOL"
+        ? "Direction de l'Établissement"
+        : "Parent d'Élève";
+
     // 1. Initialiser la session hébergée chez SasPay
     const saspayResult = await createSasPayCheckoutSession({
       amount: priceFcfa,
       currency: "XOF",
       description,
-      customerEmail: customerEmail || undefined,
-      customerName: customerName || undefined,
-      customerPhone: customerPhone || undefined,
+      customerEmail: finalEmail,
+      customerName: finalName,
+      customerPhone: customerPhone ? String(customerPhone).trim() : undefined,
       returnUrl,
       reference: paymentReference,
       metadata: {

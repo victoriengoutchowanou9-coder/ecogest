@@ -67,15 +67,32 @@ export async function createSasPayCheckoutSession(
     };
   }
 
+  // Formatage du montant au format décimal strict exigé par SasPay (ex: "6000.00")
+  const formattedAmount = Number(params.amount).toFixed(2);
+
+  // SasPay exige obligatoirement customer_email et customer_name valides
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  let customerEmail = (params.customerEmail || "").trim();
+  if (!emailRegex.test(customerEmail)) {
+    customerEmail = "contact@ecole.educogest.com";
+  }
+
+  let customerName = (params.customerName || "").trim();
+  if (!customerName || customerName.length < 2) {
+    customerName = "Client EDUCOGEST";
+  }
+
   const payload: Record<string, any> = {
-    amount: params.amount.toFixed(2),
+    amount: formattedAmount,
     currency: params.currency || "XOF",
-    description: params.description,
+    description: params.description || "Abonnement EDUCOGEST",
+    customer_email: customerEmail,
+    customer_name: customerName,
   };
 
-  if (params.customerEmail) payload.customer_email = params.customerEmail;
-  if (params.customerName) payload.customer_name = params.customerName;
-  if (params.customerPhone) payload.customer_phone = params.customerPhone;
+  if (params.customerPhone && params.customerPhone.trim()) {
+    payload.customer_phone = params.customerPhone.trim();
+  }
   if (params.returnUrl) payload.return_url = params.returnUrl;
   if (params.reference) payload.reference = params.reference;
   if (params.metadata) payload.metadata = params.metadata;
@@ -93,11 +110,20 @@ export async function createSasPayCheckoutSession(
     const data = await response.json().catch(() => null);
 
     if (!response.ok || !data) {
-      const errMsg =
-        data?.message ||
-        data?.error ||
-        data?.detail ||
-        `Erreur SasPay HTTP ${response.status}`;
+      let errMsg = `Erreur SasPay HTTP ${response.status}`;
+      if (data) {
+        if (typeof data.error === "string") {
+          errMsg = data.error;
+        } else if (typeof data.error === "object" && data.error !== null) {
+          errMsg = Object.entries(data.error)
+            .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : String(v)}`)
+            .join(" | ");
+        } else if (data.message) {
+          errMsg = typeof data.message === "string" ? data.message : JSON.stringify(data.message);
+        } else if (data.detail) {
+          errMsg = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail);
+        }
+      }
       console.error("[SasPay:createCheckoutSession] Erreur API :", response.status, data);
       return { success: false, error: errMsg, raw: data };
     }
