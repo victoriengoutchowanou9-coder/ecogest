@@ -306,24 +306,32 @@ export default function InscriptionPage() {
       } else {
         const effectiveSchoolCode = data.user?.schoolCode || pendingRegistration.payload.schoolCode || "0000";
         const effectiveIdentifier = data.user?.identifier || `${effectiveSchoolCode}PAR01`;
+        const matchedSchool = data.school;
 
-        authStore.login({
-          id: data.user?.id,
-          identifier: effectiveIdentifier,
-          email: pendingRegistration.email,
-          fullName: pendingRegistration.fullName,
-          role: "parent",
-          schoolId: pendingRegistration.payload.schoolId,
-          schoolName: pendingRegistration.payload.schoolName,
-          schoolCode: effectiveSchoolCode,
-          phone: pendingRegistration.phone,
-        });
+        subscriptionStore.changeParentPlan(pendingRegistration.payload.chosenPlan || "PARENT_1");
+        subscriptionStore.setParentStatus("ACTIVE");
+
+        authStore.setAuthenticated(
+          {
+            id: data.user?.id,
+            identifier: effectiveIdentifier,
+            email: pendingRegistration.email,
+            fullName: pendingRegistration.fullName,
+            role: "parent",
+            schoolId: pendingRegistration.payload.schoolId,
+            schoolName: pendingRegistration.payload.schoolName,
+            schoolCode: effectiveSchoolCode,
+            phone: pendingRegistration.phone,
+            permissions: data.user?.permissions,
+          },
+          matchedSchool
+        );
 
         toast(
-          `Compte Parent vérifié avec succès ! Bienvenue ${pendingRegistration.fullName}.`,
+          `Compte Parent créé et vérifié avec succès ! Bienvenue ${pendingRegistration.fullName}. Redirection vers votre espace...`,
           "success"
         );
-        router.push("/parent/abonnement?activation=required");
+        router.push("/parent");
       }
     } catch (err: any) {
       console.error("[finalize-registration] Erreur :", err);

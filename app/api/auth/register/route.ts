@@ -430,7 +430,7 @@ export async function POST(request: Request) {
 
       const finalParentName = `${finalParentLastName.toUpperCase()} ${finalParentFirstName}`;
 
-      // Inscription automatique dans Supabase Auth (GoTrue)
+      // Inscription automatique dans Supabase Auth (GoTrue) avec métadonnées exhaustives
       try {
         await supabase.auth.signUp({
           email: normalizedEmail,
@@ -441,6 +441,11 @@ export async function POST(request: Request) {
               role: "parent",
               school_id: matchedSchool.id,
               school_name: matchedSchool.name,
+              phone: (phone || "").trim(),
+              relationship: cleanRelationship,
+              child_matricule: (childMatricule || "").trim(),
+              child_class: (childClass || "").trim(),
+              chosen_plan: chosenPlan || "PARENT_1",
             },
           },
         });
@@ -495,6 +500,54 @@ export async function POST(request: Request) {
           },
           { status: 500 }
         );
+      }
+
+      // Initialisation abonnement parent dans la table parent_subscriptions
+      try {
+        const planCode = chosenPlan === "PARENT_3" ? "PARENT_3" : chosenPlan === "PARENT_2" ? "PARENT_2" : "PARENT_1";
+        const price = planCode === "PARENT_3" ? 500 : planCode === "PARENT_2" ? 350 : 200;
+        const maxKids = planCode === "PARENT_3" ? 5 : planCode === "PARENT_2" ? 3 : 1;
+
+        await supabase.from("parent_subscriptions").insert({
+          parent_user_id: userRow.id,
+          school_id: matchedSchool.id,
+          plan_type: planCode,
+          price_fcfa: price,
+          status: "ACTIVE",
+          max_children: maxKids,
+          auto_renew: true,
+        });
+      } catch (subErr) {
+        console.warn("[register] Note insertion parent_subscriptions :", subErr);
+      }
+
+      // Association de l'enfant dans parent_student_links si matricule renseigné
+      if (childMatricule && childMatricule.trim()) {
+        try {
+          let studentFullName = `Élève (${childMatricule.trim()})`;
+          const { data: matchedStudent } = await supabase
+            .from("students")
+            .select("first_name, last_name, class_name")
+            .eq("matricule", childMatricule.trim())
+            .eq("school_id", matchedSchool.id)
+            .maybeSingle();
+
+          if (matchedStudent) {
+            studentFullName = `${matchedStudent.last_name || ""} ${matchedStudent.first_name || ""}`.trim();
+          }
+
+          await supabase.from("parent_student_links").insert({
+            parent_user_id: userRow.id,
+            school_id: matchedSchool.id,
+            student_matricule: childMatricule.trim(),
+            student_name: studentFullName,
+            student_class: (childClass || "").trim() || matchedStudent?.class_name || "",
+            relationship: cleanRelationship,
+            status: "PENDING",
+          });
+        } catch (linkErr) {
+          console.warn("[register] Note insertion parent_student_links :", linkErr);
+        }
       }
 
       // Enregistrement dans le journal d'audit développeur (system_audit_logs)
