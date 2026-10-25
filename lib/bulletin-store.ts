@@ -154,7 +154,8 @@ export function useBulletinStore() {
       setGrades(safeGetStorage(getGradesKey(), []));
       setPrimaryGrades(safeGetStorage(getPrimaryGradesKey(), []));
       setAuditLogs(safeGetStorage(getAuditKey(), []));
-      setClassrooms(safeGetStorage(getClassesKey(), []));
+      const storedCls = safeGetStorage<ClassRoom[]>(getClassesKey(), []);
+      setClassrooms(storedCls.length > 0 ? storedCls : MOCK_CLASSROOMS);
       setBulletinStatuses(safeGetStorage(getStatusesKey(), INITIAL_BULLETIN_STATUSES));
       setStudents(safeGetStorage(getStudentsKey(), []));
       setSchool(getDynamicSchoolSettings());

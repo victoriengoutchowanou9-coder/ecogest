@@ -14,15 +14,14 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ChildSwitcher } from "@/components/school/ChildSwitcher";
-import { MOCK_STUDENTS, Student } from "@/lib/mock-data";
-import { MOCK_ABSENCE_RECORDS } from "@/lib/mock-bulletin-db";
+import { Student } from "@/lib/mock-data";
 import { AbsenceRecord } from "@/lib/types/bulletin";
 import { useCenseurStore } from "@/lib/censeur-store";
 import { useAuthStore } from "@/lib/auth-store";
 
 export default function ParentAbsencesRetardsPage() {
   const { user: currentUser } = useAuthStore();
-  const { studentsList, parentAccessRequests } = useCenseurStore();
+  const { studentsList, parentAccessRequests, attendanceItems } = useCenseurStore();
 
   const myChildren: Student[] = React.useMemo(() => {
     const parentPhone = currentUser?.phone || "";
@@ -65,7 +64,39 @@ export default function ParentAbsencesRetardsPage() {
   }, [parentAccessRequests, studentsList]);
 
   const [selectedChild, setSelectedChild] = useState<Student | undefined>(myChildren[0]);
-  const [records, setRecords] = useState<AbsenceRecord[]>(MOCK_ABSENCE_RECORDS);
+  const [records, setRecords] = useState<AbsenceRecord[]>([]);
+
+  React.useEffect(() => {
+    if (!selectedChild || !attendanceItems) {
+      setRecords([]);
+      return;
+    }
+    const realRecords: AbsenceRecord[] = attendanceItems
+      .filter(
+        (item) =>
+          item.studentId === selectedChild.id &&
+          (item.status === "ABSENT" ||
+            item.status === "RETARD" ||
+            item.status === "ABS_JUSTIFIEE" ||
+            item.status === "ABS_NON_JUSTIFIEE")
+      )
+      .map((item) => ({
+        id: item.id,
+        childId: item.studentId,
+        childName: item.studentName,
+        className: item.className,
+        date: item.date,
+        timeSlot: item.sessionTime || "08h00 - 10h00",
+        subject: item.subject || "Cours",
+        teacher: item.recordedByTeacher || "Professeur",
+        type: (item.status === "RETARD" ? "RETARD" : "ABSENCE") as "ABSENCE" | "RETARD",
+        duration: item.status === "RETARD" ? "15 min" : "2 heures",
+        isJustified: item.status === "ABS_JUSTIFIEE" || Boolean(item.justificationNotes),
+        motif: item.justificationNotes || undefined,
+      }));
+    setRecords(realRecords);
+  }, [selectedChild, attendanceItems]);
+
   const [filterType, setFilterType] = useState<"ALL" | "ABSENCE" | "RETARD">("ALL");
   const [isJustifyModalOpen, setIsJustifyModalOpen] = useState(false);
   const [selectedRecordToJustify, setSelectedRecordToJustify] = useState<AbsenceRecord | null>(null);

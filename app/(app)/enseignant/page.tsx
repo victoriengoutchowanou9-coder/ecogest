@@ -121,8 +121,8 @@ export default function EnseignantDashboardPage() {
         title="Tableau de bord Enseignant"
         subtitle={
           currentUser?.fullName
-            ? `Bienvenue, ${currentUser.fullName}${primaryClass ? ` · Maître Responsable ${primaryClass.name}` : ""} · Année 2026-2027`
-            : "Bienvenue sur votre espace enseignant · Année 2026-2027"
+            ? `${currentUser.fullName}${primaryClass ? ` · Maître Responsable ${primaryClass.name}` : ""} · Année Scolaire 2026-2027`
+            : "Espace pédagogique et suivi des classes · Année Scolaire 2026-2027"
         }
         breadcrumbs={[{ label: "Enseignant" }, { label: "Tableau de bord" }]}
         actions={

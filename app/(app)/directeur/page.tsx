@@ -19,8 +19,10 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatFCFA } from "@/lib/utils";
-import { MOCK_FINANCIAL_STATS, MOCK_STUDENTS } from "@/lib/mock-data";
 import { useSubscriptionStore } from "@/lib/subscription-store";
+import { useFinanceStore } from "@/lib/finance-store";
+import { useBulletinStore } from "@/lib/bulletin-store";
+import { useCenseurStore } from "@/lib/censeur-store";
 
 export default function DirecteurDashboardPage() {
   const {
@@ -31,6 +33,14 @@ export default function DirecteurDashboardPage() {
     trialDaysRemaining,
     isExpired,
   } = useSubscriptionStore();
+
+  const { getFinancialStats } = useFinanceStore();
+  const { students } = useBulletinStore();
+  const { teacherAccounts } = useCenseurStore();
+
+  const financialSummary = getFinancialStats({ academicYearId: "2026-2027" });
+  const enrolledStudentsCount = students.length;
+  const activeTeachersCount = teacherAccounts.length;
 
   return (
     <div className="space-y-6">
@@ -110,22 +120,22 @@ export default function DirecteurDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Élèves inscrits"
-          value={MOCK_FINANCIAL_STATS.studentsCount}
-          subtitle="Toutes classes confondues"
+          value={enrolledStudentsCount}
+          subtitle={enrolledStudentsCount > 0 ? "Toutes classes confondues" : "Aucun élève enregistré"}
           icon={<GraduationCap className="w-6 h-6" />}
           variant="info"
         />
         <StatCard
           title="Taux de recouvrement"
-          value={`${MOCK_FINANCIAL_STATS.collectionRate} %`}
-          subtitle={formatFCFA(MOCK_FINANCIAL_STATS.totalCollected)}
+          value={`${financialSummary.collectionRate} %`}
+          subtitle={formatFCFA(financialSummary.totalTuitionCollected)}
           icon={<DollarSign className="w-6 h-6" />}
           variant="success"
         />
         <StatCard
           title="Enseignants actifs"
-          value="0"
-          subtitle="Effectif du personnel"
+          value={activeTeachersCount}
+          subtitle={activeTeachersCount > 0 ? "Effectif du personnel" : "Aucun enseignant créé"}
           icon={<Users className="w-6 h-6" />}
           variant="default"
         />
@@ -167,19 +177,19 @@ export default function DirecteurDashboardPage() {
             <div className="p-3 bg-slate-50 rounded-xl">
               <span className="text-[11px] font-semibold text-slate-500 uppercase block">Total Attendu</span>
               <span className="text-sm md:text-base font-bold text-slate-800 tabular-nums">
-                {formatFCFA(MOCK_FINANCIAL_STATS.totalExpected)}
+                {formatFCFA(financialSummary.totalTuitionExpected)}
               </span>
             </div>
             <div className="p-3 bg-emerald-50 rounded-xl">
               <span className="text-[11px] font-semibold text-emerald-700 uppercase block">Encaissé</span>
               <span className="text-sm md:text-base font-bold text-emerald-700 tabular-nums">
-                {formatFCFA(MOCK_FINANCIAL_STATS.totalCollected)}
+                {formatFCFA(financialSummary.totalTuitionCollected)}
               </span>
             </div>
             <div className="p-3 bg-rose-50 rounded-xl">
               <span className="text-[11px] font-semibold text-rose-700 uppercase block">Reste à recouvrer</span>
               <span className="text-sm md:text-base font-bold text-rose-700 tabular-nums">
-                {formatFCFA(MOCK_FINANCIAL_STATS.totalRemaining)}
+                {formatFCFA(financialSummary.totalTuitionRemaining)}
               </span>
             </div>
           </div>
@@ -188,12 +198,12 @@ export default function DirecteurDashboardPage() {
           <div className="space-y-1.5 pt-2">
             <div className="flex justify-between text-xs font-medium text-slate-600">
               <span>Taux d&apos;encaissement global</span>
-              <span className="font-bold text-emerald-700">{MOCK_FINANCIAL_STATS.collectionRate}%</span>
+              <span className="font-bold text-emerald-700">{financialSummary.collectionRate}%</span>
             </div>
             <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden">
               <div
                 className="h-full bg-emerald-600 rounded-full transition-all"
-                style={{ width: `${MOCK_FINANCIAL_STATS.collectionRate}%` }}
+                style={{ width: `${Math.min(100, financialSummary.collectionRate)}%` }}
               />
             </div>
           </div>

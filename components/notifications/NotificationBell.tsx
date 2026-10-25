@@ -32,18 +32,25 @@ export const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Fermeture automatique au clic en dehors
+  // Fermeture automatique au clic en dehors et touche Échap
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    }
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen]);
 
@@ -85,29 +92,40 @@ export const NotificationBell: React.FC = () => {
         )}
       </button>
 
-      {/* Popover Menu Déroulant */}
+      {/* Popover Menu Déroulant (Entièrement responsive 320px à desktop, sans débordement) */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white border border-slate-200 shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="fixed sm:absolute right-2 left-2 sm:left-auto sm:right-0 top-16 sm:top-auto sm:mt-2 w-auto sm:w-96 max-w-[calc(100vw-16px)] sm:max-w-none rounded-2xl bg-white border border-slate-200 shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
           {/* Header */}
-          <div className="p-3.5 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-900">Notifications</span>
+          <div className="p-3.5 border-b border-slate-100 bg-slate-50/90 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs font-bold text-slate-900 truncate">Notifications</span>
               {unreadNotificationsCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-school-50 text-school-primary border border-school-200">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-school-50 text-school-primary border border-school-200 shrink-0">
                   {unreadNotificationsCount} nouvelle(s)
                 </span>
               )}
             </div>
 
-            {unreadNotificationsCount > 0 && (
+            <div className="flex items-center gap-2 shrink-0">
+              {unreadNotificationsCount > 0 && (
+                <button
+                  type="button"
+                  onClick={markAllNotificationsRead}
+                  className="text-[11px] font-semibold text-school-primary hover:underline"
+                >
+                  Tout marquer lu
+                </button>
+              )}
               <button
                 type="button"
-                onClick={markAllNotificationsRead}
-                className="text-[11px] font-semibold text-school-primary hover:underline"
+                onClick={() => setIsOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
+                aria-label="Fermer le panneau de notifications"
+                title="Fermer"
               >
-                Tout marquer lu
+                <X className="w-4 h-4" />
               </button>
-            )}
+            </div>
           </div>
 
           {/* Web Push Banner Quick Toggle (Requirement 5.B) */}
@@ -133,7 +151,7 @@ export const NotificationBell: React.FC = () => {
           )}
 
           {/* Notifications List */}
-          <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-100">
+          <div className="max-h-[min(65vh,400px)] overflow-y-auto divide-y divide-slate-100 overscroll-contain">
             {recentNotifications.length === 0 ? (
               <div className="p-8 text-center text-slate-400 text-xs">
                 <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-slate-300 stroke-1" />
@@ -157,12 +175,12 @@ export const NotificationBell: React.FC = () => {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <h4 className="text-xs font-bold text-slate-900 truncate">{notif.title}</h4>
+                      <h4 className="text-xs font-bold text-slate-900 truncate" title={notif.title}>{notif.title}</h4>
                       {!notif.isRead && (
                         <span className="w-2 h-2 rounded-full bg-school-primary shrink-0" />
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-600 mt-0.5 line-clamp-2 leading-relaxed">
+                    <p className="text-[11px] text-slate-600 mt-0.5 line-clamp-2 leading-relaxed break-words">
                       {notif.message}
                     </p>
                     <div className="flex items-center justify-between mt-1.5 text-[10px] text-slate-400">

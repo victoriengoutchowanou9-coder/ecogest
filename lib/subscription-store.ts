@@ -38,6 +38,7 @@ export interface SchoolSubscriptionState {
   activeSchoolId: string;
   schools: SchoolProfile[];
   usersCount: number; // Utilisateurs actuels
+  hasConsumedTrial: boolean; // Usage unique du mois gratuit STARTER
 }
 
 export interface ParentSubscriptionState {
@@ -85,6 +86,7 @@ const DEFAULT_SCHOOL_STATE: SchoolSubscriptionState = {
   activeSchoolId: "school-1",
   schools: [INITIAL_SCHOOLS[0]],
   usersCount: 0,
+  hasConsumedTrial: false,
 };
 
 const DEFAULT_PARENT_STATE: ParentSubscriptionState = {
@@ -131,6 +133,13 @@ function loadStateFromStorage() {
     }
     if (memorySchoolState.status === "PENDING_PAYMENT") {
       memorySchoolState.status = "ACTIVE";
+    }
+    // Verrouillage strict : si la période d'essai est échue, bloquer l'état en EXPIRED et marquer l'essai comme consommé
+    if (memorySchoolState.status === "TRIAL" && memorySchoolState.expiresAt) {
+      if (Date.now() > new Date(memorySchoolState.expiresAt).getTime()) {
+        memorySchoolState.status = "EXPIRED";
+        memorySchoolState.hasConsumedTrial = true;
+      }
     }
     const rawParent = localStorage.getItem(STORAGE_KEY_PARENT);
     if (rawParent) {
@@ -401,8 +410,15 @@ export const subscriptionStore = {
     return { success: true, school: created };
   },
 
-  // Activer le mois d'essai gratuit Starter (30 jours)
+  // Activer le mois d'essai gratuit Starter (30 jours) - Usage unique strict
   activateStarterTrial(schoolId?: string) {
+    if (
+      memorySchoolState.hasConsumedTrial ||
+      (memorySchoolState.expiresAt && Date.now() > new Date(memorySchoolState.expiresAt).getTime())
+    ) {
+      console.warn("Mois d'essai gratuit STARTER déjà consommé pour cet établissement. Action bloquée.");
+      return;
+    }
     const today = new Date();
     const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     memorySchoolState = {
@@ -412,9 +428,22 @@ export const subscriptionStore = {
       startDate: today.toISOString().split("T")[0],
       expiresAt: expires.toISOString().split("T")[0],
       autoRenew: false,
+      hasConsumedTrial: true,
       ...(schoolId ? { activeSchoolId: schoolId } : {}),
     };
     saveSchoolState();
+  },
+
+  canActivateTrial(): boolean {
+    if (memorySchoolState.hasConsumedTrial) return false;
+    if (memorySchoolState.status === "EXPIRED") return false;
+    if (
+      memorySchoolState.status === "TRIAL" &&
+      Date.now() > new Date(memorySchoolState.expiresAt).getTime()
+    ) {
+      return false;
+    }
+    return true;
   },
 
   isTrialActive(): boolean {
@@ -433,7 +462,13 @@ export const subscriptionStore = {
     if (memorySchoolState.status === "EXPIRED") return true;
     if (memorySchoolState.status === "TRIAL") {
       const expires = new Date(memorySchoolState.expiresAt).getTime();
-      return Date.now() > expires;
+      const expired = Date.now() > expires;
+      if (expired && !memorySchoolState.hasConsumedTrial) {
+        memorySchoolState.hasConsumedTrial = true;
+        memorySchoolState.status = "EXPIRED";
+        saveSchoolState();
+      }
+      return expired;
     }
     return false;
   },
@@ -475,6 +510,7 @@ export const subscriptionStore = {
       ...memorySchoolState,
       currentPlan: newPlan,
       status: "ACTIVE",
+      hasConsumedTrial: true,
       startDate: new Date().toISOString().split("T")[0],
       expiresAt: nextMonth.toISOString().split("T")[0],
       schools: validSchools,
@@ -549,6 +585,7 @@ export const subscriptionStore = {
 // Actions stables (références constantes hors du hook pour éviter les re-renders infinis dans useEffect)
 const STABLE_ACTIONS = {
   activateStarterTrial: subscriptionStore.activateStarterTrial.bind(subscriptionStore),
+  canActivateTrial: subscriptionStore.canActivateTrial.bind(subscriptionStore),
   canAddUser: subscriptionStore.canAddUser.bind(subscriptionStore),
   canAddSchool: subscriptionStore.canAddSchool.bind(subscriptionStore),
   switchActiveSchool: subscriptionStore.switchActiveSchool.bind(subscriptionStore),
@@ -597,6 +634,7 @@ export function useSubscriptionStore() {
     schools: (schoolState?.schools || []).filter((s): s is SchoolProfile => Boolean(s && s.id)),
     activeSchool,
     usersCount: schoolState?.usersCount || 0,
+    hasConsumedTrial: Boolean(schoolState?.hasConsumedTrial),
     isTrialActive: subscriptionStore.isTrialActive(),
     trialDaysRemaining: subscriptionStore.getTrialDaysRemaining(),
     isExpired: subscriptionStore.isExpired(),

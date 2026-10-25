@@ -38,7 +38,7 @@ export const ChildSwitcher: React.FC<ChildSwitcherProps> = ({
                   : "border-slate-200 bg-white hover:bg-slate-50"
               )}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div
                   className={cn(
                     "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0",
@@ -47,17 +47,20 @@ export const ChildSwitcher: React.FC<ChildSwitcherProps> = ({
                       : "bg-slate-100 text-slate-700"
                   )}
                 >
-                  {child.firstName.charAt(0)}
+                  {child.firstName ? child.firstName.charAt(0) : "E"}
                 </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900 leading-tight">
+                <div className="min-w-0 flex-1">
+                  <h4
+                    className="text-sm font-bold text-slate-900 leading-tight truncate"
+                    title={`${child.firstName} ${child.lastName}`}
+                  >
                     {child.firstName} {child.lastName}
                   </h4>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs font-semibold text-school-primary">
+                  <div className="flex items-center gap-2 mt-0.5 truncate">
+                    <span className="text-xs font-semibold text-school-primary truncate shrink-0">
                       {child.className}
                     </span>
-                    <span className="text-[11px] text-slate-400 font-mono">
+                    <span className="text-[11px] text-slate-400 font-mono truncate">
                       {child.matricule}
                     </span>
                   </div>

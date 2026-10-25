@@ -8,13 +8,15 @@ import { PaymentStepper } from "@/components/school/PaymentStepper";
 import { ReceiptView } from "@/components/school/ReceiptView";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatFCFA, formatDate } from "@/lib/utils";
-import { MOCK_STUDENTS, MOCK_RECEIPTS, Student, PaymentReceipt } from "@/lib/mock-data";
+import { Student, PaymentReceipt } from "@/lib/mock-data";
 import { useCenseurStore } from "@/lib/censeur-store";
 import { useAuthStore } from "@/lib/auth-store";
+import { useFinanceStore } from "@/lib/finance-store";
 
 export default function ParentScolaritePage() {
   const { user: currentUser } = useAuthStore();
   const { studentsList, parentAccessRequests } = useCenseurStore();
+  const { students: financeStudents, receipts } = useFinanceStore();
 
   const myChildren: Student[] = React.useMemo(() => {
     const parentPhone = currentUser?.phone || "";
@@ -34,27 +36,35 @@ export default function ParentScolaritePage() {
     const activeStudentIds = new Set(activatedRequests.map((r) => r.studentId));
     return studentsList
       .filter((s) => activeStudentIds.has(s.id))
-      .map((s) => ({
-        id: s.id,
-        matricule: s.matricule,
-        firstName: s.firstName,
-        lastName: s.lastName,
-        classId: s.classId,
-        className: s.className,
-        gender: s.gender,
-        birthDate: s.birthDate,
-        parentName: s.parentName,
-        parentPhone: s.parentPhone,
-        status: "INSCRIT",
-        average: 0,
-        rank: 0,
-        absencesCount: 0,
-        totalTuition: 0,
-        paidTuition: 0,
-        remainingTuition: 0,
-        tuitionStatus: "PAID",
-      }));
-  }, [parentAccessRequests, studentsList]);
+      .map((s) => {
+        const finRec = financeStudents.find((f) => f.studentId === s.id);
+        const totalTuition = finRec?.totalTuition ?? 150000;
+        const paidTuition = finRec?.paidTuition ?? 0;
+        const remainingTuition = finRec?.remainingTuition ?? totalTuition;
+        const tuitionStatus = finRec?.tuitionStatus ?? (remainingTuition === 0 ? "PAID" : paidTuition > 0 ? "PARTIAL" : "UNPAID");
+
+        return {
+          id: s.id,
+          matricule: s.matricule,
+          firstName: s.firstName,
+          lastName: s.lastName,
+          classId: s.classId,
+          className: s.className,
+          gender: s.gender,
+          birthDate: s.birthDate,
+          parentName: s.parentName,
+          parentPhone: s.parentPhone,
+          status: "INSCRIT",
+          average: 0,
+          rank: 0,
+          absencesCount: 0,
+          totalTuition,
+          paidTuition,
+          remainingTuition,
+          tuitionStatus,
+        };
+      });
+  }, [parentAccessRequests, studentsList, financeStudents, currentUser]);
 
   const [selectedChild, setSelectedChild] = useState<Student | undefined>(myChildren[0]);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -89,9 +99,24 @@ export default function ParentScolaritePage() {
     );
   }
 
-  const childReceipts = MOCK_RECEIPTS.filter(
-    (r) => r.studentId === selectedChild.id
-  );
+  const childReceipts: PaymentReceipt[] = receipts
+    .filter((r) => r.studentId === selectedChild.id)
+    .map((r) => ({
+      id: r.id,
+      receiptNumber: r.receiptNumber,
+      date: r.date,
+      amount: r.amount,
+      studentId: r.studentId,
+      studentName: r.studentName,
+      matricule: r.matricule,
+      className: r.className,
+      paymentMethod: (r.paymentMethod as any) || "ESPECES",
+      purpose: (r.purpose as any) || "Scolarité Tranche 1",
+      receivedBy: r.receivedBy || "Comptabilité",
+      academicYear: r.academicYearId || "2026-2027",
+      status: (r.status as any) || "VALIDATED",
+      transactionRef: r.transactionRef || `TRX-${r.id}`,
+    }));
 
   return (
     <div className="space-y-6">

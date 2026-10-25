@@ -29,7 +29,7 @@ import { useCommunicationStore } from "@/lib/communication-store";
 import { ChildSwitcher } from "@/components/school/ChildSwitcher";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatFCFA, formatDate } from "@/lib/utils";
-import { MOCK_STUDENTS, Student } from "@/lib/mock-data";
+import { Student } from "@/lib/mock-data";
 import {
   MOCK_HOMEWORK_ITEMS,
   MOCK_UPCOMING_EVALUATIONS,
@@ -215,7 +215,7 @@ export default function ParentDashboardPage() {
     <div className="space-y-6">
       <PageHeader
         title="Parent"
-        subtitle="Bienvenue dans votre espace de suivi scolaire"
+        subtitle="Suivi de la scolarité, des évaluations et de la vie scolaire de vos enfants"
         breadcrumbs={[{ label: "Parent" }, { label: "Accueil" }]}
         actions={
           <div className="flex items-center gap-2">

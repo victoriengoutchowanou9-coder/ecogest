@@ -195,15 +195,16 @@ export const ReportCardView: React.FC<ReportCardViewProps> = ({
 
           {/* Student Selector */}
           {!isBatchMode && (
-            <div className="flex items-center gap-1.5 bg-slate-800 px-2.5 py-1.5 rounded-xl border border-slate-700">
-              <User className="w-3.5 h-3.5 text-school-accent" />
+            <div className="flex items-center gap-1.5 bg-slate-800 px-2.5 py-1.5 rounded-xl border border-slate-700 min-w-0 max-w-full sm:max-w-xs">
+              <User className="w-3.5 h-3.5 text-school-accent shrink-0" />
               <select
                 value={selectedStudentId}
                 onChange={(e) => setSelectedStudentId(e.target.value)}
-                className="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer"
+                className="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer truncate max-w-[180px] sm:max-w-[240px]"
+                aria-label="Sélectionner un élève"
               >
                 {MOCK_BULLETIN_STUDENTS.map((s) => (
-                  <option key={s.id} value={s.id} className="bg-slate-900 text-white">
+                  <option key={s.id} value={s.id} className="bg-slate-900 text-white truncate">
                     {s.lastName} {s.firstName} ({s.educMasterNumber || s.matricule})
                   </option>
                 ))}

@@ -4,14 +4,36 @@ import { getServerSupabaseAdmin } from "@/lib/server/supabase-admin";
 const supabase = getServerSupabaseAdmin();
 
 /**
- * Récupère la liste de tous les établissements scolaires enregistrés dans la base de données.
+ * Récupère la liste des établissements scolaires réels enregistrés dans la base de données.
+ * Paramètre optionnel : ?activeOnly=true pour exclure les écoles inactives, suspendues ou expirées.
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const { data: schools, error } = await supabase
+    const { searchParams } = new URL(request.url);
+    const activeOnly = searchParams.get("activeOnly") === "true";
+
+    let query = supabase
       .from("schools")
-      .select("id, code, name, short_name, slug, country, region, city, address, phone, email, active_year, director_name, director_signature_url, created_at")
-      .order("created_at", { ascending: false });
+      .select("id, code, name, short_name, slug, country, region, city, address, phone, email, active_year, director_name, director_signature_url, status, created_at")
+      .order("name", { ascending: true });
+
+    if (activeOnly) {
+      query = query.not("status", "in", '("INACTIVE","SUSPENDED","EXPIRED")');
+    }
+
+    const result = await query;
+    let schools: any = result.data;
+    let error: any = result.error;
+
+    // Fallback gracieux si la colonne status n'est pas encore présente en base
+    if (error && error.message.includes("status")) {
+      const fallback = await supabase
+        .from("schools")
+        .select("id, code, name, short_name, slug, country, region, city, address, phone, email, active_year, director_name, director_signature_url, created_at")
+        .order("name", { ascending: true });
+      schools = fallback.data;
+      error = fallback.error;
+    }
 
     if (error) {
       console.error("[api/schools] Erreur récupération établissements :", error);

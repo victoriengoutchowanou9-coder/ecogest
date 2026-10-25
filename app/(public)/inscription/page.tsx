@@ -115,7 +115,7 @@ export default function InscriptionPage() {
     async function loadSchools() {
       try {
         setLoadingSchools(true);
-        const res = await fetch("/api/schools");
+        const res = await fetch("/api/schools?activeOnly=true");
         if (res.ok) {
           const data = await res.json();
           if (data.schools && Array.isArray(data.schools)) {
@@ -1075,8 +1075,18 @@ export default function InscriptionPage() {
                     Établissement scolaire fréquenté par votre enfant *
                   </label>
                   {loadingSchools ? (
-                    <div className="p-3 text-slate-400 bg-slate-50 rounded-xl text-center">
-                      Chargement des établissements...
+                    <div className="p-3 text-slate-400 bg-slate-50 rounded-xl text-center text-xs">
+                      Chargement des établissements actifs...
+                    </div>
+                  ) : dbSchools.length === 0 ? (
+                    <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1">
+                      <p className="font-bold flex items-center gap-1.5">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Aucun établissement actif disponible</span>
+                      </p>
+                      <p className="text-[11px] text-amber-800">
+                        Aucun établissement partenaire n&apos;est actuellement ouvert aux inscriptions directes. Veuillez vous rapprocher de la direction de votre école.
+                      </p>
                     </div>
                   ) : (
                     <select

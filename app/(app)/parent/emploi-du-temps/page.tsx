@@ -12,9 +12,9 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ChildSwitcher } from "@/components/school/ChildSwitcher";
-import { MOCK_STUDENTS, Student } from "@/lib/mock-data";
+import { Student } from "@/lib/mock-data";
 import { useCenseurStore } from "@/lib/censeur-store";
-import { MOCK_PARENT_PROFILE } from "@/lib/mock-bulletin-db";
+import { useAuthStore } from "@/lib/auth-store";
 
 interface ScheduleSlot {
   id: string;
@@ -31,11 +31,20 @@ const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"] as co
 
 export default function ParentSchedulePage() {
   const { studentsList, parentAccessRequests, schedules } = useCenseurStore();
+  const { user: currentUser } = useAuthStore();
 
   const myChildren: Student[] = React.useMemo(() => {
+    const parentPhone = currentUser?.phone || "";
+    const parentEmail = currentUser?.email || "";
+    const parentId = currentUser?.id || "";
+    const parentIdent = currentUser?.identifier || "";
+
     const activatedRequests = parentAccessRequests.filter(
       (r) =>
-        (r.parentPhone === MOCK_PARENT_PROFILE.phoneNumber || r.parentId === MOCK_PARENT_PROFILE.id) &&
+        (r.parentPhone === parentPhone ||
+          r.parentEmail === parentEmail ||
+          r.parentId === parentId ||
+          r.parentId === parentIdent) &&
         r.status === "ACCEPTEE" &&
         r.isAccessActivated
     );

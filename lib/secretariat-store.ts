@@ -123,9 +123,10 @@ export function useSecretariatStore() {
     safeGetStorage(getStudentsKey(), [])
   );
 
-  const [classrooms, setClassrooms] = useState<ClassRoom[]>(() =>
-    safeGetStorage(getClassesKey(), [])
-  );
+  const [classrooms, setClassrooms] = useState<ClassRoom[]>(() => {
+    const stored = safeGetStorage<ClassRoom[]>(getClassesKey(), []);
+    return stored.length > 0 ? stored : MOCK_CLASSROOMS;
+  });
 
   useEffect(() => {
     const handleSync = () => {
@@ -133,7 +134,8 @@ export function useSecretariatStore() {
       setEvents(safeGetStorage(getEventsKey(), INITIAL_EVENTS));
       setMessages(safeGetStorage(getMessagesKey(), INITIAL_MESSAGES));
       setStudents(safeGetStorage(getStudentsKey(), []));
-      setClassrooms(safeGetStorage(getClassesKey(), []));
+      const storedCls = safeGetStorage<ClassRoom[]>(getClassesKey(), []);
+      setClassrooms(storedCls.length > 0 ? storedCls : MOCK_CLASSROOMS);
     };
 
     window.addEventListener(STORAGE_EVENT, handleSync);

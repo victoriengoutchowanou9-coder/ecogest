@@ -612,9 +612,10 @@ export function useCenseurStore() {
     safeGetStorage(getParentRequestsKey(), INITIAL_PARENT_ACCESS_REQUESTS)
   );
 
-  const [classrooms, setClassrooms] = useState<ClassRoom[]>(() =>
-    safeGetStorage(getClassesKey(), [])
-  );
+  const [classrooms, setClassrooms] = useState<ClassRoom[]>(() => {
+    const stored = safeGetStorage<ClassRoom[]>(getClassesKey(), []);
+    return stored.length > 0 ? stored : MOCK_CLASSROOMS;
+  });
 
   useEffect(() => {
     const handleUpdate = () => {
@@ -628,7 +629,8 @@ export function useCenseurStore() {
       setSubjectsList(safeGetStorage(getCenseurSubjectsKey(), INITIAL_CENSEUR_SUBJECTS));
       setTeacherAccounts(getMergedTeacherAccounts());
       setParentAccessRequests(safeGetStorage(getParentRequestsKey(), INITIAL_PARENT_ACCESS_REQUESTS));
-      setClassrooms(safeGetStorage(getClassesKey(), []));
+      const storedCls = safeGetStorage<ClassRoom[]>(getClassesKey(), []);
+      setClassrooms(storedCls.length > 0 ? storedCls : MOCK_CLASSROOMS);
     };
 
     window.addEventListener(STORAGE_EVENT, handleUpdate);

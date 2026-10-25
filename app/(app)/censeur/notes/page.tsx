@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   BookOpenCheck,
   CheckCircle2,
@@ -9,6 +10,7 @@ import {
   AlertTriangle,
   ShieldCheck,
   FileText,
+  FileSpreadsheet,
   Send,
   RotateCcw,
   Trash2,
@@ -364,6 +366,15 @@ export default function NotesValidationPage() {
         breadcrumbs={[{ label: "Censeur", href: "/censeur" }, { label: "Notes & Délibérations" }]}
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/censeur/modele-bulletin"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-800 text-xs font-semibold border border-slate-200 transition shadow-2xs"
+              title="Consulter et imprimer le modèle officiel vierge de la République du Bénin"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <span>Gabarit Officiel Vierge Bénin (A4)</span>
+            </Link>
+
             <button
               type="button"
               onClick={() => setShowAuditDrawer(!showAuditDrawer)}

@@ -196,14 +196,21 @@ export default function ParentNotesPage() {
         breadcrumbs={[{ label: "Parent", href: "/parent" }, { label: "Bulletins de notes" }]}
         actions={
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-school-primary hover:bg-school-700 text-white font-semibold text-xs md:text-sm shadow-sm touch-target transition-colors"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Imprimer / Télécharger en PDF</span>
-            </button>
+            {activeSection === "BULLETIN" && !isPublished ? (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-800 text-xs font-semibold border border-amber-200">
+                <Lock className="w-3.5 h-3.5" />
+                <span>Impression verrouillée (Bulletin non publié)</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-school-primary hover:bg-school-700 text-white font-semibold text-xs md:text-sm shadow-sm touch-target transition-colors"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Imprimer / Télécharger en PDF</span>
+              </button>
+            )}
           </div>
         }
       />
@@ -501,10 +508,10 @@ export default function ParentNotesPage() {
               </div>
               <div className="max-w-lg mx-auto">
                 <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                  Bulletin en cours de délibération &amp; clôture officielle
+                  Le bulletin de ce semestre n&apos;a pas encore été publié par la direction.
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
-                  Le bulletin officiel de <strong>{selectedChild.firstName}</strong> pour le <strong>{activePeriod.name}</strong> sera accessible dès que le <strong>Directeur de l&apos;établissement aura officiellement clôturé le semestre/trimestre</strong> via son espace de direction.
+                  Le bulletin officiel de <strong>{selectedChild.firstName}</strong> pour le <strong>{activePeriod.name}</strong> sera accessible dès que le <strong>Directeur de l&apos;établissement aura officiellement autorisé sa publication</strong>.
                 </p>
                 <p className="text-xs text-slate-500 mt-1">
                   Les notes d&apos;évaluations déjà validées restent consultables dans l&apos;onglet &laquo; Notes &amp; Évaluations individuelles &raquo;.

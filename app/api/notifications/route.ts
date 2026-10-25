@@ -142,10 +142,31 @@ export async function POST(request: Request) {
         .from("parent_student_links")
         .select("parent_user_id, status")
         .eq("school_id", user.schoolId)
+        .eq("student_id", studentId)
         .eq("status", "VALIDATED");
 
       if (links && links.length > 0) {
         targetParentUserIds = links.map((l: any) => l.parent_user_id);
+      }
+    } else if (classId) {
+      const { data: classStudents } = await supabaseAdmin
+        .from("students")
+        .select("id")
+        .eq("school_id", user.schoolId)
+        .eq("class_id", classId);
+
+      const studentIds = (classStudents || []).map((s: any) => s.id);
+      if (studentIds.length > 0) {
+        const { data: links } = await supabaseAdmin
+          .from("parent_student_links")
+          .select("parent_user_id")
+          .eq("school_id", user.schoolId)
+          .in("student_id", studentIds)
+          .eq("status", "VALIDATED");
+
+        if (links && links.length > 0) {
+          targetParentUserIds = Array.from(new Set(links.map((l: any) => l.parent_user_id)));
+        }
       }
     }
 
