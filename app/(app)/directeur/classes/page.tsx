@@ -18,6 +18,10 @@ import {
   AlertCircle,
   Banknote,
   ShieldCheck,
+  Clock,
+  History,
+  Calendar,
+  CheckSquare,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTable, Column } from "@/components/ui/DataTable";
@@ -113,9 +117,12 @@ export default function ClassesPage() {
 
   const { updateClassTuition } = useFinanceStore();
 
+  const WEEK_DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<ClassRoom | null>(null);
+  const [historyModalClass, setHistoryModalClass] = useState<ClassRoom | null>(null);
 
   const [formName, setFormName] = useState("");
   const [formCycle, setFormCycle] = useState<EducationCycle>("SECONDAIRE");
@@ -125,6 +132,19 @@ export default function ClassesPage() {
   const [formRoom, setFormRoom] = useState("");
   const [formTeacher, setFormTeacher] = useState("");
   const [formTuitionFee, setFormTuitionFee] = useState<number>(150000);
+  const [formAcademicYear, setFormAcademicYear] = useState<string>("2026-2027");
+
+  // Nouveaux champs pour la gestion des horaires et jours ouvrables du primaire
+  const [formOpeningTime, setFormOpeningTime] = useState<string>("08:00");
+  const [formClosingTime, setFormClosingTime] = useState<string>("15:30");
+  const [formWorkingDays, setFormWorkingDays] = useState<string[]>([
+    "Lundi",
+    "Mardi",
+    "Mercredi",
+    "Jeudi",
+    "Vendredi",
+  ]);
+  const [formReassignmentReason, setFormReassignmentReason] = useState<string>("");
 
   const schoolTeachingType = activeSchool.teachingType || "PRIMAIRE_SECONDAIRE";
 
@@ -140,6 +160,11 @@ export default function ClassesPage() {
     setFormRoom("");
     setFormTeacher("");
     setFormTuitionFee(initialCycle === "PRIMAIRE" ? 90000 : 150000);
+    setFormAcademicYear("2026-2027");
+    setFormOpeningTime("08:00");
+    setFormClosingTime("15:30");
+    setFormWorkingDays(["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"]);
+    setFormReassignmentReason("");
     setIsModalOpen(true);
   };
 
@@ -153,7 +178,22 @@ export default function ClassesPage() {
     setFormRoom("");
     setFormTeacher(cls.mainTeacher && cls.mainTeacher !== "Non assigné" ? cls.mainTeacher : "");
     setFormTuitionFee(typeof cls.tuitionFee === "number" ? cls.tuitionFee : (cls.cycle === "PRIMAIRE" ? 90000 : 150000));
+    setFormAcademicYear(cls.academicYearId || "2026-2027");
+    setFormOpeningTime(cls.openingTime || "08:00");
+    setFormClosingTime(cls.closingTime || "15:30");
+    setFormWorkingDays(
+      cls.workingDays && cls.workingDays.length > 0
+        ? cls.workingDays
+        : ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"]
+    );
+    setFormReassignmentReason("");
     setIsModalOpen(true);
+  };
+
+  const handleToggleDay = (day: string) => {
+    setFormWorkingDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
   };
 
   const handleLevelChange = (lvl: string) => {
@@ -174,6 +214,9 @@ export default function ClassesPage() {
     setFormStream(cycle === "PRIMAIRE" ? "Apprentissages Fondamentaux" : "Enseignement Général");
     if (!editingClass) {
       setFormTuitionFee(cycle === "PRIMAIRE" ? 90000 : 150000);
+      setFormOpeningTime("08:00");
+      setFormClosingTime("15:30");
+      setFormWorkingDays(["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"]);
     }
   };
 
@@ -181,12 +224,51 @@ export default function ClassesPage() {
     e.preventDefault();
     if (!formName.trim()) return;
 
+    // 1. Validation des horaires pour le primaire
+    if (formCycle === "PRIMAIRE") {
+      if (formClosingTime <= formOpeningTime) {
+        toast(
+          `Horaires invalides : L'heure de fermeture (${formClosingTime}) doit être strictement postérieure à l'heure d'ouverture (${formOpeningTime}).`,
+          "error"
+        );
+        return;
+      }
+      if (formWorkingDays.length === 0) {
+        toast("Veuillez sélectionner au moins un jour ouvrable pour cette classe primaire.", "error");
+        return;
+      }
+
+      // 2. Règle stricte du maître unique : Un seul maître responsable par classe primaire pour l'année
+      if (formTeacher && formTeacher.trim() !== "" && formTeacher !== "Non assigné") {
+        const conflictingClass = classrooms.find(
+          (c) =>
+            c.id !== editingClass?.id &&
+            c.cycle === "PRIMAIRE" &&
+            (c.academicYearId || "2026-2027") === formAcademicYear &&
+            c.mainTeacher &&
+            c.mainTeacher.trim().toLowerCase() === formTeacher.trim().toLowerCase()
+        );
+
+        if (conflictingClass) {
+          toast(
+            `Règle stricte d'attribution : ${formTeacher} est déjà le maître responsable exclusif de la classe ${conflictingClass.name} pour l'année ${formAcademicYear}. Un maître primaire ne peut gérer qu'une seule classe par an.`,
+            "error"
+          );
+          return;
+        }
+      }
+    }
+
     // Calcul automatique de l'effectif réel à partir des inscriptions en base
     const actualEnrolledCount = students.filter(
       (s) =>
         (editingClass && s.classId === editingClass.id) ||
         (s.className && s.className.toLowerCase() === formName.trim().toLowerCase())
     ).length;
+
+    const matchedTeacher = registeredTeachers.find(
+      (t) => t.name.toLowerCase() === formTeacher.trim().toLowerCase()
+    );
 
     const classRoomData: ClassRoom = {
       id: editingClass ? editingClass.id : `c-${Date.now()}`,
@@ -196,17 +278,26 @@ export default function ClassesPage() {
       stream: formStream,
       size: actualEnrolledCount,
       mainTeacher: formTeacher.trim() || "Non assigné",
+      primaryTeacherId: formCycle === "PRIMAIRE" ? (matchedTeacher?.id || (formTeacher ? `tea-${Date.now()}` : undefined)) : undefined,
       tuitionFee: Math.max(0, Number(formTuitionFee) || 0),
-      academicYearId: "2026-2027",
+      academicYearId: formAcademicYear,
+      openingTime: formCycle === "PRIMAIRE" ? formOpeningTime : undefined,
+      closingTime: formCycle === "PRIMAIRE" ? formClosingTime : undefined,
+      workingDays: formCycle === "PRIMAIRE" ? formWorkingDays : undefined,
+      assignmentHistory: editingClass?.assignmentHistory || [],
     };
 
-    saveClassroom(classRoomData);
+    saveClassroom(
+      classRoomData,
+      activeSchool.directorName || "Direction de l'Établissement",
+      formReassignmentReason
+    );
     updateClassTuition(classRoomData.id, classRoomData.name, classRoomData.tuitionFee || 0);
 
     toast(
       editingClass
-        ? `Classe ${formName} mise à jour (Scolarité : ${formatFCFA(classRoomData.tuitionFee || 0)})`
-        : `Nouvelle classe ${formName} enregistrée (Scolarité : ${formatFCFA(classRoomData.tuitionFee || 0)})`,
+        ? `Classe ${formName} mise à jour avec succès.`
+        : `Nouvelle classe ${formName} enregistrée avec succès.`,
       "success"
     );
     setIsModalOpen(false);
@@ -271,6 +362,28 @@ export default function ClassesPage() {
       ),
     },
     {
+      key: "schedule" as any,
+      header: "Horaires & Jours de classe",
+      render: (item) =>
+        item.cycle === "PRIMAIRE" ? (
+          <div className="space-y-0.5">
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-800">
+              <Clock className="w-3.5 h-3.5 text-school-primary shrink-0" />
+              <span>
+                {item.openingTime || "08:00"} &mdash; {item.closingTime || "15:30"}
+              </span>
+            </span>
+            <span className="block text-[11px] text-slate-500">
+              {item.workingDays && item.workingDays.length > 0
+                ? item.workingDays.map((d) => d.slice(0, 3)).join(", ")
+                : "Lun, Mar, Mer, Jeu, Ven"}
+            </span>
+          </div>
+        ) : (
+          <span className="text-xs text-slate-400 italic">Emploi du temps secondaire</span>
+        ),
+    },
+    {
       key: "size",
       header: "Effectif réel",
       render: (item) => {
@@ -287,11 +400,35 @@ export default function ClassesPage() {
     },
     {
       key: "mainTeacher",
-      header: "Enseignant référent (Optionnel)",
+      header: "Maître / Enseignant référent",
       render: (item) => (
-        <span className="text-slate-600 text-xs font-medium">
-          {item.mainTeacher && item.mainTeacher !== "Non assigné" ? item.mainTeacher : <span className="text-slate-400 italic">Non assigné</span>}
-        </span>
+        <div className="space-y-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-900 text-xs font-bold">
+              {item.mainTeacher && item.mainTeacher !== "Non assigné" ? (
+                item.mainTeacher
+              ) : (
+                <span className="text-slate-400 italic">Non assigné</span>
+              )}
+            </span>
+            {item.cycle === "PRIMAIRE" && item.mainTeacher && item.mainTeacher !== "Non assigné" && (
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Maître unique
+              </span>
+            )}
+          </div>
+          {item.cycle === "PRIMAIRE" && item.assignmentHistory && item.assignmentHistory.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setHistoryModalClass(item)}
+              className="text-[10px] text-school-primary font-bold hover:underline flex items-center gap-1"
+              title="Consulter l'historique des changements de maître pour cette classe"
+            >
+              <History className="w-3 h-3" />
+              <span>Historique ({item.assignmentHistory.length})</span>
+            </button>
+          )}
+        </div>
       ),
     },
     {
@@ -571,43 +708,190 @@ export default function ClassesPage() {
                 </p>
               </div>
 
-              {/* Filière / Stream (Optionnel) */}
+              {/* Année scolaire */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Filière / Spécialité (Optionnel)
+                  Année scolaire de référence
                 </label>
-                <input
-                  type="text"
-                  value={formStream}
-                  onChange={(e) => setFormStream(e.target.value)}
-                  placeholder="Ex: Enseignement Général, Scientifique (C), Littéraire (A)..."
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs"
-                />
+                <select
+                  value={formAcademicYear}
+                  onChange={(e) => setFormAcademicYear(e.target.value)}
+                  className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-school-primary focus:outline-none text-slate-800"
+                >
+                  <option value="2026-2027">2026 - 2027 (En cours)</option>
+                  <option value="2025-2026">2025 - 2026 (Archivée)</option>
+                </select>
               </div>
 
-              {/* Enseignant référent (Optionnel - Pas obligatoire) */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700 block">
-                  Enseignant référent / Professeur Principal <span className="text-slate-400 font-normal">(Optionnel)</span>
+              {/* HORAIRES & JOURS OUVRABLES (Spécifique Primaire) */}
+              {formCycle === "PRIMAIRE" && (
+                <div className="p-4 bg-blue-50/60 rounded-2xl border border-blue-200 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-blue-700" />
+                    <h4 className="text-xs font-bold text-blue-950 uppercase tracking-wider">
+                      Horaires & Jours ouvrables de la classe
+                    </h4>
+                  </div>
+                  <p className="text-[11px] text-blue-800 leading-snug">
+                    Définis par la direction pour cette classe. Consultables par le maître responsable mais non modifiables par ce dernier.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Heure d'ouverture des classes <span className="text-rose-600">*</span>
+                      </label>
+                      <input
+                        type="time"
+                        required
+                        value={formOpeningTime}
+                        onChange={(e) => setFormOpeningTime(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-blue-300 bg-white text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Heure de fermeture des classes <span className="text-rose-600">*</span>
+                      </label>
+                      <input
+                        type="time"
+                        required
+                        value={formClosingTime}
+                        onChange={(e) => setFormClosingTime(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-blue-300 bg-white text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Validation visuelle dynamique */}
+                  {formClosingTime && formOpeningTime && formClosingTime <= formOpeningTime && (
+                    <div className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-semibold flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>L'heure de fermeture doit être strictement postérieure à l'ouverture.</span>
+                    </div>
+                  )}
+
+                  {/* Cases à cocher des jours ouvrables */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1.5">
+                      Jours ouvrables de la semaine (Cochez les jours de classe effectifs) <span className="text-rose-600">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {WEEK_DAYS.map((day) => {
+                        const isChecked = formWorkingDays.includes(day);
+                        return (
+                          <label
+                            key={day}
+                            className={`flex items-center gap-2 p-2 rounded-xl border cursor-pointer transition text-xs font-semibold ${
+                              isChecked
+                                ? "bg-white border-blue-600 text-blue-900 shadow-2xs font-bold"
+                                : "bg-white/60 border-slate-200 text-slate-600 hover:bg-white"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleToggleDay(day)}
+                              className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500"
+                            />
+                            <span>{day}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Filière / Stream (Optionnel pour Secondaire) */}
+              {formCycle === "SECONDAIRE" && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Filière / Spécialité (Optionnel)
+                  </label>
+                  <input
+                    type="text"
+                    value={formStream}
+                    onChange={(e) => setFormStream(e.target.value)}
+                    placeholder="Ex: Enseignement Général, Scientifique (C), Littéraire (A)..."
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs"
+                  />
+                </div>
+              )}
+
+              {/* ATTRIBUTION DU MAÎTRE (Primaire : règle stricte du maître unique) */}
+              <div className="space-y-1.5 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                <label className="text-xs font-bold text-slate-900 flex items-center justify-between">
+                  <span>
+                    {formCycle === "PRIMAIRE"
+                      ? "Maître responsable de la classe (Maître unique)"
+                      : "Professeur principal / Enseignant référent"}
+                  </span>
+                  {formCycle === "PRIMAIRE" && (
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
+                      Règle 1 Maître = 1 Classe
+                    </span>
+                  )}
                 </label>
                 <select
                   value={formTeacher}
                   onChange={(e) => setFormTeacher(e.target.value)}
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-school-primary focus:outline-none text-slate-800"
                 >
-                  <option value="">-- Aucun professeur assigné pour le moment (Optionnel) --</option>
-                  {formTeacher && !registeredTeachers.some((t) => t.name.toLowerCase() === formTeacher.toLowerCase()) && (
-                    <option value={formTeacher}>{formTeacher} (Assigné actuellement)</option>
-                  )}
-                  {registeredTeachers.map((t) => (
-                    <option key={t.id} value={t.name}>
-                      {t.name} {t.specialty ? `(${t.specialty})` : ""}
-                    </option>
-                  ))}
+                  <option value="">
+                    {formCycle === "PRIMAIRE"
+                      ? "-- Aucun maître assigné pour l'instant (Attribution ultérieure possible) --"
+                      : "-- Aucun professeur assigné pour le moment (Optionnel) --"}
+                  </option>
+                  {formTeacher &&
+                    !registeredTeachers.some((t) => t.name.toLowerCase() === formTeacher.toLowerCase()) && (
+                      <option value={formTeacher}>{formTeacher} (Assigné actuellement)</option>
+                    )}
+                  {registeredTeachers.map((t) => {
+                    const alreadyAssignedPrimary =
+                      formCycle === "PRIMAIRE" &&
+                      classrooms.some(
+                        (c) =>
+                          c.id !== editingClass?.id &&
+                          c.cycle === "PRIMAIRE" &&
+                          (c.academicYearId || "2026-2027") === formAcademicYear &&
+                          c.mainTeacher &&
+                          c.mainTeacher.toLowerCase() === t.name.toLowerCase()
+                      );
+                    return (
+                      <option key={t.id} value={t.name}>
+                        {t.name} {t.specialty ? `(${t.specialty})` : ""}
+                        {alreadyAssignedPrimary ? " ⚠️ (Déjà maître d'une autre classe primaire)" : ""}
+                      </option>
+                    );
+                  })}
                 </select>
-                <span className="text-[11px] text-slate-500 block">
-                  La désignation d&apos;un professeur principal n&apos;est pas requise pour enregistrer ou utiliser la classe.
+                <span className="text-[11px] text-slate-500 block leading-snug">
+                  {formCycle === "PRIMAIRE"
+                    ? "Conformément aux directives, une classe primaire est gérée exclusivement par un seul maître responsable pour l'année scolaire."
+                    : "La désignation d'un professeur principal n'est pas requise pour enregistrer ou utiliser la classe du secondaire."}
                 </span>
+
+                {/* Champ motif en cas de changement de maître */}
+                {editingClass &&
+                  editingClass.cycle === "PRIMAIRE" &&
+                  editingClass.mainTeacher &&
+                  editingClass.mainTeacher !== "Non assigné" &&
+                  formTeacher &&
+                  formTeacher !== editingClass.mainTeacher && (
+                    <div className="pt-2">
+                      <label className="block text-[11px] font-bold text-amber-900 mb-1">
+                        Motif de réattribution du maître (Enregistré dans l'historique) :
+                      </label>
+                      <input
+                        type="text"
+                        value={formReassignmentReason}
+                        onChange={(e) => setFormReassignmentReason(e.target.value)}
+                        placeholder="Ex : Réorganisation pédagogique, remplacement, mutation..."
+                        className="w-full px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50/50 text-xs text-slate-900 focus:outline-none"
+                      />
+                    </div>
+                  )}
               </div>
 
               {/* Effectif réel calculé automatiquement */}
@@ -617,7 +901,14 @@ export default function ClassesPage() {
                   <span>Effectif réel des élèves inscrits :</span>
                 </span>
                 <span className="font-bold text-slate-900 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
-                  {students.filter((s) => (editingClass && s.classId === editingClass.id) || s.className?.toLowerCase() === formName.trim().toLowerCase()).length} élève(s) (Calcul automatique)
+                  {
+                    students.filter(
+                      (s) =>
+                        (editingClass && s.classId === editingClass.id) ||
+                        s.className?.toLowerCase() === formName.trim().toLowerCase()
+                    ).length
+                  }{" "}
+                  élève(s) (Calcul automatique)
                 </span>
               </div>
 
@@ -637,6 +928,78 @@ export default function ClassesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Historique des Attributions de Maître */}
+      {historyModalClass && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+              <div className="flex items-center gap-2">
+                <History className="w-5 h-5 text-school-primary" />
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Historique des Maîtres &bull; {historyModalClass.name}
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Traçabilité officielle des attributions pour l'année {historyModalClass.academicYearId || "2026-2027"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHistoryModalClass(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3">
+              {historyModalClass.assignmentHistory && historyModalClass.assignmentHistory.length > 0 ? (
+                historyModalClass.assignmentHistory.map((item, idx) => (
+                  <div
+                    key={item.id || idx}
+                    className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-school-primary" />
+                        <span>{item.teacherName}</span>
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-mono">
+                        {item.assignedAt ? new Date(item.assignedAt).toLocaleDateString("fr-FR") : "—"}
+                      </span>
+                    </div>
+                    {item.previousTeacherName && item.previousTeacherName !== "Non assigné" && (
+                      <p className="text-[11px] text-slate-600">
+                        Précédent maître : <strong>{item.previousTeacherName}</strong>
+                      </p>
+                    )}
+                    <p className="text-[11px] text-slate-500">
+                      Par : <strong className="text-slate-700">{item.assignedBy || "Direction"}</strong>
+                      {item.reason && ` • Motif : ${item.reason}`}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center text-slate-500 text-xs italic">
+                  Aucun changement de maître enregistré pour cette classe.
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setHistoryModalClass(null)}
+                className="px-4 py-2 rounded-xl bg-slate-200 text-slate-800 text-xs font-bold hover:bg-slate-300"
+              >
+                Fermer
+              </button>
+            </div>
           </div>
         </div>
       )}

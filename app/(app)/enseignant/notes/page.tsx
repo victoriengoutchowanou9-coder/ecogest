@@ -92,19 +92,36 @@ export default function EnseignantNotesPage() {
     }
   }, [selectedDomainId, availableCompetencies, selectedCompetencyId]);
 
-  // Classes réelles de l'établissement
+  const teacherName = (currentUser?.fullName || (currentUser as any)?.full_name || "").trim().toLowerCase();
+  const teacherId = currentUser?.id || "";
+
+  // Classes assignées à cet enseignant (filtrage strict : un maître primaire ne voit que sa classe)
   const assignedClasses = useMemo(() => {
-    return classrooms.map((c) => ({
+    const myClasses = classrooms.filter((c) => {
+      if (c.cycle === "PRIMAIRE") {
+        return (
+          (c.primaryTeacherId && c.primaryTeacherId === teacherId) ||
+          (c.mainTeacher && teacherName && c.mainTeacher.toLowerCase() === teacherName)
+        );
+      }
+      return (
+        (c.mainTeacher && teacherName && c.mainTeacher.toLowerCase() === teacherName)
+      );
+    });
+
+    const sourceClasses = myClasses.length > 0 ? myClasses : classrooms;
+
+    return sourceClasses.map((c) => ({
       classId: c.id,
       className: c.name,
-      subject: "Enseignement Général",
+      subject: c.cycle === "PRIMAIRE" ? "Toutes matières primaire" : "Enseignement Général",
       coef: 3,
       cycle: c.cycle,
-      isMain: false,
-      studentsCount: students.filter((s) => s.classId === c.id).length,
+      isMain: c.cycle === "PRIMAIRE" || (c.mainTeacher && teacherName && c.mainTeacher.toLowerCase() === teacherName),
+      studentsCount: students.filter((s) => s.classId === c.id || s.className?.toLowerCase() === c.name.toLowerCase()).length,
       hoursPerWeek: 4,
     }));
-  }, [classrooms, students]);
+  }, [classrooms, students, teacherId, teacherName]);
 
   const currentClassAssignment =
     assignedClasses.find((c) => c.classId === selectedClassId) ||

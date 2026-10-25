@@ -175,16 +175,54 @@ export function useBulletinStore() {
 
   /**
    * 1. Add / Update Classroom configuration dynamically
+   * Enforces rules for primary classes (single teacher, hours, working days, and assignment history)
    */
-  const saveClassroom = useCallback((cls: ClassRoom) => {
+  const saveClassroom = useCallback((cls: ClassRoom, authorName: string = "Direction", reason?: string) => {
     setClassrooms((prev) => {
       const idx = prev.findIndex((c) => c.id === cls.id);
       let next: ClassRoom[];
+
+      // Enforce history tracking when teacher changes in a primary class
+      const existing = idx >= 0 ? prev[idx] : null;
+      let history = cls.assignmentHistory || existing?.assignmentHistory || [];
+
+      if (cls.cycle === "PRIMAIRE") {
+        const oldTeacher = existing?.mainTeacher || "";
+        const newTeacher = cls.mainTeacher || "";
+        const isReassigned = oldTeacher && newTeacher && oldTeacher !== newTeacher && newTeacher !== "Non assigné";
+        const isInitialAssign = (!oldTeacher || oldTeacher === "Non assigné") && newTeacher && newTeacher !== "Non assigné";
+
+        if (isReassigned || isInitialAssign) {
+          const entry = {
+            id: `hist-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+            classId: cls.id,
+            className: cls.name,
+            teacherId: cls.primaryTeacherId,
+            teacherName: newTeacher,
+            previousTeacherId: existing?.primaryTeacherId,
+            previousTeacherName: oldTeacher || "Non assigné",
+            assignedAt: new Date().toISOString(),
+            assignedBy: authorName,
+            academicYearId: cls.academicYearId || "2026-2027",
+            reason: reason || (isReassigned ? "Changement de maître responsable par la direction" : "Attribution du maître responsable"),
+          };
+          history = [entry, ...history];
+        }
+      }
+
+      const updatedCls: ClassRoom = {
+        ...cls,
+        assignmentHistory: history,
+        workingDays: cls.workingDays && cls.workingDays.length > 0 ? cls.workingDays : ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"],
+        openingTime: cls.openingTime || "08:00",
+        closingTime: cls.closingTime || "15:30",
+      };
+
       if (idx >= 0) {
         next = [...prev];
-        next[idx] = cls;
+        next[idx] = updatedCls;
       } else {
-        next = [...prev, cls];
+        next = [...prev, updatedCls];
       }
       safeSetStorage(getClassesKey(), next);
       return next;
@@ -198,6 +236,87 @@ export function useBulletinStore() {
       return next;
     });
   }, []);
+
+  /**
+   * 1b. Primary Teacher Subject Management (Gestion autonome des matières par le maître)
+   */
+  const addClassSubject = useCallback(
+    (subject: Omit<SubjectConfig, "id">, authorId?: string, authorName: string = "Maître responsable") => {
+      const newSubject: SubjectConfig = {
+        ...subject,
+        id: `sub-prim-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        cycle: subject.cycle || "PRIMAIRE",
+        coef: Math.max(1, Math.min(10, Math.round(subject.coef || 1))),
+        isActive: true,
+        teacherId: authorId,
+        order: subject.order || 50,
+      };
+
+      setSubjects((prev) => {
+        // Prevent duplicate names in the exact same class
+        const duplicate = prev.some(
+          (s) =>
+            s.classId === newSubject.classId &&
+            s.name.trim().toLowerCase() === newSubject.name.trim().toLowerCase() &&
+            s.isActive !== false
+        );
+        if (duplicate) {
+          throw new Error(`Une matière nommée « ${newSubject.name} » existe déjà pour cette classe.`);
+        }
+        const next = [...prev, newSubject];
+        safeSetStorage(getSubjectsKey(), next);
+        return next;
+      });
+
+      return newSubject;
+    },
+    []
+  );
+
+  const updateClassSubject = useCallback(
+    (subjectId: string, updates: Partial<SubjectConfig>, authorName: string = "Maître responsable") => {
+      setSubjects((prev) => {
+        const next = prev.map((s) => {
+          if (s.id === subjectId) {
+            return {
+              ...s,
+              ...updates,
+              coef: typeof updates.coef === "number" ? Math.max(1, Math.min(10, Math.round(updates.coef))) : s.coef,
+            };
+          }
+          return s;
+        });
+        safeSetStorage(getSubjectsKey(), next);
+        return next;
+      });
+    },
+    []
+  );
+
+  const deactivateClassSubject = useCallback((subjectId: string, authorName: string = "Maître responsable") => {
+    setSubjects((prev) => {
+      const next = prev.map((s) => {
+        if (s.id === subjectId) {
+          return { ...s, isActive: false };
+        }
+        return s;
+      });
+      safeSetStorage(getSubjectsKey(), next);
+      return next;
+    });
+  }, []);
+
+  const getClassSubjects = useCallback(
+    (classId: string, cycle?: EducationCycle): SubjectConfig[] => {
+      if (cycle === "PRIMAIRE") {
+        return subjects.filter(
+          (s) => (s.classId === classId || (!s.classId && s.cycle === "PRIMAIRE")) && s.isActive !== false
+        );
+      }
+      return subjects.filter((s) => s.cycle === "SECONDAIRE" && s.isActive !== false);
+    },
+    [subjects]
+  );
 
   /**
    * 2. Define / update subject coefficient
@@ -804,6 +923,10 @@ export function useBulletinStore() {
     bulletinStatuses,
     saveClassroom,
     deleteClassroom,
+    addClassSubject,
+    updateClassSubject,
+    deactivateClassSubject,
+    getClassSubjects,
     updateSchoolSettings,
     updateSubjectCoef,
     updateStudentGrade,

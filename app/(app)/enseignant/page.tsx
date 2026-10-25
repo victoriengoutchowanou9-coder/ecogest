@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Users,
@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
+import { useAuthStore } from "@/lib/auth-store";
+import { useBulletinStore } from "@/lib/bulletin-store";
 import {
   MOCK_TEACHER_PROFILE,
   MOCK_TEACHER_TASKS,
@@ -30,8 +32,74 @@ import {
 } from "@/lib/mock-teacher-db";
 
 export default function EnseignantDashboardPage() {
-  const profile = MOCK_TEACHER_PROFILE;
+  const { user: currentUser } = useAuthStore();
+  const { classrooms, students } = useBulletinStore();
   const [tasks, setTasks] = useState<TeacherTask[]>(MOCK_TEACHER_TASKS);
+
+  const teacherName = (currentUser?.fullName || (currentUser as any)?.full_name || "").trim().toLowerCase();
+  const teacherId = currentUser?.id || "";
+
+  // Classes assignées réelles
+  const myAssignedClasses = useMemo(() => {
+    const my = classrooms.filter((c) => {
+      const isTeacherMatch = typeof c.mainTeacher === "string" && Boolean(teacherName) && c.mainTeacher.toLowerCase() === teacherName;
+      if (c.cycle === "PRIMAIRE") {
+        return (
+          (Boolean(c.primaryTeacherId) && c.primaryTeacherId === teacherId) ||
+          isTeacherMatch
+        );
+      }
+      return isTeacherMatch;
+    });
+
+    if (my.length === 0 && classrooms.length > 0) {
+      const firstPrimary = classrooms.find((c) => c.cycle === "PRIMAIRE");
+      return firstPrimary ? [firstPrimary] : [classrooms[0]];
+    }
+    return my;
+  }, [classrooms, teacherId, teacherName]);
+
+  const primaryClass = myAssignedClasses.find((c) => c.cycle === "PRIMAIRE");
+
+  const classesAssigned = useMemo(() => {
+    return myAssignedClasses.map((c) => ({
+      classId: c.id,
+      className: c.name,
+      cycle: c.cycle,
+      subject: c.cycle === "PRIMAIRE" ? "Toutes matières primaire" : "Enseignement Général",
+      coef: 3,
+      hoursPerWeek: c.cycle === "PRIMAIRE" ? 28 : 6,
+      studentsCount: students.filter(
+        (s) => s.classId === c.id || s.className?.toLowerCase() === c.name.toLowerCase()
+      ).length,
+      isMain:
+        c.cycle === "PRIMAIRE" ||
+        (typeof c.mainTeacher === "string" && Boolean(teacherName) && c.mainTeacher.toLowerCase() === teacherName),
+    }));
+  }, [myAssignedClasses, students, teacherName]);
+
+  const upcomingSessions = useMemo(() => {
+    if (myAssignedClasses.length === 0) return [];
+    const first = myAssignedClasses[0];
+    return [
+      {
+        id: "sess-1",
+        time: primaryClass ? `${primaryClass.openingTime || "08:00"} - 10:00` : "08:00 - 10:00",
+        room: `Salle ${first.name}`,
+        class: first.name,
+        subject: primaryClass ? "Apprentissages Fondamentaux" : "Enseignement",
+        status: "A_FAIRE" as "A_FAIRE" | "TERMINE",
+      },
+      {
+        id: "sess-2",
+        time: "10:15 - 12:15",
+        room: `Salle ${first.name}`,
+        class: first.name,
+        subject: primaryClass ? "Éveil & Activités Pratiques" : "Travaux Dirigés",
+        status: "A_FAIRE" as "A_FAIRE" | "TERMINE",
+      },
+    ];
+  }, [myAssignedClasses, primaryClass]);
 
   const toggleTask = (taskId: string) => {
     setTasks((prev) =>
@@ -40,24 +108,20 @@ export default function EnseignantDashboardPage() {
   };
 
   const pendingTasksCount = tasks.filter((t) => !t.isDone).length;
-  const totalStudents = profile.classesAssigned.reduce((acc, c) => acc + c.studentsCount, 0);
-
-  const upcomingSessions: {
-    id: string;
-    time: string;
-    class: string;
-    subject: string;
-    room: string;
-    status: "TERMINE" | "A_FAIRE" | "A_VENIR";
-  }[] = [];
+  const totalStudents = myAssignedClasses.reduce((acc, c) => {
+    const count = students.filter(
+      (s) => s.classId === c.id || s.className?.toLowerCase() === c.name.toLowerCase()
+    ).length;
+    return acc + count;
+  }, 0);
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Tableau de bord Enseignant"
         subtitle={
-          profile.fullName
-            ? `Bienvenue, ${profile.fullName}${profile.mainClassName ? ` · Professeur Titulaire ${profile.mainClassName}` : ""} · Année 2026-2027`
+          currentUser?.fullName
+            ? `Bienvenue, ${currentUser.fullName}${primaryClass ? ` · Maître Responsable ${primaryClass.name}` : ""} · Année 2026-2027`
             : "Bienvenue sur votre espace enseignant · Année 2026-2027"
         }
         breadcrumbs={[{ label: "Enseignant" }, { label: "Tableau de bord" }]}
@@ -75,12 +139,12 @@ export default function EnseignantDashboardPage() {
       {/* Top 4 KPI Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Classes affectées"
-          value={`${profile.classesAssigned.length} divisions`}
+          title={primaryClass ? "Classe Primaire" : "Classes affectées"}
+          value={primaryClass ? primaryClass.name : `${myAssignedClasses.length} division(s)`}
           subtitle={
-            profile.classesAssigned.length > 0
-              ? profile.classesAssigned.map((c) => c.className).join(", ")
-              : "Aucune classe affectée"
+            primaryClass
+              ? `Maître Titulaire · ${primaryClass.openingTime || "08:00"} à ${primaryClass.closingTime || "15:30"}`
+              : myAssignedClasses.map((c) => c.name).join(", ") || "Aucune classe affectée"
           }
           icon={<GraduationCap className="w-6 h-6" />}
           variant="info"
@@ -89,17 +153,17 @@ export default function EnseignantDashboardPage() {
           title="Élèves suivis"
           value={`${totalStudents}`}
           subtitle={
-            profile.classesAssigned.length > 0
-              ? `Au total sur vos ${profile.classesAssigned.length} cours`
+            myAssignedClasses.length > 0
+              ? `Au total sur vos divisions`
               : "Aucun élève"
           }
           icon={<Users className="w-6 h-6" />}
           variant="default"
         />
         <StatCard
-          title="Volume horaire"
-          value={`${profile.weeklyHours} h / sem`}
-          subtitle={profile.weeklyHours > 0 ? "Temps complet certifié" : "Non défini"}
+          title="Volume de cours"
+          value={primaryClass ? "Temps plein" : "20 h / sem"}
+          subtitle={primaryClass ? "Apprentissages fondamentaux" : "Temps complet certifié"}
           icon={<Clock className="w-6 h-6" />}
           variant="default"
         />
@@ -329,13 +393,13 @@ export default function EnseignantDashboardPage() {
           </Link>
         </div>
 
-        {profile.classesAssigned.length === 0 ? (
+        {classesAssigned.length === 0 ? (
           <div className="py-8 text-center text-slate-400 text-xs">
             Aucune classe actuellement affectée.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {profile.classesAssigned.map((item) => (
+            {classesAssigned.map((item) => (
               <div
                 key={item.classId}
                 className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-white hover:shadow-xs transition-all space-y-2"

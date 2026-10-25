@@ -61,7 +61,7 @@ export const ROLE_PERMISSIONS_MATRIX: Record<
     bulletins: ["read"],
     students: ["read"],
     classes: ["read"],
-    subjects: ["read"],
+    subjects: ["read", "create", "update"], // Maître responsable de classe primaire
     payments: [],
     users: [],
     audit_logs: [],

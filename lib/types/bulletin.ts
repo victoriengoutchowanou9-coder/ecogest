@@ -126,6 +126,20 @@ export interface AcademicPeriod {
   isCurrent: boolean;
 }
 
+export interface TeacherAssignmentHistoryEntry {
+  id: string;
+  classId: string;
+  className: string;
+  teacherId?: string;
+  teacherName: string;
+  previousTeacherId?: string;
+  previousTeacherName?: string;
+  assignedAt: string;
+  assignedBy: string;
+  academicYearId: string;
+  reason?: string;
+}
+
 export interface ClassRoom {
   id: string;
   name: string;
@@ -134,8 +148,14 @@ export interface ClassRoom {
   stream: string;
   size: number;
   mainTeacher?: string;
+  primaryTeacherId?: string;
   tuitionFee?: number;
   academicYearId: string;
+  // Paramètres d'horaires et de jours ouvrables (défini par le Directeur)
+  openingTime?: string; // Ex: "08:00"
+  closingTime?: string; // Ex: "15:30"
+  workingDays?: string[]; // Ex: ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"]
+  assignmentHistory?: TeacherAssignmentHistoryEntry[];
 }
 
 export interface StudentProfile {
@@ -171,6 +191,10 @@ export interface SubjectConfig {
   order: number;
   stream?: string;
   customScale?: number; // e.g. 10 or 40, automatically converted to 20
+  classId?: string; // Classe spécifique (gestion autonome par le maître du primaire)
+  teacherId?: string; // Maître créateur / responsable
+  academicYearId?: string;
+  isActive?: boolean;
 }
 
 /**
