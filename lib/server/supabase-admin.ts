@@ -6,10 +6,27 @@ import {
   getSessionTokenFromCookies,
 } from "@/lib/server/session";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ygygqilnecwuotbvmbvs.supabase.co";
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_0VKUsvbPLWJnALi_C1OUpA_UwHrhfHC";
+// Compatibilité universelle Vercel (NEXT_PUBLIC_, VITE_, SUPABASE_)
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  process.env.VITE_SUPABASE_URL ||
+  process.env.SUPABASE_URL ||
+  "https://ygygqilnecwuotbvmbvs.supabase.co";
+
+const SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_KEY ||
+  process.env.SUPABASE_PUBLISHABLE_KEY ||
+  "sb_publishable_0VKUsvbPLWJnALi_C1OUpA_UwHrhfHC";
+
 // La clé service_role reste STRICTEMENT côté serveur dans les variables d'environnement
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_KEY ||
+  process.env.SUPABASE_SECRET_KEY ||
+  "";
 
 /**
  * Client Supabase administratif pour le serveur uniquement (bypasses RLS de manière contrôlée).

@@ -13,6 +13,7 @@ import {
   Lock,
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { supabase } from "@/lib/supabase";
 
 interface AccountVerificationModalProps {
   isOpen: boolean;
@@ -48,6 +49,30 @@ export function AccountVerificationModal({
   const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
   const [devCode, setDevCode] = useState<string | null>(null);
 
+  // Connexion automatique 1-clic : Écoute onAuthStateChange pendant que la modale est active
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (
+        (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "TOKEN_REFRESHED") &&
+        session?.user
+      ) {
+        if (!email || session.user.email?.toLowerCase() === email.toLowerCase()) {
+          toast("Email confirmé avec succès ! Connexion 1-clic activée.", "success");
+          await onVerified("supabase_email_confirmed_1click");
+          onClose();
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [isOpen, email, onVerified, onClose, toast]);
+
   // Compte à rebours du renvoi de code (60 secondes)
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -77,6 +102,20 @@ export function AccountVerificationModal({
     setLoading(true);
 
     try {
+      if (channel === "EMAIL" && email && typeof window !== "undefined") {
+        try {
+          await supabase.auth.resend({
+            type: "signup",
+            email: email.trim(),
+            options: {
+              emailRedirectTo: window.location.origin,
+            },
+          });
+        } catch (supErr) {
+          console.warn("[AccountVerificationModal] Note Supabase resend :", supErr);
+        }
+      }
+
       const res = await fetch("/api/auth/otp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -130,6 +169,20 @@ export function AccountVerificationModal({
     setLoading(true);
 
     try {
+      if (selectedChannel === "EMAIL" && email && typeof window !== "undefined") {
+        try {
+          await supabase.auth.resend({
+            type: "signup",
+            email: email.trim(),
+            options: {
+              emailRedirectTo: window.location.origin,
+            },
+          });
+        } catch (supErr) {
+          console.warn("[AccountVerificationModal] Note Supabase resend :", supErr);
+        }
+      }
+
       const res = await fetch("/api/auth/otp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

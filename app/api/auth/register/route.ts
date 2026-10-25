@@ -197,12 +197,25 @@ export async function POST(request: Request) {
 
       const createdSchoolId = schoolRow.id;
 
+      // Calcul dynamique de l'URL de redirection (jamais localhost:3000 en production)
+      const dynamicRedirectTo =
+        body.redirectTo ||
+        body.emailRedirectTo ||
+        request.headers.get("origin") ||
+        (request.headers.get("x-forwarded-host")
+          ? `${request.headers.get("x-forwarded-proto") || "https"}://${request.headers.get("x-forwarded-host")}`
+          : null) ||
+        process.env.NEXT_PUBLIC_APP_URL ||
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+        "http://localhost:3000";
+
       // Inscription automatique dans Supabase Auth (GoTrue)
       try {
         await supabase.auth.signUp({
           email: normalizedEmail,
           password: password,
           options: {
+            emailRedirectTo: dynamicRedirectTo,
             data: {
               full_name: finalDirectorName,
               role: "directeur",
@@ -430,12 +443,25 @@ export async function POST(request: Request) {
 
       const finalParentName = `${finalParentLastName.toUpperCase()} ${finalParentFirstName}`;
 
+      // Calcul dynamique de l'URL de redirection pour le parent (jamais localhost:3000 en production)
+      const parentDynamicRedirectTo =
+        body.redirectTo ||
+        body.emailRedirectTo ||
+        request.headers.get("origin") ||
+        (request.headers.get("x-forwarded-host")
+          ? `${request.headers.get("x-forwarded-proto") || "https"}://${request.headers.get("x-forwarded-host")}`
+          : null) ||
+        process.env.NEXT_PUBLIC_APP_URL ||
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+        "http://localhost:3000";
+
       // Inscription automatique dans Supabase Auth (GoTrue) avec métadonnées exhaustives
       try {
         await supabase.auth.signUp({
           email: normalizedEmail,
           password: password,
           options: {
+            emailRedirectTo: parentDynamicRedirectTo,
             data: {
               full_name: finalParentName,
               role: "parent",

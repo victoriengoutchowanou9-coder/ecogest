@@ -2,8 +2,18 @@ import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ygygqilnecwuotbvmbvs.supabase.co";
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_0VKUsvbPLWJnALi_C1OUpA_UwHrhfHC";
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  process.env.VITE_SUPABASE_URL ||
+  process.env.SUPABASE_URL ||
+  "https://ygygqilnecwuotbvmbvs.supabase.co";
+const SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_KEY ||
+  process.env.SUPABASE_PUBLISHABLE_KEY ||
+  "sb_publishable_0VKUsvbPLWJnALi_C1OUpA_UwHrhfHC";
 
 export const DEV_ADMIN_IDENTIFIER = "DEV-ROOT-001";
 export const DEV_ADMIN_EMAIL = process.env.DEV_ADMIN_EMAIL || "admin.technique@ecogest.bj";

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -38,6 +38,7 @@ import {
 } from "@/lib/user-registry";
 import { ForgotPasswordModal } from "@/components/account/ForgotPasswordModal";
 import { AccountVerificationModal } from "@/components/auth/AccountVerificationModal";
+import { supabase } from "@/lib/supabase";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -47,6 +48,56 @@ export default function AuthPage() {
 
   // Modale de vérification par E-mail ou SMS (OTP)
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+
+  // Connexion automatique 1-clic : Écoute de l'événement onAuthStateChange de Supabase au démarrage
+  useEffect(() => {
+    let isMounted = true;
+
+    const targetPath: Record<Role, string> = {
+      directeur: "/directeur",
+      censeur: "/censeur",
+      secretariat: "/secretariat",
+      surveillant: "/surveillant",
+      enseignant: "/enseignant",
+      comptabilite: "/comptabilite",
+      comptable: "/comptabilite",
+      parent: "/parent",
+    };
+
+    // Si déjà authentifié lors de l'accès à la page de connexion
+    if (authStore.isAuthenticated && authStore.user) {
+      const activeRole = authStore.user.role as Role;
+      router.push(targetPath[activeRole] || "/directeur");
+      return;
+    }
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+
+      if (
+        (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "TOKEN_REFRESHED") &&
+        session?.user
+      ) {
+        setIsVerificationModalOpen(false);
+        toast("Connexion automatique 1-clic réussie !", "success");
+
+        await authStore.checkSession();
+        const role =
+          (authStore.user?.role as Role) ||
+          (session.user.user_metadata?.role as Role) ||
+          "directeur";
+
+        router.push(targetPath[role] || "/directeur");
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [router, toast, authStore.isAuthenticated, authStore.user]);
   const [pendingRegistration, setPendingRegistration] = useState<{
     pathway: "SCHOOL" | "PARENT";
     email: string;
@@ -399,6 +450,7 @@ export default function AuthPage() {
         plan: schoolChosenPlan,
         country: schoolCountry,
         city: schoolCity,
+        redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
       },
     });
     setIsVerificationModalOpen(true);
@@ -462,6 +514,7 @@ export default function AuthPage() {
         password: parentPassword,
         childMatricule: childMatricule.trim(),
         childClass: childClass.trim(),
+        redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
       },
     });
     setIsVerificationModalOpen(true);

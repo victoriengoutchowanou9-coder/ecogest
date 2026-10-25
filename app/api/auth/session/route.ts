@@ -181,7 +181,63 @@ export async function POST(request: Request) {
       query = query.eq("email", email.toLowerCase().trim());
     }
 
-    const { data: user, error } = await query.maybeSingle();
+    let { data: user, error } = await query.maybeSingle();
+
+    // Fallback 1 : Recherche par email si non trouvé par ID
+    if (!user && email) {
+      const { data: userByEmail } = await supabase
+        .from("school_users")
+        .select("*")
+        .eq("email", email.toLowerCase().trim())
+        .maybeSingle();
+      if (userByEmail) {
+        user = userByEmail;
+        error = null;
+      }
+    }
+
+    // Fallback 2 : Synchronisation automatique depuis Supabase GoTrue Auth (connexion 1-clic)
+    if (!user && userId) {
+      try {
+        const { data: authUserData } = await supabase.auth.admin.getUserById(userId);
+        if (authUserData?.user) {
+          const authUser = authUserData.user;
+          const meta = authUser.user_metadata || {};
+          const role = (meta.role || "directeur").toLowerCase();
+          const fullName = meta.full_name || meta.name || authUser.email?.split("@")[0] || "Utilisateur";
+          let schoolId = meta.school_id || null;
+
+          if (!schoolId) {
+            const { data: firstSchool } = await supabase.from("schools").select("id").limit(1).maybeSingle();
+            schoolId = firstSchool?.id || null;
+          }
+
+          if (schoolId) {
+            const { data: insertedUser } = await supabase
+              .from("school_users")
+              .insert({
+                id: authUser.id,
+                school_id: schoolId,
+                email: (authUser.email || email).toLowerCase(),
+                full_name: fullName,
+                role: role,
+                phone: meta.phone || "",
+                status: "ACTIF",
+                permissions: role === "directeur" ? ["ALL", "MANAGE_USERS"] : ["VIEW_CHILD_RECORDS"],
+              })
+              .select()
+              .maybeSingle();
+
+            if (insertedUser) {
+              user = insertedUser;
+              error = null;
+            }
+          }
+        }
+      } catch (authAdminErr) {
+        console.warn("[api/auth/session:POST] Note auto-provisioning 1-clic :", authAdminErr);
+      }
+    }
 
     if (error || !user) {
       const response = NextResponse.json(

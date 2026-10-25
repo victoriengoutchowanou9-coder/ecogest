@@ -74,22 +74,46 @@ export async function checkSupabaseSession(): Promise<boolean> {
 
   checkSessionPromise = (async () => {
     try {
-      // 1. Vérifier si une session Supabase Auth (GoTrue) existe côté client
+      // 1. Vérifier si une session Supabase Auth (GoTrue) existe côté client (Connexion 1-clic)
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (!sessionError && session?.user) {
           const email = session.user.email;
-          const res = await fetch("/api/auth/session", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: session.user.id, email }),
-          });
-          if (res.ok) {
-            const json = await res.json();
-            if (json.valid && json.user) {
-              authStore.setAuthenticated(json.user, json.school);
-              return true;
+          let synced = false;
+          try {
+            const res = await fetch("/api/auth/session", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userId: session.user.id, email }),
+            });
+            if (res.ok) {
+              const json = await res.json();
+              if (json.valid && json.user) {
+                authStore.setAuthenticated(json.user, json.school);
+                synced = true;
+                return true;
+              }
             }
+          } catch (fetchErr) {
+            console.warn("[auth-store] Erreur fetch /api/auth/session :", fetchErr);
+          }
+
+          // Fallback immédiat pour connexion 1-clic avec les métadonnées Supabase
+          if (!synced && session.user) {
+            const meta = session.user.user_metadata || {};
+            const cleanRole = normalizeRole(meta.role || "directeur");
+            authStore.setAuthenticated({
+              id: session.user.id,
+              email: session.user.email || "",
+              fullName: meta.full_name || meta.name || email?.split("@")[0] || "Utilisateur",
+              role: cleanRole,
+              schoolId: meta.school_id || "",
+              schoolName: meta.school_name || "Établissement Scolaire",
+              schoolCode: meta.school_code || "",
+              phone: meta.phone || "",
+              permissions: meta.permissions || [],
+            });
+            return true;
           }
         }
       } catch (e) {
@@ -136,14 +160,21 @@ export async function checkSupabaseSession(): Promise<boolean> {
   return checkSessionPromise;
 }
 
-// Initialisation côté client au chargement
+// Initialisation côté client au chargement : Écoute de l'événement onAuthStateChange de Supabase (Connexion 1-clic)
 if (typeof window !== "undefined") {
   try {
-    supabase.auth.onAuthStateChange(async (event) => {
+    supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_OUT") {
         authStore.setUnauthenticated();
-      } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        await checkSupabaseSession();
+      } else if (
+        event === "SIGNED_IN" ||
+        event === "TOKEN_REFRESHED" ||
+        event === "USER_UPDATED" ||
+        event === "INITIAL_SESSION"
+      ) {
+        if (session?.user) {
+          await checkSupabaseSession();
+        }
       }
     });
   } catch (err) {
@@ -460,6 +491,7 @@ export function useAuthStore() {
     validatePayment: authStore.validatePayment,
     setAuthenticated: authStore.setAuthenticated,
     setUnauthenticated: authStore.setUnauthenticated,
+    getSnapshot: authStore.getSnapshot,
   };
 }
 
