@@ -74,8 +74,8 @@ export default function SupportCenterPage() {
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
 
-  // Rôle réel issu de l'utilisateur authentifié (Supabase) ou du contexte
-  const currentRole: Role = (user?.role || role || "directeur").toLowerCase() as Role;
+  // Rôle réel issu du contexte actif (Censeur, Comptabilité, Direction...) ou du profil
+  const currentRole: Role = (role || user?.role || "directeur").toLowerCase() as Role;
 
   // Formulaire nouveau ticket
   const [formSubject, setFormSubject] = useState("");

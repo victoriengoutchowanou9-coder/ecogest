@@ -155,7 +155,7 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
       },
       {
         title: "Support & Assistance",
-        href: "/support",
+        href: "/support?role=directeur",
         iconName: "LifeBuoy",
         description: "Centre d'aide et assistance technique pour l'établissement",
         permission: "support:read",
@@ -280,7 +280,7 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
       },
       {
         title: "Centre de Support",
-        href: "/support",
+        href: "/support?role=censeur",
         iconName: "LifeBuoy",
         description: "Assistance technique, FAQ et ouverture de tickets",
         permission: "support:read",
@@ -376,7 +376,7 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
       },
       {
         title: "Centre de Support",
-        href: "/support",
+        href: "/support?role=secretariat",
         iconName: "LifeBuoy",
         description: "Assistance technique, FAQ et tickets",
         permission: "support:read",
@@ -457,7 +457,7 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
       },
       {
         title: "Centre de Support",
-        href: "/support",
+        href: "/support?role=surveillant",
         iconName: "LifeBuoy",
         description: "Assistance technique, FAQ et tickets",
         permission: "support:read",
@@ -539,7 +539,7 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
       },
       {
         title: "Centre de Support",
-        href: "/support",
+        href: "/support?role=enseignant",
         iconName: "LifeBuoy",
         description: "Assistance technique, FAQ et tickets",
         permission: "support:read",
@@ -613,7 +613,7 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
       },
       {
         title: "Centre de Support",
-        href: "/support",
+        href: "/support?role=comptabilite",
         iconName: "LifeBuoy",
         description: "Assistance technique, FAQ et tickets",
         permission: "support:read",
@@ -687,7 +687,7 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
       },
       {
         title: "Centre de Support",
-        href: "/support",
+        href: "/support?role=comptabilite",
         iconName: "LifeBuoy",
         description: "Assistance technique, FAQ et tickets",
         permission: "support:read",
@@ -780,7 +780,7 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
       },
       {
         title: "Centre de Support",
-        href: "/support",
+        href: "/support?role=parent",
         iconName: "LifeBuoy",
         description: "Assistance technique, FAQ et tickets",
         permission: "support:read",

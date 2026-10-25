@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { useSubscriptionStore } from "@/lib/subscription-store";
@@ -15,6 +16,16 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   onClose,
 }) => {
   const { activeSchool } = useSubscriptionStore();
+  const pathname = usePathname();
+  const prevPathname = useRef(pathname);
+
+  // Fermeture automatique et fluide du tiroir dès que la navigation aboutit
+  useEffect(() => {
+    if (prevPathname.current !== pathname) {
+      prevPathname.current = pathname;
+      onClose();
+    }
+  }, [pathname, onClose]);
 
   // Close drawer on escape key
   useEffect(() => {

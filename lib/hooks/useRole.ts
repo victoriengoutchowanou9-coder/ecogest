@@ -25,6 +25,8 @@ export interface RoleContext {
   roleLabel: string;
 }
 
+let lastActiveRole: Role = "directeur";
+
 /**
  * Extrait le rôle depuis le pathname s'il a un préfixe explicite.
  * Ex: "/censeur/notes" → "censeur"
@@ -44,7 +46,8 @@ export function extractRoleFromPath(pathname: string | null): Role | null {
 
 /**
  * Hook principal — retourne le contexte rôle complet.
- * Privilégie le rôle authentifié de l'utilisateur sur les routes partagées (/support, etc.).
+ * Préserve l'espace actif (Censeur, Comptabilité, etc.) lors de la navigation
+ * vers les routes partagées (/support...) sans réinitialiser arbitrairement vers Directeur.
  */
 export function useRole(): RoleContext {
   const pathname = usePathname();
@@ -53,11 +56,50 @@ export function useRole(): RoleContext {
   const userRole: Role = normalizeRole(user?.role);
   const pathRole = extractRoleFromPath(pathname);
 
-  // Si l'URL a un préfixe de rôle précis (/censeur, /comptabilite, /directeur...), on prend le rôle de l'URL.
-  // Pour les pages partagées (/support, etc.), on prend TOUJOURS le rôle authentifié de l'utilisateur.
-  // Repli sécurisé : "directeur" uniquement si aucun utilisateur n'est identifié.
+  // Mémorisation de l'espace actif dès qu'un chemin de rôle explicite est visité
+  if (pathRole) {
+    lastActiveRole = pathRole;
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem("ecogest_active_viewing_role", pathRole);
+      } catch {}
+    }
+  }
+
+  // Détection du paramètre optionnel ?role= dans l'URL (ex: /support?role=censeur)
+  let queryRole: Role | null = null;
+  if (typeof window !== "undefined") {
+    try {
+      const q = new URLSearchParams(window.location.search).get("role");
+      if (q && ROLE_NAVIGATIONS[q as Role]) {
+        queryRole = q as Role;
+      }
+    } catch {}
+  }
+
+  // Récupération de l'espace mémorisé dans la session
+  let savedRole: Role | null = null;
+  if (typeof window !== "undefined") {
+    try {
+      const s = sessionStorage.getItem("ecogest_active_viewing_role") as Role | null;
+      if (s && ROLE_NAVIGATIONS[s]) {
+        savedRole = s;
+      }
+    } catch {}
+  }
+
+  // Ordre de priorité :
+  // 1. Préfixe d'URL explicite (/censeur/..., /comptabilite/...)
+  // 2. Paramètre de requête ?role=
+  // 3. Espace mémorisé dans la session de consultation active
+  // 4. Dernier rôle actif en mémoire
+  // 5. Rôle naturel de l'utilisateur authentifié
+  // 6. Repli sécurisé "directeur"
   const role: Role =
     pathRole ||
+    queryRole ||
+    savedRole ||
+    lastActiveRole ||
     (userRole && ROLE_NAVIGATIONS[userRole] ? userRole : "directeur");
 
   const nav = ROLE_NAVIGATIONS[role] || ROLE_NAVIGATIONS.directeur;
