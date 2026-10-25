@@ -538,6 +538,24 @@ export function useBulletinStore() {
         safeSetStorage(getAuditKey(), next);
         return next;
       });
+
+      // Notification officielle aux parents : nouveaux résultats validés
+      const subjName = subjects.find((s) => s.id === subjectId)?.name || "Matière";
+      try {
+        fetch("/api/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "NOTE_PUBLIEE",
+            title: `Nouveaux résultats en ${subjName}`,
+            message: `Les notes officielles du ${periodId} en ${subjName} ont été validées par l'administration. Consultez votre espace sécurisé.`,
+            link: "/parent/notes",
+            classId,
+            periodId,
+            sourceEventId: `grades-val-${classId}-${subjectId}-${periodId}`,
+          }),
+        }).catch(() => {});
+      } catch {}
     },
     [subjects]
   );
@@ -571,6 +589,21 @@ export function useBulletinStore() {
         "Publication officielle des bulletins aux parents et élèves",
         authorName
       );
+
+      // Notification officielle aux parents
+      try {
+        fetch("/api/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "BULLETIN_PUBLIE",
+            title: "Publication officielle du bulletin scolaire",
+            message: "Le bulletin scolaire officiel est désormais disponible pour consultation sur votre espace sécurisé.",
+            link: "/parent/notes",
+            sourceEventId: `blt-pub-${targetKey}`,
+          }),
+        }).catch(() => {});
+      } catch {}
     },
     [setBulletinStatusForTarget]
   );
@@ -584,6 +617,21 @@ export function useBulletinStore() {
         reason,
         authorName
       );
+
+      // Notification de mise à jour après publication
+      try {
+        fetch("/api/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "BULLETIN_PUBLIE",
+            title: "Mise à jour d'un bulletin officiel",
+            message: `Le bulletin scolaire (${reason}) a été mis à jour par l'administration.`,
+            link: "/parent/notes",
+            sourceEventId: `blt-repub-${targetKey}-${Date.now()}`,
+          }),
+        }).catch(() => {});
+      } catch {}
     },
     [setBulletinStatusForTarget]
   );
@@ -644,6 +692,22 @@ export function useBulletinStore() {
         safeSetStorage(getAuditKey(), next);
         return next;
       });
+
+      // Notification officielle globale aux parents d'élèves
+      try {
+        fetch("/api/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "BULLETIN_PUBLIE",
+            title: `Clôture & Publication officielle du ${periodName}`,
+            message: `L'ensemble des bulletins scolaires officiels du ${periodName} ont été validés et publiés par la Direction.`,
+            link: "/parent/notes",
+            periodId,
+            sourceEventId: `period-close-pub-${periodId}`,
+          }),
+        }).catch(() => {});
+      } catch {}
     },
     [classrooms, periods]
   );

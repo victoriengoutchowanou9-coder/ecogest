@@ -18,6 +18,7 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useToast } from "@/components/ui/Toast";
 import { useAuth } from "@/lib/auth-store";
+import { useCommunicationStore } from "@/lib/communication-store";
 import {
   MOCK_DIRECTION_ANNOUNCEMENTS,
   DirectionAnnouncement,
@@ -40,7 +41,17 @@ export default function EnseignantMessagesPage() {
   const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState<"ANNONCES" | "ECHEANCES" | "MESSAGES" | "NOTIFICATIONS">("ANNONCES");
-  const [announcements, setAnnouncements] = useState<DirectionAnnouncement[]>(MOCK_DIRECTION_ANNOUNCEMENTS);
+  const {
+    announcements: liveAnnouncements,
+    markAnnouncementRead,
+    notifications: liveNotifications,
+  } = useCommunicationStore();
+
+  const teacherAnnouncements = React.useMemo(() => {
+    return liveAnnouncements.filter(
+      (a) => a.targetAudience === "ALL" || a.targetAudience === "ENSEIGNANTS" || a.targetAudience === "CLASS"
+    );
+  }, [liveAnnouncements]);
 
   const [messages, setMessages] = useState<AuthorizedMessage[]>([]);
 
@@ -67,9 +78,7 @@ export default function EnseignantMessagesPage() {
   }> = [];
 
   const handleMarkAnnouncementRead = (id: string) => {
-    setAnnouncements((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, isRead: true } : a))
-    );
+    markAnnouncementRead(id);
     toast("Annonce marquée comme lue.", "info");
   };
 
@@ -96,7 +105,7 @@ export default function EnseignantMessagesPage() {
     toast("Votre message a été transmis à l'administration.", "success");
   };
 
-  const unreadAnnouncementsCount = announcements.filter((a) => !a.isRead).length;
+  const unreadAnnouncementsCount = teacherAnnouncements.filter((a) => !a.isRead).length;
   const unreadMessagesCount = messages.filter((m) => !m.isRead).length;
 
   return (
@@ -189,14 +198,14 @@ export default function EnseignantMessagesPage() {
       {/* Tab 1: Annonces Direction */}
       {activeTab === "ANNONCES" && (
         <div className="space-y-4">
-          {announcements.length === 0 ? (
+          {teacherAnnouncements.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2 shadow-sm">
               <Bell className="w-8 h-8 text-slate-300 mx-auto" />
               <p className="text-sm font-semibold text-slate-700">Aucune annonce officielle</p>
               <p className="text-xs text-slate-400">Les communications de la direction générale et pédagogique s&apos;afficheront ici.</p>
             </div>
           ) : (
-            announcements.map((ann) => (
+            teacherAnnouncements.map((ann) => (
               <div
                 key={ann.id}
                 className={cn(
@@ -216,15 +225,15 @@ export default function EnseignantMessagesPage() {
                     >
                       {ann.category}
                     </span>
-                    <span className="text-xs font-semibold text-slate-700">{ann.author}</span>
-                    <span className="text-xs text-slate-400">&bull; {ann.date}</span>
+                    <span className="text-xs font-semibold text-slate-700">{ann.authorName}</span>
+                    <span className="text-xs text-slate-400">&bull; {new Date(ann.publishedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                   </div>
 
                   {!ann.isRead && (
                     <button
                       type="button"
-                      onClick={() => handleMarkAnnouncementRead(ann.id)}
-                      className="text-xs text-school-accent font-semibold hover:underline self-end sm:self-auto"
+                      onClick={() => markAnnouncementRead(ann.id)}
+                      className="text-xs text-school-primary font-semibold hover:underline self-end sm:self-auto"
                     >
                       Marquer comme lu
                     </button>
@@ -235,13 +244,6 @@ export default function EnseignantMessagesPage() {
                   <h3 className="font-bold text-slate-900 text-base">{ann.title}</h3>
                   <p className="text-xs text-slate-700 leading-relaxed mt-2">{ann.content}</p>
                 </div>
-
-                {ann.deadline && (
-                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-950 flex items-center gap-2 font-semibold">
-                    <Clock className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>Date limite impérative : {ann.deadline}</span>
-                  </div>
-                )}
               </div>
             ))
           )}
@@ -340,7 +342,7 @@ export default function EnseignantMessagesPage() {
       {/* Tab 4: Notifications Système */}
       {activeTab === "NOTIFICATIONS" && (
         <div>
-          {notifications.length === 0 ? (
+          {liveNotifications.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2 shadow-sm">
               <AlertTriangle className="w-8 h-8 text-slate-300 mx-auto" />
               <p className="text-sm font-semibold text-slate-700">Aucune notification système</p>
@@ -348,22 +350,20 @@ export default function EnseignantMessagesPage() {
             </div>
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden">
-              {notifications.map((n) => (
+              {liveNotifications.map((n) => (
                 <div key={n.id} className="p-4 flex items-start gap-3 hover:bg-slate-50 transition-colors">
                   <div
                     className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                      n.type === "ALERT"
-                        ? "bg-amber-100 text-amber-700"
-                        : n.type === "SUCCESS"
-                        ? "bg-emerald-100 text-emerald-700"
+                      n.type === "URGENCE"
+                        ? "bg-rose-100 text-rose-700"
+                        : n.type === "BULLETIN_PUBLIE"
+                        ? "bg-purple-100 text-purple-700"
                         : "bg-blue-100 text-blue-700"
                     )}
                   >
-                    {n.type === "ALERT" ? (
-                      <Clock className="w-4 h-4" />
-                    ) : n.type === "SUCCESS" ? (
-                      <CheckCircle2 className="w-4 h-4" />
+                    {n.type === "URGENCE" ? (
+                      <AlertTriangle className="w-4 h-4" />
                     ) : (
                       <Bell className="w-4 h-4" />
                     )}
@@ -371,9 +371,11 @@ export default function EnseignantMessagesPage() {
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-bold text-slate-900">{n.title}</h4>
-                      <span className="text-[10px] text-slate-400">{n.date}</span>
+                      <span className="text-[10px] text-slate-400">
+                        {new Date(n.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      </span>
                     </div>
-                    <p className="text-xs text-slate-600 mt-0.5">{n.content}</p>
+                    <p className="text-xs text-slate-600 mt-0.5">{n.message}</p>
                   </div>
                 </div>
               ))}

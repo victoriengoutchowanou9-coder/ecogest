@@ -22,8 +22,10 @@ import {
   User,
   AlertTriangle,
   UserCircle,
+  Megaphone,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useCommunicationStore } from "@/lib/communication-store";
 import { ChildSwitcher } from "@/components/school/ChildSwitcher";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatFCFA, formatDate } from "@/lib/utils";
@@ -104,6 +106,23 @@ export default function ParentDashboardPage() {
       setSelectedChild(undefined);
     }
   }, [myChildren, selectedChild]);
+
+  const { announcements, markAnnouncementRead } = useCommunicationStore();
+
+  const parentAnnouncements = React.useMemo(() => {
+    return announcements.filter((a) => {
+      if (a.targetAudience === "ALL" || a.targetAudience === "PARENTS") return true;
+      if (selectedChild) {
+        if (a.targetAudience === "CLASS" || a.targetAudience === "PARENTS_CLASS") {
+          return (
+            a.targetClassId === selectedChild.classId ||
+            (Boolean(a.targetClassName) && Boolean(selectedChild.className) && a.targetClassName?.toLowerCase() === selectedChild.className.toLowerCase())
+          );
+        }
+      }
+      return false;
+    });
+  }, [announcements, selectedChild]);
 
   // Subscription store integration
   const { canParentAddChild, parentPlanDef, parentPlan } = useSubscriptionStore();
@@ -263,6 +282,67 @@ export default function ParentDashboardPage() {
             selectedChildId={selectedChild.id}
             onSelectChild={setSelectedChild}
           />
+
+          {/* Annonces officielles de la Direction destinées aux parents */}
+          {parentAnnouncements.length > 0 && (
+            <div className="bg-gradient-to-r from-school-50/80 via-white to-sky-50/50 rounded-2xl border border-school-200 p-4 md:p-5 shadow-2xs space-y-3">
+              <div className="flex items-center justify-between border-b border-school-100 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <Megaphone className="w-5 h-5 text-school-primary" />
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Avis &amp; Communications Officielles de l&apos;Établissement
+                  </h3>
+                </div>
+                <Link
+                  href="/parent/notifications"
+                  className="text-xs font-bold text-school-primary hover:underline"
+                >
+                  Toutes les alertes &rarr;
+                </Link>
+              </div>
+
+              <div className="space-y-2.5">
+                {parentAnnouncements.slice(0, 3).map((ann) => (
+                  <div
+                    key={ann.id}
+                    className="p-3.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        {ann.priority === "URGENT" && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-rose-50 text-rose-700 border border-rose-200">
+                            Urgent
+                          </span>
+                        )}
+                        <h4 className="text-xs font-bold text-slate-900">{ann.title}</h4>
+                      </div>
+                      <span className="text-[10px] text-slate-400">
+                        {new Date(ann.publishedAt).toLocaleDateString("fr-FR", {
+                          day: "numeric",
+                          month: "short",
+                        })}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
+                      {ann.content}
+                    </p>
+                    <div className="flex items-center justify-between pt-1 text-[11px] text-slate-400">
+                      <span>Émis par : <strong className="text-slate-700">{ann.authorName}</strong></span>
+                      {!ann.isRead && (
+                        <button
+                          type="button"
+                          onClick={() => markAnnouncementRead(ann.id)}
+                          className="font-bold text-school-primary hover:underline text-[11px]"
+                        >
+                          Marquer comme lu
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Child Summary Card */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">

@@ -21,6 +21,7 @@ import { useSubscriptionStore, SchoolPlanCode } from "@/lib/subscription-store";
 import { useAuthStore } from "@/lib/auth-store";
 import { cn } from "@/lib/utils";
 import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface TopbarProps {
   onRoleChange: (newRole: Role) => void;
@@ -126,6 +127,9 @@ export const Topbar: React.FC<TopbarProps> = ({
         </div>
 
         {/* Bouton PWA Installer ECOGEST */}
+        {/* Centre de notifications unifié */}
+        <NotificationBell />
+
         <PWAInstallButton />
 
         {/* Subscription Plan Badge - Uniquement pour le Directeur de l'établissement */}

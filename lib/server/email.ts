@@ -351,3 +351,146 @@ export async function sendOtpEmail(params: SendEmailOtpParams): Promise<EmailSen
     messageId: `dev-${Date.now()}`,
   };
 }
+
+export interface SendSchoolNotificationEmailParams {
+  toEmail: string;
+  recipientName?: string;
+  schoolName: string;
+  title: string;
+  summary: string;
+  category: "ANNONCE" | "NOTE" | "BULLETIN" | "URGENCE" | "SCOLARITE";
+  ctaUrl: string;
+  ctaText?: string;
+}
+
+/**
+ * Modèle HTML sécurisé pour les notifications scolaires (Annonces, Notes, Bulletins)
+ * Règle de confidentialité : Aucune note chiffrée sensible n'est affichée en clair dans l'e-mail.
+ * L'e-mail avertit de la disponibilité et invite à se connecter sur l'espace sécurisé.
+ */
+function generateNotificationHtmlTemplate(params: SendSchoolNotificationEmailParams): string {
+  const categoryLabels = {
+    ANNONCE: "Annonce officielle",
+    NOTE: "Résultats scolaires",
+    BULLETIN: "Bulletin officiel",
+    URGENCE: "Avis important & Urgent",
+    SCOLARITE: "Vie scolaire",
+  };
+
+  const headerColors = {
+    ANNONCE: "linear-gradient(135deg, #0284c7, #0369a1)",
+    NOTE: "linear-gradient(135deg, #059669, #047857)",
+    BULLETIN: "linear-gradient(135deg, #7c3aed, #6d28d9)",
+    URGENCE: "linear-gradient(135deg, #dc2626, #b91c1c)",
+    SCOLARITE: "linear-gradient(135deg, #d97706, #b45309)",
+  };
+
+  return `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>${params.title}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #0f172a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width: 520px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08); border: 1px solid #e2e8f0;">
+          <tr>
+            <td style="background: ${headerColors[params.category]}; padding: 24px; text-align: center; color: #ffffff;">
+              <div style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9;">${params.schoolName}</div>
+              <div style="font-size: 20px; font-weight: 800; margin-top: 4px;">${categoryLabels[params.category]}</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 28px 24px;">
+              <p style="font-size: 14px; color: #475569; margin: 0 0 16px 0;">
+                Bonjour ${params.recipientName || ""},
+              </p>
+              <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 0 0 12px 0;">
+                ${params.title}
+              </h3>
+              <p style="font-size: 14px; line-height: 1.6; color: #334155; margin: 0 0 24px 0;">
+                ${params.summary}
+              </p>
+
+              <!-- Confidentiality Box -->
+              <div style="background-color: #f8fafc; border-left: 4px solid #0284c7; border-radius: 8px; padding: 12px 14px; margin-bottom: 24px; font-size: 12px; color: #64748b;">
+                🔒 <strong>Confidentialité des données scolaires :</strong> Conformément à la réglementation sur la protection des données, les notes et appréciations détaillées ne sont jamais transmises en clair par e-mail. Veuillez vous connecter à votre espace personnel pour y accéder en toute sécurité.
+              </div>
+
+              <!-- CTA Button -->
+              <div style="text-align: center; margin: 28px 0;">
+                <a href="${params.ctaUrl}" style="background-color: #0284c7; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 700; padding: 12px 28px; border-radius: 12px; display: inline-block;">
+                  ${params.ctaText || "Accéder à mon espace sécurisé"} &rarr;
+                </a>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #f8fafc; padding: 16px 24px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
+              Message officiel émis par l'établissement via ECOGEST.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
+/**
+ * Expédie un e-mail de notification scolaire en respectant la configuration du serveur
+ */
+export async function sendSchoolNotificationEmail(
+  params: SendSchoolNotificationEmailParams
+): Promise<EmailSendResult> {
+  const { configured, provider } = isEmailServiceConfigured();
+
+  if (!configured) {
+    console.log(`[Email Notification Ignorée] Service e-mail non configuré dans l'environnement pour ${params.toEmail}`);
+    return {
+      success: false,
+      provider: "none",
+      warning: "SMTP_NON_CONFIGURE",
+    };
+  }
+
+  const subject = `[${params.schoolName}] ${params.title}`;
+  const html = generateNotificationHtmlTemplate(params);
+  const text = `${params.schoolName}\n\n${params.title}\n\n${params.summary}\n\nConsultez le détail sur votre espace sécurisé : ${params.ctaUrl}`;
+
+  const fromAddress = process.env.EMAIL_FROM || `ECOGEST Notifications <notifications@ecogest.bj>`;
+
+  if (provider === "resend") {
+    return sendViaResend({
+      from: fromAddress,
+      to: params.toEmail,
+      subject,
+      html,
+      text,
+    });
+  }
+
+  const transporter = createSmtpTransporter();
+  if (transporter) {
+    try {
+      const info = await transporter.sendMail({
+        from: fromAddress,
+        to: params.toEmail,
+        subject,
+        html,
+        text,
+      });
+      return { success: true, provider: "smtp", messageId: info.messageId };
+    } catch (err: any) {
+      console.error("[Email Notification SMTP Error]:", err.message);
+      return { success: false, provider: "smtp", error: err.message };
+    }
+  }
+
+  return { success: false, provider: "none", warning: "Service non disponible" };
+}

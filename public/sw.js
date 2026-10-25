@@ -137,3 +137,60 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
 });
+
+// 5. Réception des notifications Web Push (PWA & Navigateur en arrière-plan)
+// Confidentialité stricte : Aucune note chiffrée ou donnée sensible n'est affichée sur l'écran verrouillé.
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  try {
+    const payload = event.data.json();
+    const title = payload.title || 'ECOGEST Notification';
+    const options = {
+      body: payload.body || 'Une nouvelle notification scolaire est disponible sur votre espace.',
+      icon: payload.icon || '/icons/icon-192x192.png',
+      badge: payload.badge || '/icons/icon.svg',
+      tag: payload.tag || 'ecogest-notification',
+      renotify: true,
+      data: {
+        url: payload.url || (payload.data && payload.data.url) || '/',
+        timestamp: Date.now(),
+      },
+    };
+
+    event.waitUntil(self.registration.showNotification(title, options));
+  } catch (err) {
+    console.error('[SW Push] Erreur décodage payload push:', err);
+    event.waitUntil(
+      self.registration.showNotification('ECOGEST Notification', {
+        body: 'Nouvelle information importante disponible sur votre espace sécurisé.',
+        icon: '/icons/icon-192x192.png',
+        data: { url: '/' },
+      })
+    );
+  }
+});
+
+// 6. Clic sur une notification push : Ouvre ou active l'onglet vers la page ciblée
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Si une fenêtre est déjà ouverte, la focaliser et naviguer
+      for (const client of clientList) {
+        if ('focus' in client) {
+          if (client.url.includes(targetUrl) || targetUrl === '/') {
+            return client.focus();
+          }
+          return client.navigate(targetUrl).then((c) => c.focus());
+        }
+      }
+      // Sinon ouvrir une nouvelle fenêtre
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
+  );
+});

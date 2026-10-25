@@ -118,6 +118,13 @@ export const ROLE_NAVIGATIONS: Record<Role, RoleNavigation> = {
         permission: "publications:manage",
       },
       {
+        title: "Communications & Annonces",
+        href: "/directeur/annonces",
+        iconName: "Bell",
+        description: "Diffuser des annonces ciblées et suivre les réceptions",
+        permission: "messages:manage",
+      },
+      {
         title: "Examens & Calendrier",
         href: "/directeur/examens",
         iconName: "CalendarDays",
