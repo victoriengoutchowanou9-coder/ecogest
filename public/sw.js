@@ -3,7 +3,7 @@
 // Politique de cache sécurisée : Aucune donnée privée/métier n'est mise en cache.
 // ============================================================================
 
-const CACHE_VERSION = 'ecogest-v3.3.8';
+const CACHE_VERSION = 'ecogest-v3.3.9';
 const STATIC_CACHE_NAME = `ecogest-static-${CACHE_VERSION}`;
 const SHELL_CACHE_NAME = `ecogest-shell-${CACHE_VERSION}`;
 

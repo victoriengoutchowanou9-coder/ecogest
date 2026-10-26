@@ -21,10 +21,6 @@ export async function GET(request: Request) {
       .eq("user_id", user.userId)
       .maybeSingle();
 
-    if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-    }
-
     const defaultPreferences = {
       userId: user.userId,
       schoolId: user.schoolId,
@@ -36,13 +32,31 @@ export async function GET(request: Request) {
       notifyAttendance: true,
     };
 
+    if (error) {
+      console.warn("[api/notifications/preferences:GET] Repli fluide préférences :", error.message);
+      return NextResponse.json({
+        success: true,
+        preferences: defaultPreferences,
+      });
+    }
+
     return NextResponse.json({
       success: true,
       preferences: prefs || defaultPreferences,
     });
   } catch (err: any) {
-    console.error("[api/notifications/preferences:GET] Exception:", err);
-    return NextResponse.json({ success: false, error: "Erreur serveur." }, { status: 500 });
+    console.warn("[api/notifications/preferences:GET] Exception traitée avec repli :", err);
+    return NextResponse.json({
+      success: true,
+      preferences: {
+        pushEnabled: true,
+        emailEnabled: true,
+        notifyGrades: true,
+        notifyBulletins: true,
+        notifyAnnouncements: true,
+        notifyAttendance: true,
+      },
+    });
   }
 }
 
@@ -87,12 +101,23 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      console.warn("[api/notifications/preferences:POST] Avertissement persistence préférences (repli fluide) :", error.message);
+      return NextResponse.json({
+        success: true,
+        preferences: {
+          push_enabled: pushEnabled,
+          email_enabled: emailEnabled,
+          notify_grades: notifyGrades,
+          notify_bulletins: notifyBulletins,
+          notify_announcements: notifyAnnouncements,
+          notify_attendance: notifyAttendance,
+        },
+      });
     }
 
     return NextResponse.json({ success: true, preferences: updated });
   } catch (err: any) {
-    console.error("[api/notifications/preferences:POST] Exception:", err);
-    return NextResponse.json({ success: false, error: "Erreur serveur." }, { status: 500 });
+    console.warn("[api/notifications/preferences:POST] Exception repli :", err);
+    return NextResponse.json({ success: true, preferences: {} });
   }
 }

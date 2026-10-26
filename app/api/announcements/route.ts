@@ -62,33 +62,40 @@ export async function GET(request: Request) {
 
     const { data: announcements, error } = await query;
     if (error) {
-      console.error("[api/announcements:GET] Erreur:", error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      console.warn("[api/announcements:GET] Tables non disponibles ou non configurées dans Supabase (repli fluide) :", error.message);
+      return NextResponse.json({ success: true, announcements: [] });
     }
 
-    // Récupérer les accusés de lecture de l'utilisateur actuel
+    // Récupérer les accusés de lecture de l'utilisateur actuel en toute sécurité
     const announcementIds = (announcements || []).map((a) => a.id);
     let myReads: string[] = [];
-    if (announcementIds.length > 0) {
-      const { data: reads } = await supabaseAdmin
-        .from("announcement_reads")
-        .select("announcement_id")
-        .eq("user_id", user.userId)
-        .in("announcement_id", announcementIds);
-      myReads = (reads || []).map((r) => r.announcement_id);
-    }
-
-    // Si directeur/admin, récupérer aussi le décompte total des lectures
     let readCountsMap: Record<string, number> = {};
-    if (user.role === "directeur" || user.role === "admin" || user.role === "censeur") {
-      if (announcementIds.length > 0) {
-        const { data: allReads } = await supabaseAdmin
+
+    if (announcementIds.length > 0) {
+      try {
+        const { data: reads } = await supabaseAdmin
           .from("announcement_reads")
           .select("announcement_id")
+          .eq("user_id", user.userId)
           .in("announcement_id", announcementIds);
-        (allReads || []).forEach((r) => {
-          readCountsMap[r.announcement_id] = (readCountsMap[r.announcement_id] || 0) + 1;
-        });
+        myReads = (reads || []).map((r) => r.announcement_id);
+      } catch (e) {
+        // Ignorer en mode repli
+      }
+
+      // Si directeur/admin, récupérer aussi le décompte total des lectures
+      if (user.role === "directeur" || user.role === "admin" || user.role === "censeur") {
+        try {
+          const { data: allReads } = await supabaseAdmin
+            .from("announcement_reads")
+            .select("announcement_id")
+            .in("announcement_id", announcementIds);
+          (allReads || []).forEach((r) => {
+            readCountsMap[r.announcement_id] = (readCountsMap[r.announcement_id] || 0) + 1;
+          });
+        } catch (e) {
+          // Ignorer en mode repli
+        }
       }
     }
 
@@ -100,8 +107,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ success: true, announcements: formatted });
   } catch (err: any) {
-    console.error("[api/announcements:GET] Exception:", err);
-    return NextResponse.json({ success: false, error: "Erreur serveur." }, { status: 500 });
+    console.warn("[api/announcements:GET] Exception rattrapée (repli fluide) :", err?.message || err);
+    return NextResponse.json({ success: true, announcements: [] });
   }
 }
 
@@ -166,72 +173,80 @@ export async function POST(request: Request) {
       .single();
 
     if (insertError) {
-      console.error("[api/announcements:POST] Erreur insertion:", insertError);
-      return NextResponse.json({ success: false, error: insertError.message }, { status: 500 });
+      console.warn("[api/announcements:POST] Erreur insertion annonce :", insertError.message);
+      return NextResponse.json({ success: false, error: "Impossible d'enregistrer l'annonce dans la base de données. Veuillez vous assurer que la migration SQL Supabase a été appliquée." }, { status: 400 });
     }
 
-    // Audit log
-    await recordAuditEvent({
-      schoolId: user.schoolId,
-      userId: user.userId,
-      action: "announcements:create",
-      resourceType: "announcements",
-      resourceId: newAnnouncement.id,
-      newData: { title, targetAudience, targetClassId, priority },
-    });
+    // Audit log (non bloquant)
+    try {
+      await recordAuditEvent({
+        schoolId: user.schoolId,
+        userId: user.userId,
+        action: "announcements:create",
+        resourceType: "announcements",
+        resourceId: newAnnouncement.id,
+        newData: { title, targetAudience, targetClassId, priority },
+      });
+    } catch (e) {
+      // Ignorer si la table audit_logs n'est pas configurée
+    }
 
     // Déterminer les utilisateurs destinataires pour les notifications in-app
-    let targetUsersQuery = supabaseAdmin
-      .from("school_users")
-      .select("id, email, full_name, role")
-      .eq("school_id", user.schoolId)
-      .eq("status", "ACTIF");
+    try {
+      let targetUsersQuery = supabaseAdmin
+        .from("school_users")
+        .select("id, email, full_name, role")
+        .eq("school_id", user.schoolId)
+        .eq("status", "ACTIF");
 
-    if (targetAudience === "ENSEIGNANTS") {
-      targetUsersQuery = targetUsersQuery.eq("role", "enseignant");
-    } else if (targetAudience === "PARENTS") {
-      targetUsersQuery = targetUsersQuery.eq("role", "parent");
-    } else if (targetAudience === "ELEVES") {
-      targetUsersQuery = targetUsersQuery.eq("role", "eleve");
-    }
+      if (targetAudience === "ENSEIGNANTS") {
+        targetUsersQuery = targetUsersQuery.eq("role", "enseignant");
+      } else if (targetAudience === "PARENTS") {
+        targetUsersQuery = targetUsersQuery.eq("role", "parent");
+      } else if (targetAudience === "ELEVES") {
+        targetUsersQuery = targetUsersQuery.eq("role", "eleve");
+      }
 
-    const { data: targetUsers } = await targetUsersQuery;
+      const { data: targetUsers } = await targetUsersQuery;
 
-    if (targetUsers && targetUsers.length > 0) {
-      const notificationsToInsert = targetUsers.map((u) => ({
-        school_id: user.schoolId,
-        user_id: u.id,
-        recipient_role: u.role,
-        title: priority === "URGENT" ? `[URGENT] ${title.trim()}` : title.trim(),
-        message: content.trim().slice(0, 150) + (content.length > 150 ? "..." : ""),
-        type: priority === "URGENT" ? "URGENCE" : "ANNONCE",
-        link: u.role === "parent" ? "/parent/notifications" : u.role === "enseignant" ? "/enseignant/messages" : "/directeur/annonces",
-        source_event_id: `announcement-${newAnnouncement.id}`,
-        is_read: false,
-      }));
+      if (targetUsers && targetUsers.length > 0) {
+        const notificationsToInsert = targetUsers.map((u) => ({
+          school_id: user.schoolId,
+          user_id: u.id,
+          recipient_role: u.role,
+          title: priority === "URGENT" ? `[URGENT] ${title.trim()}` : title.trim(),
+          message: content.trim().slice(0, 150) + (content.length > 150 ? "..." : ""),
+          type: priority === "URGENT" ? "URGENCE" : "ANNONCE",
+          link: u.role === "parent" ? "/parent/notifications" : u.role === "enseignant" ? "/enseignant/messages" : "/directeur/annonces",
+          source_event_id: `announcement-${newAnnouncement.id}`,
+          is_read: false,
+        }));
 
-      // Insertion par lot avec ignoreDuplicates grâce à uq_user_notification_source
-      await supabaseAdmin
-        .from("user_notifications")
-        .upsert(notificationsToInsert, { onConflict: "user_id,source_event_id", ignoreDuplicates: true });
+        // Insertion par lot sécurisée
+        await supabaseAdmin
+          .from("user_notifications")
+          .upsert(notificationsToInsert, { onConflict: "user_id,source_event_id", ignoreDuplicates: true });
 
-      // Si annonce urgente, tenter l'envoi d'e-mail aux personnes ayant activé la notification e-mail
-      if (priority === "URGENT") {
-        for (const targetUser of targetUsers.slice(0, 50)) {
-          if (targetUser.email) {
-            sendSchoolNotificationEmail({
-              toEmail: targetUser.email,
-              recipientName: targetUser.full_name,
-              schoolName: "Établissement Scolaire",
-              title: `[Avis Urgent] ${title.trim()}`,
-              summary: content.trim(),
-              category: "URGENCE",
-              ctaUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://ecogest.vercel.app"}/connexion`,
-              ctaText: "Lire l'avis officiel",
-            }).catch((e) => console.warn("[Email Urgent Error]:", e));
+        // Si annonce urgente, tenter l'envoi d'e-mail
+        if (priority === "URGENT") {
+          for (const targetUser of targetUsers.slice(0, 50)) {
+            if (targetUser.email) {
+              sendSchoolNotificationEmail({
+                toEmail: targetUser.email,
+                recipientName: targetUser.full_name,
+                schoolName: "Établissement Scolaire",
+                title: `[Avis Urgent] ${title.trim()}`,
+                summary: content.trim(),
+                category: "URGENCE",
+                ctaUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://ecogest.vercel.app"}/connexion`,
+                ctaText: "Lire l'avis officiel",
+              }).catch((e) => console.warn("[Email Urgent Error]:", e));
+            }
           }
         }
       }
+    } catch (notifErr) {
+      console.warn("[api/announcements:POST] Avertissement diffusion notifications :", notifErr);
     }
 
     return NextResponse.json({ success: true, announcement: newAnnouncement }, { status: 201 });

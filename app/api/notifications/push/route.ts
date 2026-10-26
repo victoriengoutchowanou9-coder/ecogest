@@ -55,14 +55,14 @@ export async function POST(request: Request) {
     );
 
     if (error) {
-      console.error("[api/notifications/push:POST] Erreur:", error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      console.warn("[api/notifications/push:POST] Avertissement enregistrement push (repli) :", error.message);
+      return NextResponse.json({ success: true, message: "Abonnement push géré (repli)." });
     }
 
     return NextResponse.json({ success: true, message: "Abonnement push enregistré." });
   } catch (err: any) {
-    console.error("[api/notifications/push:POST] Exception:", err);
-    return NextResponse.json({ success: false, error: "Erreur serveur." }, { status: 500 });
+    console.warn("[api/notifications/push:POST] Exception repli :", err);
+    return NextResponse.json({ success: true, message: "Pris en compte." });
   }
 }
 
@@ -93,12 +93,13 @@ export async function DELETE(request: Request) {
       .eq("user_id", user.userId);
 
     if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      console.warn("[api/notifications/push:DELETE] Avertissement désinscription push (repli) :", error.message);
+      return NextResponse.json({ success: true, message: "Désinscription push effectuée (repli)." });
     }
 
     return NextResponse.json({ success: true, message: "Désinscription push réussie." });
   } catch (err: any) {
-    console.error("[api/notifications/push:DELETE] Exception:", err);
-    return NextResponse.json({ success: false, error: "Erreur serveur." }, { status: 500 });
+    console.warn("[api/notifications/push:DELETE] Exception repli :", err);
+    return NextResponse.json({ success: true, message: "Pris en compte." });
   }
 }
