@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { authStore } from "@/lib/auth-store";
 import {
@@ -98,25 +97,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, className }) => {
   const handleLogout = async () => {
     if (onNavigate) onNavigate();
     await authStore.logout();
-    router.push("/connexion");
+    window.location.href = "/connexion";
   };
 
   const handleItemClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    // Si l'utilisateur clique avec la molette ou avec une touche modificatrice, laisser le navigateur ouvrir normalement
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
 
     if (pathname === href) {
+      e.preventDefault();
       if (onNavigate) onNavigate();
       return;
     }
 
-    // Déclencher la navigation immédiate
-    router.push(href);
-
     if (onNavigate) {
-      setTimeout(() => {
-        onNavigate();
-      }, 300);
+      onNavigate();
     }
   };
 
@@ -146,10 +140,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, className }) => {
               (item.href !== currentNav.basePath && pathname?.startsWith(item.href));
 
             return (
-              <Link
+              <a
                 key={item.href}
                 href={item.href}
-                prefetch={false}
                 onClick={(e) => handleItemClick(e, item.href)}
                 title={item.description}
                 className={cn(
@@ -189,7 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, className }) => {
                     </span>
                   )}
                 </div>
-              </Link>
+              </a>
             );
           })}
         </nav>

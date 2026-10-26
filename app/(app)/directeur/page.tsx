@@ -227,9 +227,8 @@ export default function DirecteurDashboardPage() {
           </h3>
 
           <div className="space-y-2">
-            <Link
+            <a
               href="/censeur"
-              prefetch={false}
               className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-school-accent hover:bg-school-50/50 transition-colors touch-target"
             >
               <div className="flex items-center gap-2.5">
@@ -237,11 +236,10 @@ export default function DirecteurDashboardPage() {
                 <span className="text-xs font-semibold text-slate-800">Espace Censeur des Études</span>
               </div>
               <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-            </Link>
+            </a>
 
-            <Link
+            <a
               href="/directeur/classes"
-              prefetch={false}
               className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-school-accent hover:bg-school-50/50 transition-colors touch-target"
             >
               <div className="flex items-center gap-2.5">
@@ -249,11 +247,10 @@ export default function DirecteurDashboardPage() {
                 <span className="text-xs font-semibold text-slate-800">Classes &amp; Matières</span>
               </div>
               <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-            </Link>
+            </a>
 
-            <Link
+            <a
               href="/directeur/utilisateurs"
-              prefetch={false}
               className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-school-accent hover:bg-school-50/50 transition-colors touch-target"
             >
               <div className="flex items-center gap-2.5">
@@ -261,11 +258,10 @@ export default function DirecteurDashboardPage() {
                 <span className="text-xs font-semibold text-slate-800">Comptes Utilisateurs</span>
               </div>
               <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-            </Link>
+            </a>
 
-            <Link
+            <a
               href="/directeur/publications"
-              prefetch={false}
               className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-school-accent hover:bg-school-50/50 transition-colors touch-target"
             >
               <div className="flex items-center gap-2.5">
@@ -273,11 +269,10 @@ export default function DirecteurDashboardPage() {
                 <span className="text-xs font-semibold text-slate-800">Publication des examens</span>
               </div>
               <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-            </Link>
+            </a>
 
-            <Link
+            <a
               href="/directeur/audit"
-              prefetch={false}
               className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-school-accent hover:bg-school-50/50 transition-colors touch-target"
             >
               <div className="flex items-center gap-2.5">
@@ -285,7 +280,7 @@ export default function DirecteurDashboardPage() {
                 <span className="text-xs font-semibold text-slate-800">Journal d&apos;audit sécurité</span>
               </div>
               <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-            </Link>
+            </a>
           </div>
         </div>
       </div>

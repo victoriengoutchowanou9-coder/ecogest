@@ -26,6 +26,32 @@ export default function MisesAJourPage() {
 
   const releases = [
     {
+      version: "ECOGEST 3.3.11",
+      date: "26 Octobre 2026",
+      badge: "Navigation Native Garantie Sans Blocage SPA",
+      badgeColor: "bg-emerald-600 text-white",
+      summary: "Remplacement du routage SPA Next.js par une navigation native HTML directe sur les menus latéraux et barres d'onglets mobiles. Résolution définitive du blocage sur le tableau de bord, affichage garanti immédiat du contenu cliqué sur téléphone et ordinateur, et Service Worker PWA ecogest-v3.3.11.",
+      sections: [
+        {
+          type: "Routage Natif Sans Interception SPA",
+          icon: <Layout className="w-4 h-4 text-slate-700" />,
+          items: [
+            "Conversion des éléments de la barre latérale et de la barre mobile en liens natifs HTML <a>.",
+            "Élimination totale des collisions entre les gestionnaires React 19 et Next.js 15 qui annulaient silencieusement les clics.",
+            "Affichage immédiat et garanti du contenu de chaque bouton (Classes, Matières, Bulletins, Utilisateurs, etc.) dès le simple clic gauche.",
+          ],
+        },
+        {
+          type: "Cache PWA & Déploiement v3.3.11",
+          icon: <Zap className="w-4 h-4 text-amber-500" />,
+          items: [
+            "Incrémentation de la version globale à ecogest-v3.3.11 pour rafraîchir tous les terminaux mobiles et postes de travail.",
+            "Purge et remplacement complet des anciens shells applicatifs en cache.",
+          ],
+        },
+      ],
+    },
+    {
       version: "ECOGEST 3.3.10",
       date: "26 Octobre 2026",
       badge: "Navigation Instantanée & Neutralisation Conflit de Cache",

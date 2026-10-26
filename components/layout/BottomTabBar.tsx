@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -118,10 +117,9 @@ export const BottomTabBar: React.FC = () => {
           (item.href !== currentNav.basePath && pathname?.startsWith(item.href));
 
         return (
-          <Link
+          <a
             key={item.href}
             href={item.href}
-            prefetch={false}
             className={cn(
               "flex flex-col items-center justify-center flex-1 py-1.5 touch-target min-h-[48px] text-[11px] font-medium transition-transform active:scale-95 touch-manipulation cursor-pointer",
               isActive ? "text-school-primary font-bold" : "text-slate-500 hover:text-slate-800"
@@ -134,14 +132,13 @@ export const BottomTabBar: React.FC = () => {
               {ICONS[item.iconName] || <Home className="w-5 h-5 shrink-0" />}
             </div>
             <span className="truncate max-w-[70px] mt-0.5">{item.title}</span>
-          </Link>
+          </a>
         );
       })}
 
       {/* Bouton Profil aligné avec les autres fonctionnalités de navigation */}
-      <Link
+      <a
         href={profileHref}
-        prefetch={false}
         className={cn(
           "flex flex-col items-center justify-center flex-1 py-1.5 touch-target min-h-[48px] text-[11px] font-medium transition-transform active:scale-95 touch-manipulation cursor-pointer",
           isProfileActive ? "text-school-primary font-bold" : "text-slate-500 hover:text-slate-800"
@@ -154,7 +151,7 @@ export const BottomTabBar: React.FC = () => {
           <UserCircle className="w-5 h-5 shrink-0" />
         </div>
         <span className="truncate max-w-[70px] mt-0.5">Profil</span>
-      </Link>
+      </a>
     </nav>
   );
 };
