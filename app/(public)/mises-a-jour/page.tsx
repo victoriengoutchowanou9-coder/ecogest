@@ -26,6 +26,32 @@ export default function MisesAJourPage() {
 
   const releases = [
     {
+      version: "ECOGEST 3.3.10",
+      date: "26 Octobre 2026",
+      badge: "Navigation Instantanée & Neutralisation Conflit de Cache",
+      badgeColor: "bg-school-primary text-white",
+      summary: "Élimination définitive du besoin d'ouvrir les liens dans un nouvel onglet. Désactivation du préchargement agressif pour empêcher la corruption du cache local, déclenchement prioritaire immédiat par simple clic gauche et actualisation du Service Worker PWA ecogest-v3.3.10.",
+      sections: [
+        {
+          type: "Navigation Directe au Clic Gauche",
+          icon: <Layout className="w-4 h-4 text-slate-700" />,
+          items: [
+            "Désactivation du préchargement agressif (prefetch={false}) sur l'ensemble des liens du menu latéral et de la barre mobile pour empêcher la corruption de chunks en cache local.",
+            "Routage forcé et prioritaire via router.push(href) dès le premier clic gauche pour afficher immédiatement le contenu dans la même fenêtre.",
+            "Fin définitive de l'obligation d'ouvrir chaque bouton dans un nouvel onglet : navigation fluide sur toutes les rubriques (Directeur, Censeur, Comptable).",
+          ],
+        },
+        {
+          type: "Service Worker PWA v3.3.10",
+          icon: <Zap className="w-4 h-4 text-amber-500" />,
+          items: [
+            "Incrémentation de la version de cache PWA à ecogest-v3.3.10 dans public/sw.js et package.json.",
+            "Purge automatique des versions de cache antérieures lors du rechargement de l'application.",
+          ],
+        },
+      ],
+    },
+    {
       version: "ECOGEST 3.3.9",
       date: "26 Octobre 2026",
       badge: "Résilience Backend & Correction Erreurs 500",
