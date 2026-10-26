@@ -226,7 +226,7 @@ export async function POST(request: Request) {
               title: `[Avis Urgent] ${title.trim()}`,
               summary: content.trim(),
               category: "URGENCE",
-              ctaUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://ecogest-henna.vercel.app"}/connexion`,
+              ctaUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://ecogest.vercel.app"}/connexion`,
               ctaText: "Lire l'avis officiel",
             }).catch((e) => console.warn("[Email Urgent Error]:", e));
           }

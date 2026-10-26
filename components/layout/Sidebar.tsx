@@ -101,20 +101,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, className }) => {
     router.push("/connexion");
   };
 
-  const handleItemClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-
+  const handleItemClick = (href: string) => {
     if (pathname === href) {
       if (onNavigate) onNavigate();
-      return;
-    }
-
-    router.push(href);
-
-    if (onNavigate) {
+    } else if (onNavigate) {
       setTimeout(() => {
         onNavigate();
-      }, 150);
+      }, 500);
     }
   };
 
@@ -147,7 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, className }) => {
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={(e) => handleItemClick(e, item.href)}
+                onClick={() => handleItemClick(item.href)}
                 title={item.description}
                 className={cn(
                   "flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors touch-target",

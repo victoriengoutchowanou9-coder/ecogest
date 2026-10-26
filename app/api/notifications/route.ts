@@ -209,7 +209,7 @@ export async function POST(request: Request) {
             title,
             summary: message,
             category: type === "BULLETIN_PUBLIE" ? "BULLETIN" : type === "NOTE_PUBLIEE" ? "NOTE" : "SCOLARITE",
-            ctaUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://ecogest-henna.vercel.app"}/parent/notes`,
+            ctaUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://ecogest.vercel.app"}/parent/notes`,
             ctaText: "Consulter sur mon espace sécurisé",
           }).catch((e) => console.warn("[Email Notification]:", e));
         }
