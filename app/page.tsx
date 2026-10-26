@@ -1,8 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PublicFooter } from "@/components/layout/PublicFooter";
+import { useAuthStore } from "@/lib/auth-store";
+import { supabase } from "@/lib/supabase";
 import {
   Shield,
   BookOpenCheck,
@@ -29,7 +32,47 @@ import {
 } from "lucide-react";
 
 export default function HomePage() {
+  const router = useRouter();
+  const { user: currentUser, isAuthenticated } = useAuthStore();
   const [billingPeriod, setBillingPeriod] = useState<"MONTHLY" | "ANNUAL">("MONTHLY");
+
+  // Redirection automatique 1-clic vers l'espace utilisateur dès confirmation d'e-mail ou session active
+  useEffect(() => {
+    const rolePaths: Record<string, string> = {
+      directeur: "/directeur",
+      censeur: "/censeur",
+      secretariat: "/secretariat",
+      surveillant: "/surveillant",
+      enseignant: "/enseignant",
+      comptabilite: "/comptabilite",
+      comptable: "/comptabilite",
+      parent: "/parent",
+    };
+
+    if (isAuthenticated && currentUser?.role) {
+      const path = rolePaths[currentUser.role.toLowerCase()];
+      if (path) {
+        router.replace(path);
+        return;
+      }
+    }
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (
+        (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "TOKEN_REFRESHED") &&
+        session?.user
+      ) {
+        const role = (session.user.user_metadata?.role || "directeur").toLowerCase();
+        router.replace(rolePaths[role] || "/directeur");
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [isAuthenticated, currentUser, router]);
 
   const softwareModules = [
     {
