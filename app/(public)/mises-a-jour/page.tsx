@@ -26,6 +26,66 @@ export default function MisesAJourPage() {
 
   const releases = [
     {
+      version: "ECOGEST 3.3.9",
+      date: "26 Octobre 2026",
+      badge: "Résilience Backend & Correction Erreurs 500",
+      badgeColor: "bg-emerald-600 text-white",
+      summary: "Tolérance aux pannes renforcée pour les API de notifications et d'annonces scolaires. Élimination complète des statuts d'erreur HTTP 500 dans la console, intégration d'un mode de repli gracieux sécurisé, script SQL unifié et actualisation du Service Worker PWA.",
+      sections: [
+        {
+          type: "Tolérance aux Pannes & Repli Gracieux (Graceful Fallback)",
+          icon: <ShieldCheck className="w-4 h-4 text-emerald-600" />,
+          items: [
+            "Sécurisation des routes GET /api/notifications et GET /api/announcements : en cas de table non migrée ou d'indisponibilité de la base, l'API renvoie une réponse saine HTTP 200 avec payload vide sans spammer la console.",
+            "Protection identique sur les endpoints de préférences /api/notifications/preferences, d'accusés de lecture /api/announcements/[id]/read et d'abonnements Web Push /api/notifications/push.",
+            "Neutralisation définitive des erreurs 'relation does not exist' (code PostgreSQL PGRST205) pour les utilisateurs finaux.",
+          ],
+        },
+        {
+          type: "Service Worker PWA & Rafraîchissement des Caches",
+          icon: <Zap className="w-4 h-4 text-amber-500" />,
+          items: [
+            "Incrémentation de la version de cache PWA à ecogest-v3.3.9 pour forcer la mise à jour sur les navigateurs des utilisateurs.",
+            "Purge automatique des anciens shells d'application périmés lors de l'installation de la nouvelle version.",
+          ],
+        },
+        {
+          type: "Déploiement SQL Supabase Unifié",
+          icon: <CheckCircle2 className="w-4 h-4 text-blue-600" />,
+          items: [
+            "Fourniture d'un script SQL complet encapsulé dans un bloc transactionnel DO $$ BEGIN ... END $$; évitant tout échec partiel dans l'éditeur Supabase.",
+            "Création ordonnée et sécurisée des tables announcements, user_notifications, announcement_reads, push_subscriptions et user_notification_preferences avec RLS.",
+          ],
+        },
+      ],
+    },
+    {
+      version: "ECOGEST 3.3.8",
+      date: "26 Octobre 2026",
+      badge: "Navigation Fluide & Correction Menu Latéral Multi-Espaces",
+      badgeColor: "bg-school-primary text-white",
+      summary: "Correction critique du menu latéral dans les espaces Directeur, Censeur et Comptabilité. Résolution du blocage sur le tableau de bord, navigation instantanée lors du clic sur les rubriques, synchronisation visuelle de l'élément sélectionné et correction de la confirmation d'e-mail.",
+      sections: [
+        {
+          type: "Correction Navigation & Tiroir Mobile",
+          icon: <Layout className="w-4 h-4 text-slate-700" />,
+          items: [
+            "Refonte du gestionnaire de clic dans Sidebar.tsx : navigation immédiate et prioritaire avec router.push(href) sans destruction synchrone du composant.",
+            "Fermeture différée et naturelle du tiroir mobile déclenchée sur l'événement de changement d'URL (pathname), garantissant que la page demandée s'affiche toujours à l'écran.",
+            "Déplacement immédiat du surlignage bleu foncé sur l'item cliqué dès le chargement de la vue.",
+          ],
+        },
+        {
+          type: "Authentification & Confirmation E-mail",
+          icon: <ShieldCheck className="w-4 h-4 text-emerald-600" />,
+          items: [
+            "Correction du handler /auth/callback pour aligner les arguments de createSchoolUserSessionToken(userId, email).",
+            "Redirection fluide et sans rupture vers l'espace de travail correspondant au rôle de l'utilisateur dès la validation du lien de confirmation.",
+          ],
+        },
+      ],
+    },
+    {
       version: "ECOGEST 3.3.7",
       date: "19 Octobre 2026",
       badge: "Supervision Développeur & Suppression Sécurisée de Comptes",
