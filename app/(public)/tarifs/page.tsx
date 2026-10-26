@@ -359,7 +359,7 @@ export default function TarifsPage() {
 
                   <div className="flex items-baseline gap-1 py-2 border-y border-indigo-100">
                     <span className="text-3xl font-black text-indigo-700">{pp.priceMonthly} FCFA</span>
-                    <span className="text-xs text-slate-500 font-semibold"> / mois</span>
+                    <span className="text-xs text-slate-500 font-semibold"> / an</span>
                   </div>
 
                   <ul className="space-y-2 text-xs text-slate-700">

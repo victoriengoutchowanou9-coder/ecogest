@@ -244,9 +244,9 @@ export async function POST(request: Request) {
       amountFcfa = (planDef.priceFcfa ?? 6000) * Number(durationMonths || 1);
       maxUsers = planDef.maxUsers ?? 40;
     } else {
-      const planDef = (PARENT_PLANS as any)[planCode] || { name: planCode, priceFcfa: 200, maxChildren: 1 };
+      const planDef = (PARENT_PLANS as any)[planCode] || { name: planCode, priceFcfa: 500, maxChildren: 1 };
       planName = planDef.name;
-      amountFcfa = (planDef.priceFcfa || 200) * Number(durationMonths || 1);
+      amountFcfa = (planDef.priceFcfa || 500) * Number(durationMonths || 1);
       maxChildren = planDef.maxChildren || 1;
     }
 

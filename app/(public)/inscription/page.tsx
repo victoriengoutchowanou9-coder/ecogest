@@ -1136,7 +1136,7 @@ export default function InscriptionPage() {
                       }`}
                     >
                       <span className="font-bold text-slate-900 block">1 Enfant</span>
-                      <strong className="text-indigo-600 text-sm">200 FCFA / mois</strong>
+                      <strong className="text-indigo-600 text-sm">500 FCFA / an</strong>
                       <span className="text-[10px] text-slate-500 block">Accès complet suivi de l&apos;élève</span>
                     </div>
 
@@ -1149,7 +1149,7 @@ export default function InscriptionPage() {
                       }`}
                     >
                       <span className="font-bold text-slate-900 block">2 Enfants (Fratrie)</span>
-                      <strong className="text-indigo-600 text-sm">300 FCFA / mois</strong>
+                      <strong className="text-indigo-600 text-sm">1 000 FCFA / an (500 F/élève)</strong>
                       <span className="text-[10px] text-slate-500 block">Bascule instantanée entre enfants</span>
                     </div>
                   </div>
@@ -1211,7 +1211,7 @@ export default function InscriptionPage() {
                     <span>
                       {loading
                         ? "Initialisation du paiement SasPay..."
-                        : `Créer mon compte Parent & Payer via SasPay (${(parentPlan === "PARENT_2" ? 300 : 200).toLocaleString()} FCFA)`}
+                        : `Créer mon compte Parent & Payer via SasPay (${(parentPlan === "PARENT_2" ? 1000 : 500).toLocaleString()} FCFA)`}
                     </span>
                   </button>
                 </div>

@@ -585,9 +585,10 @@ export default function ClassesPage() {
 
       {/* Modal Création / Édition de Classe & Division */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden my-auto">
+            {/* Entête fixe */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <GraduationCap className="w-4 h-4 text-school-primary" />
                 <span>{editingClass ? `Modifier ${editingClass.name}` : "Enregistrer une nouvelle classe"}</span>
@@ -595,13 +596,15 @@ export default function ClassesPage() {
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200 transition"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200 transition"
+                aria-label="Fermer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveClass} className="p-6 space-y-4">
+            {/* Corps défilable du formulaire */}
+            <form id="class-modal-form" onSubmit={handleSaveClass} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
               {/* Choix du cycle */}
               {schoolTeachingType === "PRIMAIRE_SECONDAIRE" && (
                 <div>
@@ -944,31 +947,34 @@ export default function ClassesPage() {
                   élève(s) (Calcul automatique)
                 </span>
               </div>
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-school-primary text-white text-xs font-bold hover:bg-school-700 shadow-sm transition-colors"
-                >
-                  {editingClass ? "Mettre à jour la classe" : "Enregistrer la classe"}
-                </button>
-              </div>
             </form>
+
+            {/* Pied de modal fixe et toujours visible avec bouton de confirmation */}
+            <div className="flex items-center justify-end gap-3 px-5 py-3.5 border-t border-slate-200 bg-slate-50 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-white transition"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                form="class-modal-form"
+                className="px-5 py-2.5 rounded-xl bg-school-primary text-white text-xs font-bold hover:bg-school-700 shadow-md transition-all flex items-center gap-2 touch-target"
+              >
+                <Check className="w-4 h-4" />
+                <span>{editingClass ? "Mettre à jour la classe" : "Confirmer et enregistrer la classe"}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Modal Historique des Attributions de Maître */}
       {historyModalClass && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden my-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
               <div className="flex items-center gap-2">
                 <History className="w-5 h-5 text-school-primary" />

@@ -209,21 +209,51 @@ export async function POST(request: Request) {
         (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
         "http://localhost:3000";
 
-      // Inscription automatique dans Supabase Auth (GoTrue)
+      // Inscription automatique dans Supabase Auth (GoTrue) avec auto-confirmation
       try {
-        await supabase.auth.signUp({
-          email: normalizedEmail,
-          password: password,
-          options: {
-            emailRedirectTo: dynamicRedirectTo,
-            data: {
+        if (supabase?.auth?.admin) {
+          const { error: adminErr } = await supabase.auth.admin.createUser({
+            email: normalizedEmail,
+            password: password,
+            email_confirm: true,
+            user_metadata: {
               full_name: finalDirectorName,
               role: "directeur",
               school_id: createdSchoolId,
               school_name: cleanSchoolName,
             },
-          },
-        });
+          });
+          if (adminErr) {
+            console.warn("[register] Note admin createUser directeur :", adminErr.message);
+            await supabase.auth.signUp({
+              email: normalizedEmail,
+              password: password,
+              options: {
+                emailRedirectTo: dynamicRedirectTo,
+                data: {
+                  full_name: finalDirectorName,
+                  role: "directeur",
+                  school_id: createdSchoolId,
+                  school_name: cleanSchoolName,
+                },
+              },
+            });
+          }
+        } else {
+          await supabase.auth.signUp({
+            email: normalizedEmail,
+            password: password,
+            options: {
+              emailRedirectTo: dynamicRedirectTo,
+              data: {
+                full_name: finalDirectorName,
+                role: "directeur",
+                school_id: createdSchoolId,
+                school_name: cleanSchoolName,
+              },
+            },
+          });
+        }
       } catch (authErr) {
         console.warn("[register] Note Supabase GoTrue Auth signUp :", authErr);
       }
@@ -455,14 +485,14 @@ export async function POST(request: Request) {
         (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
         "http://localhost:3000";
 
-      // Inscription automatique dans Supabase Auth (GoTrue) avec métadonnées exhaustives
+      // Inscription automatique dans Supabase Auth (GoTrue) avec auto-confirmation parent
       try {
-        await supabase.auth.signUp({
-          email: normalizedEmail,
-          password: password,
-          options: {
-            emailRedirectTo: parentDynamicRedirectTo,
-            data: {
+        if (supabase?.auth?.admin) {
+          const { error: adminErr } = await supabase.auth.admin.createUser({
+            email: normalizedEmail,
+            password: password,
+            email_confirm: true,
+            user_metadata: {
               full_name: finalParentName,
               role: "parent",
               school_id: matchedSchool.id,
@@ -473,8 +503,48 @@ export async function POST(request: Request) {
               child_class: (childClass || "").trim(),
               chosen_plan: chosenPlan || "PARENT_1",
             },
-          },
-        });
+          });
+          if (adminErr) {
+            console.warn("[register] Note admin createUser parent :", adminErr.message);
+            await supabase.auth.signUp({
+              email: normalizedEmail,
+              password: password,
+              options: {
+                emailRedirectTo: parentDynamicRedirectTo,
+                data: {
+                  full_name: finalParentName,
+                  role: "parent",
+                  school_id: matchedSchool.id,
+                  school_name: matchedSchool.name,
+                  phone: (phone || "").trim(),
+                  relationship: cleanRelationship,
+                  child_matricule: (childMatricule || "").trim(),
+                  child_class: (childClass || "").trim(),
+                  chosen_plan: chosenPlan || "PARENT_1",
+                },
+              },
+            });
+          }
+        } else {
+          await supabase.auth.signUp({
+            email: normalizedEmail,
+            password: password,
+            options: {
+              emailRedirectTo: parentDynamicRedirectTo,
+              data: {
+                full_name: finalParentName,
+                role: "parent",
+                school_id: matchedSchool.id,
+                school_name: matchedSchool.name,
+                phone: (phone || "").trim(),
+                relationship: cleanRelationship,
+                child_matricule: (childMatricule || "").trim(),
+                child_class: (childClass || "").trim(),
+                chosen_plan: chosenPlan || "PARENT_1",
+              },
+            },
+          });
+        }
       } catch (authErr) {
         console.warn("[register] Note Supabase GoTrue Auth signUp parent :", authErr);
       }

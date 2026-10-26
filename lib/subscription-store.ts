@@ -81,7 +81,7 @@ const DEFAULT_SCHOOL_STATE: SchoolSubscriptionState = {
   currentPlan: "STARTER",
   status: "TRIAL",
   startDate: "2026-10-01",
-  expiresAt: "2026-11-01",
+  expiresAt: "2027-10-01",
   autoRenew: false,
   activeSchoolId: "school-1",
   schools: [INITIAL_SCHOOLS[0]],
@@ -532,26 +532,26 @@ export const subscriptionStore = {
 
   // Changer de forfait parent
   changeParentPlan(newPlan: ParentPlanCode) {
-    const nextMonth = new Date();
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const nextYear = new Date();
+    nextYear.setFullYear(nextYear.getFullYear() + 1);
     memoryParentState = {
       ...memoryParentState,
       currentPlan: newPlan,
       status: "ACTIVE",
       startDate: new Date().toISOString().split("T")[0],
-      expiresAt: nextMonth.toISOString().split("T")[0],
+      expiresAt: nextYear.toISOString().split("T")[0],
     };
     saveParentState();
   },
 
   // Renouveler forfait parent
   renewParentSubscription() {
-    const nextMonth = new Date();
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const nextYear = new Date();
+    nextYear.setFullYear(nextYear.getFullYear() + 1);
     memoryParentState = {
       ...memoryParentState,
       status: "ACTIVE",
-      expiresAt: nextMonth.toISOString().split("T")[0],
+      expiresAt: nextYear.toISOString().split("T")[0],
     };
     saveParentState();
   },

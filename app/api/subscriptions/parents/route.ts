@@ -17,8 +17,8 @@ export async function POST(request: Request) {
           allowed: false,
           error:
             planCode === "PARENT_1"
-              ? "Le forfait PARENT 1 (200 FCFA/mois) est strictement limité à 1 élève. Pour suivre un deuxième enfant, veuillez passer à la formule PARENT 2 (300 FCFA/mois)."
-              : "Le forfait PARENT 2 (300 FCFA/mois) autorise un maximum de 2 élèves. L'association d'un troisième élève n'est pas autorisée par le système.",
+              ? "Le forfait PARENT 1 (500 FCFA/an) est strictement limité à 1 élève. Pour suivre un deuxième enfant, veuillez passer à la formule PARENT 2 (1 000 FCFA/an)."
+              : "Le forfait PARENT 2 (1 000 FCFA/an) autorise un maximum de 2 élèves. L'association d'un troisième élève n'est pas autorisée par le système.",
           maxAllowed: plan.maxChildren,
           currentCount: current,
         },

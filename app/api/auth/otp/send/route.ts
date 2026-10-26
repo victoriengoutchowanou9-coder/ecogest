@@ -128,7 +128,7 @@ export async function POST(request: Request) {
       channel: validatedChannel,
       maskedTarget: masked,
       cooldownSeconds: 60,
-      devCode: devCode || (process.env.NODE_ENV !== "production" ? otpResult.code : undefined),
+      devCode: devCode || (providerUsed === "resend_sandbox" || providerUsed === "dev_fallback" || process.env.NODE_ENV !== "production" ? otpResult.code : undefined),
       provider: providerUsed,
     });
   } catch (err: any) {

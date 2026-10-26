@@ -298,7 +298,7 @@ export default function AuthPage() {
   const [schoolEmail, setSchoolEmail] = useState("");
   const [schoolPhone, setSchoolPhone] = useState("+229 ");
   const [schoolPassword, setSchoolPassword] = useState("");
-  const [schoolChosenPlan, setSchoolChosenPlan] = useState<SchoolPlanCode>("STARTER");
+  const [schoolChosenPlan, setSchoolChosenPlan] = useState<SchoolPlanCode>("BASIC");
 
   // Finalisation et enregistrement du compte après vérification OTP (E-mail ou SMS)
   const handleFinalizeVerifiedRegistration = async (verificationToken: string) => {
@@ -923,8 +923,8 @@ export default function AuthPage() {
                       <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
                         Choisissez votre Formule :
                       </label>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {(["STARTER", "BASIC", "STANDARD", "PREMIUM"] as SchoolPlanCode[]).map((pCode) => {
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {(["BASIC", "STANDARD", "PREMIUM"] as SchoolPlanCode[]).map((pCode) => {
                           const p = SCHOOL_PLANS[pCode];
                           const isSel = schoolChosenPlan === pCode;
                           return (
@@ -959,15 +959,9 @@ export default function AuthPage() {
                       </div>
                     </div>
 
-                    {schoolChosenPlan === "STARTER" ? (
-                      <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800">
-                        <strong>1 mois gratuit offert :</strong> Accès immédiat et complet à toutes les fonctionnalités avec jusqu&apos;à 20 utilisateurs établissement. Aucun paiement requis.
-                      </div>
-                    ) : (
-                      <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800">
-                        <strong>Activation requise :</strong> Après création, le règlement de l&apos;abonnement ({SCHOOL_PLANS[schoolChosenPlan].priceFcfa.toLocaleString()} FCFA/mois) sera demandé pour activer votre espace opérationnel.
-                      </div>
-                    )}
+                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800">
+                      <strong>Activation requise :</strong> Après création, le règlement de l&apos;abonnement ({SCHOOL_PLANS[schoolChosenPlan]?.priceFcfa?.toLocaleString()} FCFA/mois) sera demandé pour activer votre espace opérationnel.
+                    </div>
 
                     <button
                       type="submit"
@@ -1087,7 +1081,7 @@ export default function AuthPage() {
                               </div>
                               <p className="text-sm font-black text-indigo-600 mt-1">
                                 {p.priceFcfa} FCFA
-                                <span className="text-[10px] font-normal text-slate-500"> /mois</span>
+                                <span className="text-[10px] font-normal text-slate-500"> /{p.period}</span>
                               </p>
                               <p className="text-[10px] text-slate-500 mt-1">
                                 {p.maxChildren} élève{p.maxChildren > 1 ? "s max" : ""}

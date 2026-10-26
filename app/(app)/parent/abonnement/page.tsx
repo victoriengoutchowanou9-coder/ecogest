@@ -174,7 +174,7 @@ export default function ParentAbonnementPage() {
     validatePayment("PARENT");
     setConfirmModalPlan(null);
     toast(
-      `Votre compte est désormais sous la formule ${targetPlan.name} (${targetPlan.priceFcfa} FCFA/mois).`,
+      `Votre compte est désormais sous la formule ${targetPlan.name} (${targetPlan.priceFcfa} FCFA/${targetPlan.period}).`,
       "success"
     );
   };
@@ -225,7 +225,7 @@ export default function ParentAbonnementPage() {
     renewParentSubscription();
     validatePayment("PARENT");
     toast(
-      `Votre forfait ${parentPlanDef.name} a été renouvelé avec succès pour un mois !`,
+      `Votre forfait ${parentPlanDef.name} a été renouvelé avec succès pour un an !`,
       "success"
     );
   };
@@ -383,7 +383,7 @@ export default function ParentAbonnementPage() {
             <h2 className="text-2xl md:text-3xl font-black tracking-tight text-white mt-2">
               {parentPlanDef.name} &mdash;{" "}
               <span className="text-amber-400">{parentPlanDef.priceFcfa} FCFA</span>
-              <span className="text-sm font-normal text-slate-300"> / mois</span>
+              <span className="text-sm font-normal text-slate-300"> / an</span>
             </h2>
             <p className="text-xs text-slate-300">{parentPlanDef.tagline}</p>
           </div>
@@ -428,7 +428,7 @@ export default function ParentAbonnementPage() {
           </div>
           <p className="text-[11px] text-slate-400">
             {parentPlan === "PARENT_1"
-              ? "Forfait 1 élève. Pour suivre un second enfant, passez au forfait PARENT 2 (300 FCFA/mois)."
+              ? "Forfait 1 élève (500 FCFA/an). Pour suivre un second enfant, passez au forfait PARENT 2 (1 000 FCFA/an)."
               : "Forfait famille : 2 élèves maximum autorisés par compte parent."}
           </p>
         </div>
@@ -478,7 +478,7 @@ export default function ParentAbonnementPage() {
                   <div>
                     <div className="flex items-baseline gap-1">
                       <span className="text-3xl font-black text-slate-900">{plan.priceFcfa}</span>
-                      <span className="text-xs font-semibold text-slate-500">FCFA / mois</span>
+                      <span className="text-xs font-semibold text-slate-500">FCFA / an</span>
                     </div>
                     <p className="text-xs text-slate-500 mt-1">{plan.tagline}</p>
                   </div>
@@ -588,7 +588,7 @@ export default function ParentAbonnementPage() {
                 <p className="text-xs text-slate-500 mt-1">
                   Nouveau tarif :{" "}
                   <strong className="text-slate-800">
-                    {PARENT_PLANS[confirmModalPlan].priceFcfa} FCFA / mois
+                    {PARENT_PLANS[confirmModalPlan].priceFcfa} FCFA / {PARENT_PLANS[confirmModalPlan].period}
                   </strong>
                   . Vous pourrez suivre jusqu&apos;à{" "}
                   <strong>

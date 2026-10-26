@@ -540,7 +540,7 @@ export default function DirecteurAbonnementPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {(Object.keys(SCHOOL_PLANS) as SchoolPlanCode[]).map((code) => {
+          {(Object.keys(SCHOOL_PLANS) as SchoolPlanCode[]).filter((c) => c !== "STARTER").map((code) => {
             const plan = SCHOOL_PLANS[code];
             const isCurrent = schoolPlan === code;
 
@@ -614,23 +614,13 @@ export default function DirecteurAbonnementPage() {
 
                 <div className="mt-8 pt-4 border-t border-slate-100">
                   {isCurrent ? (
-                    code === "STARTER" && hasConsumedTrial ? (
-                      <div className="w-full py-2.5 rounded-xl bg-slate-100 text-slate-500 text-xs font-bold text-center border border-slate-200">
-                        Mois d&apos;essai déjà consommé
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleRenew}
-                        className="w-full py-2.5 rounded-xl bg-school-primary text-white text-xs font-bold hover:bg-school-700 transition shadow-sm touch-target"
-                      >
-                        Renouveler ce forfait
-                      </button>
-                    )
-                  ) : code === "STARTER" && hasConsumedTrial ? (
-                    <div className="w-full py-2.5 rounded-xl bg-slate-100 text-slate-500 text-xs font-bold text-center border border-slate-200">
-                      Offre d&apos;essai non rééligible
-                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRenew}
+                      className="w-full py-2.5 rounded-xl bg-school-primary text-white text-xs font-bold hover:bg-school-700 transition shadow-sm touch-target"
+                    >
+                      Renouveler ce forfait
+                    </button>
                   ) : (
                     <button
                       type="button"

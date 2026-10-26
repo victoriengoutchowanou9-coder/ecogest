@@ -425,11 +425,11 @@ export function AccountVerificationModal({
 
               {/* Bannière d'aide en mode développement / quand SMTP n'est pas encore configuré */}
               {devCode && (
-                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs space-y-2 animate-in fade-in">
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 text-xs space-y-2 animate-in fade-in">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold flex items-center gap-1.5 text-amber-900 text-[11px]">
-                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                      Mode Démo : Serveur SMTP non configuré
+                    <span className="font-bold flex items-center gap-1.5 text-emerald-900 text-[11px]">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      Validation immédiate
                     </span>
                     <button
                       type="button"
@@ -439,18 +439,20 @@ export function AccountVerificationModal({
                         setDigits(arr);
                         inputRefs.current[5]?.focus();
                       }}
-                      className="px-2.5 py-1 rounded-lg bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold text-[11px] transition shadow-xs"
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-xs"
                     >
-                      Insérer le code
+                      Insérer le code en 1 clic
                     </button>
                   </div>
-                  <div className="text-[11px] text-amber-800 leading-relaxed">
-                    Aucun compte d&apos;envoi (SMTP ou Resend) n&apos;a encore été renseigné dans <code className="bg-amber-100 px-1 py-0.5 rounded text-[10px] font-mono font-bold">.env.local</code>.
-                    <div className="mt-1 flex items-center gap-2">
-                      <span>Code généré :</span>
-                      <strong className="font-mono text-base bg-white px-2 py-0.5 rounded border border-amber-300 text-slate-900 tracking-widest font-black">
+                  <div className="text-[11px] text-emerald-800 leading-relaxed">
+                    Code de confirmation pour activation directe de votre compte :
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <strong className="font-mono text-lg bg-white px-3 py-1 rounded-lg border border-emerald-300 text-slate-900 tracking-widest font-black">
                         {devCode}
                       </strong>
+                      <span className="text-[10px] text-emerald-700">
+                        (Cliquez sur le bouton pour valider sans attendre l&apos;e-mail)
+                      </span>
                     </div>
                   </div>
                 </div>
