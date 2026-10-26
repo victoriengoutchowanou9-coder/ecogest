@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { usePathname } from "next/navigation";
+import React, { useState, useTransition, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   GraduationCap,
@@ -81,8 +81,27 @@ const ICONS: Record<string, React.ReactNode> = {
 
 export const BottomTabBar: React.FC = () => {
   const pathname = usePathname();
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [optimisticPath, setOptimisticPath] = useState<string | null>(null);
   const { role: currentRole } = useRoleContext();
   const currentNav = ROLE_NAVIGATIONS[currentRole] || ROLE_NAVIGATIONS.directeur;
+
+  useEffect(() => {
+    setOptimisticPath(null);
+  }, [pathname]);
+
+  const handleTabClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    if (pathname === href) return;
+    setOptimisticPath(href);
+    startTransition(() => {
+      router.push(href);
+    });
+  };
+
+  const activePath = optimisticPath || pathname;
 
   // Sort items by mobileTabPriority (1 = most important), fallback to original order
   const profileHref =
@@ -100,7 +119,7 @@ export const BottomTabBar: React.FC = () => {
       ? "/enseignant/profil"
       : "/parent/profil";
 
-  const isProfileActive = pathname === profileHref || pathname?.endsWith("/profil");
+  const isProfileActive = activePath === profileHref || activePath?.endsWith("/profil");
 
   const quickItems = [...(currentNav?.items || [])]
     .sort((a, b) => (a.mobileTabPriority ?? 99) - (b.mobileTabPriority ?? 99))
@@ -113,13 +132,14 @@ export const BottomTabBar: React.FC = () => {
     >
       {quickItems.map((item) => {
         const isActive =
-          pathname === item.href ||
-          (item.href !== currentNav.basePath && pathname?.startsWith(item.href));
+          activePath === item.href ||
+          (item.href !== currentNav.basePath && activePath?.startsWith(item.href));
 
         return (
           <a
             key={item.href}
             href={item.href}
+            onClick={(e) => handleTabClick(e, item.href)}
             className={cn(
               "flex flex-col items-center justify-center flex-1 py-1.5 touch-target min-h-[48px] text-[11px] font-medium transition-transform active:scale-95 touch-manipulation cursor-pointer",
               isActive ? "text-school-primary font-bold" : "text-slate-500 hover:text-slate-800"
@@ -139,6 +159,7 @@ export const BottomTabBar: React.FC = () => {
       {/* Bouton Profil aligné avec les autres fonctionnalités de navigation */}
       <a
         href={profileHref}
+        onClick={(e) => handleTabClick(e, profileHref)}
         className={cn(
           "flex flex-col items-center justify-center flex-1 py-1.5 touch-target min-h-[48px] text-[11px] font-medium transition-transform active:scale-95 touch-manipulation cursor-pointer",
           isProfileActive ? "text-school-primary font-bold" : "text-slate-500 hover:text-slate-800"

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useTransition, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { authStore } from "@/lib/auth-store";
 import {
@@ -91,8 +91,15 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, className }) => {
   const pathname = usePathname();
   const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [optimisticPath, setOptimisticPath] = useState<string | null>(null);
   const { role: currentRole } = useRoleContext();
   const currentNav = ROLE_NAVIGATIONS[currentRole] || ROLE_NAVIGATIONS.directeur;
+
+  // Réinitialiser le chemin optimiste dès que la navigation est effective
+  useEffect(() => {
+    setOptimisticPath(null);
+  }, [pathname]);
 
   const handleLogout = async () => {
     if (onNavigate) onNavigate();
@@ -103,16 +110,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, className }) => {
   const handleItemClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
 
+    e.preventDefault();
+
     if (pathname === href) {
-      e.preventDefault();
       if (onNavigate) onNavigate();
       return;
     }
 
+    // 1. Déplacer instantanément le surlignage bleu sur le bouton cliqué (0 milliseconde)
+    setOptimisticPath(href);
+
+    // 2. Si tiroir mobile ouvert, fermer le tiroir
     if (onNavigate) {
       onNavigate();
     }
+
+    // 3. Transition fluide SPA Next.js sans écran blanc
+    startTransition(() => {
+      router.push(href);
+    });
   };
+
+  const activePath = optimisticPath || pathname;
 
   return (
     <aside
@@ -136,8 +155,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, className }) => {
         <nav className="space-y-1" aria-label="Navigation principale">
           {currentNav.items.map((item) => {
             const isActive =
-              pathname === item.href ||
-              (item.href !== currentNav.basePath && pathname?.startsWith(item.href));
+              activePath === item.href ||
+              (item.href !== currentNav.basePath && activePath?.startsWith(item.href));
 
             return (
               <a

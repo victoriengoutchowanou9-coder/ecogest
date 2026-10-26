@@ -26,6 +26,32 @@ export default function MisesAJourPage() {
 
   const releases = [
     {
+      version: "ECOGEST 3.3.12",
+      date: "26 Octobre 2026",
+      badge: "Navigation Instantanée Fluide Sans Écran Blanc",
+      badgeColor: "bg-blue-600 text-white",
+      summary: "Activation des transitions fluides et réactives avec mise à jour optimiste du surlignage actif (0 ms). Élimination définitive de l'écran blanc, suppression du rechargement complet de fenêtre et transition instantanée d'une page à l'autre sans interruption visuelle.",
+      sections: [
+        {
+          type: "Transitions Instantanées (Zero-White-Flash)",
+          icon: <Layout className="w-4 h-4 text-slate-700" />,
+          items: [
+            "Mise à jour optimiste immédiate : le surlignage bleu foncé se déplace en 0 ms sur le bouton cliqué.",
+            "Navigation fluide en arrière-plan avec useTransition et router.push sans décharger la page ni provoquer d'écran blanc.",
+            "Disparition totale du spinner de rechargement complet du navigateur pour une sensation d'application mobile native.",
+          ],
+        },
+        {
+          type: "Service Worker PWA v3.3.12",
+          icon: <Zap className="w-4 h-4 text-amber-500" />,
+          items: [
+            "Mise à jour de la version de cache globale vers ecogest-v3.3.12.",
+            "Actualisation immédiate sur mobile et PC.",
+          ],
+        },
+      ],
+    },
+    {
       version: "ECOGEST 3.3.11",
       date: "26 Octobre 2026",
       badge: "Navigation Native Garantie Sans Blocage SPA",
