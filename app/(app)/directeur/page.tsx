@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useTransition } from "react";
+import React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Users,
   GraduationCap,
@@ -26,17 +25,6 @@ import { useBulletinStore } from "@/lib/bulletin-store";
 import { useCenseurStore } from "@/lib/censeur-store";
 
 export default function DirecteurDashboardPage() {
-  const router = useRouter();
-  const [, startTransition] = useTransition();
-
-  const handleFastNav = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-    e.preventDefault();
-    startTransition(() => {
-      router.push(href);
-    });
-  };
-
   const {
     schoolStatus,
     schoolPlanDef,
@@ -241,7 +229,6 @@ export default function DirecteurDashboardPage() {
           <div className="space-y-2">
             <a
               href="/censeur"
-              onClick={(e) => handleFastNav(e, "/censeur")}
               className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-school-accent hover:bg-school-50/50 transition-colors touch-target"
             >
               <div className="flex items-center gap-2.5">
@@ -253,7 +240,6 @@ export default function DirecteurDashboardPage() {
 
             <a
               href="/directeur/classes"
-              onClick={(e) => handleFastNav(e, "/directeur/classes")}
               className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-school-accent hover:bg-school-50/50 transition-colors touch-target"
             >
               <div className="flex items-center gap-2.5">
@@ -265,7 +251,6 @@ export default function DirecteurDashboardPage() {
 
             <a
               href="/directeur/utilisateurs"
-              onClick={(e) => handleFastNav(e, "/directeur/utilisateurs")}
               className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-school-accent hover:bg-school-50/50 transition-colors touch-target"
             >
               <div className="flex items-center gap-2.5">
@@ -277,7 +262,6 @@ export default function DirecteurDashboardPage() {
 
             <a
               href="/directeur/publications"
-              onClick={(e) => handleFastNav(e, "/directeur/publications")}
               className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-school-accent hover:bg-school-50/50 transition-colors touch-target"
             >
               <div className="flex items-center gap-2.5">
@@ -289,7 +273,6 @@ export default function DirecteurDashboardPage() {
 
             <a
               href="/directeur/audit"
-              onClick={(e) => handleFastNav(e, "/directeur/audit")}
               className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-school-accent hover:bg-school-50/50 transition-colors touch-target"
             >
               <div className="flex items-center gap-2.5">
