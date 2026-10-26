@@ -212,7 +212,7 @@ export const BeninBlankBulletinTemplate: React.FC<BlankBulletinProps> = ({
           {/* QR Code 3x3 cm */}
           <div className="shrink-0 flex items-center justify-center pl-2 border-l border-black">
             <div className="w-[30mm] h-[30mm] max-w-[65px] max-h-[65px] flex items-center justify-center">
-              <QRCodeSVG value="https://ecogest.vercel.app/authentification/bulletin/officiel-benin" size={56} />
+              <QRCodeSVG value="https://ecogest-henna.vercel.app/authentification/bulletin/officiel-benin" size={56} />
             </div>
           </div>
         </div>
