@@ -101,13 +101,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, className }) => {
     router.push("/connexion");
   };
 
-  const handleItemClick = (href: string) => {
+  const handleItemClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    // Si l'utilisateur clique avec la molette ou avec une touche modificatrice, laisser le navigateur ouvrir normalement
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+
     if (pathname === href) {
       if (onNavigate) onNavigate();
-    } else if (onNavigate) {
+      return;
+    }
+
+    // Déclencher la navigation immédiate
+    router.push(href);
+
+    if (onNavigate) {
       setTimeout(() => {
         onNavigate();
-      }, 500);
+      }, 300);
     }
   };
 
@@ -140,7 +149,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, className }) => {
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={() => handleItemClick(item.href)}
+                prefetch={false}
+                onClick={(e) => handleItemClick(e, item.href)}
                 title={item.description}
                 className={cn(
                   "flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors touch-target",

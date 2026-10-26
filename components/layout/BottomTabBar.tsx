@@ -121,6 +121,7 @@ export const BottomTabBar: React.FC = () => {
           <Link
             key={item.href}
             href={item.href}
+            prefetch={false}
             className={cn(
               "flex flex-col items-center justify-center flex-1 py-1.5 touch-target min-h-[48px] text-[11px] font-medium transition-transform active:scale-95 touch-manipulation cursor-pointer",
               isActive ? "text-school-primary font-bold" : "text-slate-500 hover:text-slate-800"
@@ -140,6 +141,7 @@ export const BottomTabBar: React.FC = () => {
       {/* Bouton Profil aligné avec les autres fonctionnalités de navigation */}
       <Link
         href={profileHref}
+        prefetch={false}
         className={cn(
           "flex flex-col items-center justify-center flex-1 py-1.5 touch-target min-h-[48px] text-[11px] font-medium transition-transform active:scale-95 touch-manipulation cursor-pointer",
           isProfileActive ? "text-school-primary font-bold" : "text-slate-500 hover:text-slate-800"
